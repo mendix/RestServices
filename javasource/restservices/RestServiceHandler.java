@@ -8,14 +8,18 @@ import java.util.Map;
 
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 
 import com.mendix.core.Core;
 import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
+import com.mendix.m2ee.log.ILogNode;
 
 public class RestServiceHandler extends RequestHandler{
 
+	private static final ILogNode LOG = Core.getLogger("RestPublisher");
 	private static RestServiceHandler instance = null;
 	private static Map<String, PublishedServiceDefinition> services = new HashMap<String, PublishedServiceDefinition>();
 	private static Map<String, PublishedServiceDefinition> servicesByEntity = new HashMap<String, PublishedServiceDefinition>();
@@ -49,5 +53,43 @@ public class RestServiceHandler extends RequestHandler{
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String path) throws Exception {
 		
+		String[] parts = path.split("/");
+		Request request = (Request) req.getOriginalRequest();
+		Response response = (Response) resp.getOriginalResponse();
+		response.setCharacterEncoding("UTF-8");
+
+		LOG.info("incoming request: " + request.getMethod() + " " + path);
+		
+		if (parts.length == 0)
+			serve404(response);
+		
+		PublishedServiceDefinition service = services.get(parts[0]);
+		if (service == null) {
+			serve404(response);
+			return;
+		}
+		
+		RestServiceRequest rsr = new RestServiceRequest(service, request, response);
+		
+		if ("GET".equals(request.getMethod()) && parts.length == 1) {
+			checkReadAccess(request, response);
+			//TODO: check if listing is enabled
+			expireAlways(response);
+			service.serveListing(rsr);
+		}
+		else
+			serve404(response);
+	}
+
+	private void expireAlways(Response response) {
+		response.setHeader("Expires", "-1");
+	}
+
+	private void checkReadAccess(Request request, Response response) {
+		//TODO:
+	}
+
+	private void serve404(Response response) {
+		response.setStatus(IMxRuntimeResponse.NOT_FOUND);
 	}
 }

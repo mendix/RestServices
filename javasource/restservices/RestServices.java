@@ -9,7 +9,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import com.mendix.core.Core;
 
 public class RestServices {
-	final static String HANDLERPATH = "rest";
+	final static String HANDLERPATH = "rest/";
 	
 	private static String basepath = null;
 	
@@ -33,5 +33,9 @@ public class RestServices {
 	private final static ObjectMapper mapper = new ObjectMapper();
 	public static ObjectMapper getJsonMapper() {
 		return mapper;
+	}
+	public static boolean isValidKey(String key) {
+		//TODO:
+		return true;
 	}
 }
