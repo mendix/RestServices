@@ -56,7 +56,9 @@ public class RestServiceHandler extends RequestHandler{
 		String[] parts = path.split("/");
 		Request request = (Request) req.getOriginalRequest();
 		Response response = (Response) resp.getOriginalResponse();
-		response.setCharacterEncoding("UTF-8");
+
+		response.setCharacterEncoding(RestServices.UTF8);
+		expireAlways(response);
 
 		LOG.info("incoming request: " + request.getMethod() + " " + path);
 		
@@ -74,8 +76,11 @@ public class RestServiceHandler extends RequestHandler{
 		if ("GET".equals(request.getMethod()) && parts.length == 1) {
 			checkReadAccess(request, response);
 			//TODO: check if listing is enabled
-			expireAlways(response);
 			service.serveListing(rsr);
+		}
+		else if ("GET".equals(request.getMethod()) && parts.length == 2) {
+			checkReadAccess(request, response);
+			service.serveGet(rsr, parts[0]);
 		}
 		else
 			serve404(response);

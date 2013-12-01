@@ -1,0 +1,4 @@
+lib dependencies:
+
+antisamy-1.4.4.jar
+nekohtml.jar

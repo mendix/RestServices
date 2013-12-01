@@ -16,8 +16,8 @@ public class RestServiceRequest {
 	public static enum ContentType { JSON, XML, HTML }
 
 	private PublishedService service;
-	private Request request;
-	private Response response;
+	Request request;
+	Response response;
 	private ContentType contentType = ContentType.JSON;
 	private IContext context;
 	private PrintWriter writer;
@@ -44,7 +44,7 @@ public class RestServiceRequest {
 		if (request.getParameter(RestServices.CONTENTTYPE_PARAM) != null)
 			this.contentType = ContentType.valueOf(request.getParameter(RestServices.CONTENTTYPE_PARAM).toUpperCase());
 		else {
-			String ct = request.getHeader("Accept");
+			String ct = request.getHeader(RestServices.ACCEPT_HEADER);
 			if (ct == null)
 				return;
 			else if (ct.contains("text/json"))
@@ -88,5 +88,9 @@ public class RestServiceRequest {
 
 	public void startXMLDoc() {
 		this.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+	}
+
+	public void setStatus(int status) {
+		response.setStatus(status);
 	}
 }

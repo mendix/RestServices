@@ -11,7 +11,13 @@ import com.mendix.core.Core;
 public class RestServices {
 	public final static String HANDLERPATH = "rest/";
 
+	public static final String UTF8 = "UTF-8";
+
 	public static final String CONTENTTYPE_PARAM = "contenttype";
+	
+	public static final String ETAG_HEADER = "ETag";
+	public static final String IFNONEMATCH_HEADER = "If-None-Match";
+	public static final String ACCEPT_HEADER = "Accept";
 	
 	private static String basepath = null;
 	
@@ -33,6 +39,7 @@ public class RestServices {
 	}
 	
 	private final static ObjectMapper mapper = new ObjectMapper();
+
 
 	public static ObjectMapper getJsonMapper() {
 		return mapper;
