@@ -21,8 +21,8 @@ public class RestServiceHandler extends RequestHandler{
 
 	private static final ILogNode LOG = Core.getLogger("RestPublisher");
 	private static RestServiceHandler instance = null;
-	private static Map<String, PublishedServiceDefinition> services = new HashMap<String, PublishedServiceDefinition>();
-	private static Map<String, PublishedServiceDefinition> servicesByEntity = new HashMap<String, PublishedServiceDefinition>();
+	private static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
+	private static Map<String, PublishedService> servicesByEntity = new HashMap<String, PublishedService>();
 	
 	public static void start() throws Exception {
 		if (instance == null) {
@@ -40,7 +40,7 @@ public class RestServiceHandler extends RequestHandler{
 			    }	
 		})) {
 			//TODO: might not work with cloud security since jackson uses reflection
-			PublishedServiceDefinition def = RestServices.getJsonMapper().readValue(configfile, PublishedServiceDefinition.class);
+			PublishedService def = RestServices.getJsonMapper().readValue(configfile, PublishedService.class);
 			def.consistencyCheck();
 			services.put(def.getName(), def);
 			if (servicesByEntity.containsKey(def.getSourceEntity()))
@@ -63,7 +63,7 @@ public class RestServiceHandler extends RequestHandler{
 		if (parts.length == 0)
 			serve404(response);
 		
-		PublishedServiceDefinition service = services.get(parts[0]);
+		PublishedService service = services.get(parts[0]);
 		if (service == null) {
 			serve404(response);
 			return;
@@ -79,6 +79,7 @@ public class RestServiceHandler extends RequestHandler{
 		}
 		else
 			serve404(response);
+		
 	}
 
 	private void expireAlways(Response response) {
@@ -89,7 +90,7 @@ public class RestServiceHandler extends RequestHandler{
 		//TODO:
 	}
 
-	private void serve404(Response response) {
+	private void serve404(Response response) { //TODO: require reason message
 		response.setStatus(IMxRuntimeResponse.NOT_FOUND);
 	}
 }

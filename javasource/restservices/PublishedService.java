@@ -11,7 +11,7 @@ import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.So
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
-public class PublishedServiceDefinition {
+public class PublishedService {
 
 	private static final long BATCHSIZE = 1000;
 
@@ -48,10 +48,20 @@ public class PublishedServiceDefinition {
 		schema.addMetaPrimitiveName(this.keyattribute);
 		schema.setAmount(BATCHSIZE);
 
-		rsr.write("[");
+		switch(rsr.getContentType()) {
+		case HTML:
+			rsr.startHTMLDoc();
+			break;
+		case XML:
+			rsr.startXMLDoc();
+			rsr.write("<items>");
+			break;
+		case JSON:
+			rsr.jsonwriter.array();
+			break;
+		}
 		
 		long offset = 0;
-		boolean first = true;
 		List<IMendixObject> result;
 		do {
 			schema.setOffset(offset);
@@ -61,19 +71,38 @@ public class PublishedServiceDefinition {
 				String key = item.getMember(rsr.getContext(), keyattribute).parseValueToString(rsr.getContext());
 				if (!RestServices.isValidKey(key))
 					continue;
-				
-				if (first)
-					first = false;
-				else
-					rsr.write(", ");
-				rsr.write(this.getBaseUrl() + "/" + key);
+
+				String url = this.getBaseUrl() + "/" + key; //TODO: url param encode key?
+				switch(rsr.getContentType()) {
+				case HTML:
+					rsr.write("\n<a href='").write(url).write("'>").write(key).write("</a><br />");
+					break;
+				case XML:
+					rsr.write("\n<item>").write(url).write("</item>");
+					break;
+				case JSON:
+					rsr.jsonwriter.value(url);
+					break;
+				}
 			}
 			
 			offset += BATCHSIZE;
 		}
 		while(!result.isEmpty());
 		
-		rsr.write("]");
+		switch(rsr.getContentType()) {
+		case HTML:
+			rsr.endHTMLDoc();
+			break;
+		case XML:
+			rsr.write("</items>");
+			break;
+		case JSON:
+			rsr.jsonwriter.endArray();
+			break;
+		}
+		
+		rsr.close();
 	}
 
 	private String getBaseUrl() {
