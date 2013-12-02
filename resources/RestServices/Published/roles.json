@@ -1,0 +1,7 @@
+{
+	"servicename": "roles",
+	"sourceentity": "System.UserRole",
+	"keyattribute": "Name",
+	"publishentity": "MyFirstModule.Roleview", 
+	"publishmicroflow": "MyFirstModule.RoleToRoleview"
+}

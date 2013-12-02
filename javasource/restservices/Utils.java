@@ -34,4 +34,8 @@ public class Utils {
 		return mapper;
 	}
 
+	static String getShortMemberName(String memberName) {
+		return memberName.replaceFirst("^.+\\.", "");
+	}
+
 }

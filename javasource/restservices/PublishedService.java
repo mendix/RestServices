@@ -39,6 +39,10 @@ public class PublishedService {
 	@JsonProperty
 	private String constraint;
 	
+	public String getConstraint() {
+		return constraint == null ? "" : constraint;
+	}
+	
 	@JsonProperty
 	private String keyattribute;
 	
@@ -89,7 +93,7 @@ public class PublishedService {
 		List<IMendixObject> result;
 		do {
 			schema.setOffset(offset);
-			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + this.sourceentity + this.constraint, schema, false);
+			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + this.sourceentity + this.getConstraint(), schema, false);
 		
 			for(IMendixObject item : result) {
 				String key = item.getMember(rsr.getContext(), keyattribute).parseValueToString(rsr.getContext());
@@ -134,7 +138,7 @@ public class PublishedService {
 	}
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
-		String xpath = XPath.create(rsr.getContext(), this.sourceentity).eq(this.keyattribute, key).getXPath() + this.constraint;
+		String xpath = XPath.create(rsr.getContext(), this.sourceentity).eq(this.keyattribute, key).getXPath() + this.getConstraint();
 		
 		List<IMendixObject> results = Core.retrieveXPathQuery(rsr.getContext(), xpath, 1, 0, ImmutableMap.of("id", "ASC"));
 		if (results.size() == 0) {
@@ -144,7 +148,7 @@ public class PublishedService {
 		
 		IMendixObject view = convertSourceToView(rsr, results.get(0));
 		JSONObject result = convertViewToJson(rsr, view);
-		
+				
 		String jsonString = result.toString(4);
 		String eTag = DigestUtils.md5Hex(jsonString.getBytes(Constants.UTF8));
 		
@@ -164,8 +168,9 @@ public class PublishedService {
 			break;
 		case HTML:
 			rsr.startHTMLDoc();
-			rsr.write("<h1>").write(key).write("</h1>");
+			rsr.write("<h1>").write(servicename).write("/").write(key).write("</h1>");
 			writeJSONDocAsHTML(rsr, result);
+			rsr.write("<br/><small>View as: <a href='?contenttype=xml'>XML</a> <a href='?contenttype=json'>JSON</a></small>");
 			rsr.endHTMLDoc();
 			break;
 		case XML:
@@ -175,6 +180,7 @@ public class PublishedService {
 		}
 		
 		rsr.close();
+		rsr.getContext().getSession().release(view.getId());
 	}
 
 	private void writeJSONDocAsXML(RestServiceRequest rsr, JSONObject result) {
@@ -184,7 +190,9 @@ public class PublishedService {
 			String attr = it.next();
 			rsr.write("<").write(attr).write(">");
 			if (result.isJSONArray(attr)) {
-				//TODO:
+				JSONArray ar = result.getJSONArray(attr);
+				for(int i = 0; i < ar.length(); i++)
+					rsr.write("<item>").write(ar.getString(i)).write("</item>");
 			}
 			else if (result.get(attr) != null)
 				rsr.write(String.valueOf(result.get(attr)));
@@ -199,12 +207,15 @@ public class PublishedService {
 		Iterator<String> it = result.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
+			rsr.write("<tr><td>").write(attr).write("</td><td>");
 			if (result.isJSONArray(attr)) {
-				//TODO:
+				JSONArray ar = result.getJSONArray(attr);
+				for(int i = 0; i < ar.length(); i++)
+					rsr.write(rsr.autoGenerateLink(ar.getString(i))).write("<br />");
 			}
 			else
-				rsr.write(String.format(
-					"\n<tr><td>%s</td><td>%s</td></tr>", attr, rsr.autoGenerateLink(String.valueOf(result.get(attr)))));
+				rsr.write(rsr.autoGenerateLink(String.valueOf(result.get(attr))));
+			rsr.write("</td></tr>");
 		}
 		rsr.write("</table>");
 	}
@@ -236,7 +247,7 @@ public class PublishedService {
 	
 		Object value = member.getValue(context);
 		String memberName = member.getName();
-	
+		
 		//Primitive?
 		if (!(member instanceof MendixObjectReference) && !(member instanceof MendixObjectReferenceSet)) {
 			switch(viewType.getMetaPrimitive(member.getName()).getType()) {
@@ -279,9 +290,9 @@ public class PublishedService {
 				value = RestServices.identifierToRestURL((IMendixIdentifier) value);
 			
 			if (value == null)
-				target.put(memberName, JSONObject.NULL);
+				target.put(Utils.getShortMemberName(memberName), JSONObject.NULL);
 			else
-				target.put(memberName, value);
+				target.put(Utils.getShortMemberName(memberName), value);
 		}
 		
 		/**
@@ -298,12 +309,25 @@ public class PublishedService {
 						ar.put(url);
 				}
 			}
-			target.put(memberName, ar);
-			
+			target.put(Utils.getShortMemberName(memberName), ar);			
 		}
 		
 		else
 			throw new IllegalStateException("Unimplemented membertype " + member.getClass().getSimpleName());
+	}
+
+	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
+		if (this.getConstraint().isEmpty())
+			return true;
+		return Core.retrieveXPathQueryAggregate(c, "count(//" + this.sourceentity + "[id='" + id.toLong() + "']" + this.getConstraint()) == 1;
+	}
+
+	public String getObjecturl(IContext c, IMendixObject obj) {
+		//Pre: inConstraint is checked!, obj is not null
+		String key = obj.getMember(c, keyattribute).parseValueToString(c);
+		if (!RestServices.isValidKey(key))
+			throw new IllegalStateException("Invalid key for object " + obj.toString());
+		return this.getServiceUrl() + "/" + key;
 	}
 }
 
