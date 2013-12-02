@@ -80,7 +80,7 @@ public class RestServiceHandler extends RequestHandler{
 		}
 		else if ("GET".equals(request.getMethod()) && parts.length == 2) {
 			checkReadAccess(request, response);
-			service.serveGet(rsr, parts[0]);
+			service.serveGet(rsr, parts[1]);
 		}
 		else
 			serve404(response);

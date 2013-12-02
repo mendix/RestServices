@@ -21,6 +21,12 @@ The attribute (non-empty, unique) identifiers a specific resource. The URI of a 
 ### constraint
 Optional Xpath constraint which must be met by an instance before it can be published throught this service. For example `[Active=true()]`
 
+### publishentity
+The 'public interface' of the source entity. The publishentity is the object that will be exposed to the outer world. All its attributes will be serialized under their given name
+
+### publishmicroflow
+The microflow that maps a sourceentity onto a publishentity. 
+
 ## Exposed http api
 
 ## GET /rest/

@@ -57,7 +57,7 @@ public class RestServiceRequest {
 	}
 	
 	private void setResponseContentType() {
-		this.response.setContentType("content-type:text/" + this.contentType.toString().toLowerCase()+ "; charset=UTF-8");
+		this.response.setContentType("text/" + this.contentType.toString().toLowerCase()+ "; charset=UTF-8");
 	}
 	
 	public ContentType getContentType() {

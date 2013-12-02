@@ -2,12 +2,14 @@ package restservices;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONObject;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multiset.Entry;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -15,6 +17,9 @@ import com.mendix.systemwideinterfaces.connectionbus.requests.IRetrievalSchema;
 import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.SortDirection;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
+import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+
 import communitycommons.XPath;
 
 public class PublishedService {
@@ -32,6 +37,14 @@ public class PublishedService {
 	
 	@JsonProperty
 	private String keyattribute;
+	
+	@JsonProperty
+	private String publishentity;
+	
+	@JsonProperty
+	private String publishmicroflow;
+
+	private IMetaObject metaEntity;
 
 	public void consistencyCheck() {
 		// source exists and persistent
@@ -39,6 +52,7 @@ public class PublishedService {
 		// constraint is valid
 		// name is a valid identifier
 		// reserved attributes: _key, _etag
+		// no password type attributes
 	}
 
 	public String getName() {
@@ -113,10 +127,10 @@ public class PublishedService {
 	}
 
 	private String getBaseUrl() {
-		return Core.getConfiguration().getApplicationRootUrl() + this.servicename;
+		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + this.servicename;
 	}
 
-	public void serveGet(RestServiceRequest rsr, String key) throws CoreException {
+	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
 		String xpath = XPath.create(rsr.getContext(), this.sourceentity).eq(this.keyattribute, key).getXPath() + this.constraint;
 		
 		List<IMendixObject> results = Core.retrieveXPathQuery(rsr.getContext(), xpath, 1, 0, ImmutableMap.of("id", "ASC"));
@@ -125,8 +139,8 @@ public class PublishedService {
 			return;
 		}
 		
-		IMendixObject view = convertSourceToView(results.get(0));
-		JSONObject result = convertViewToJson(view);
+		IMendixObject view = convertSourceToView(rsr, results.get(0));
+		JSONObject result = convertViewToJson(rsr, view);
 		String eTag = new String(DigestUtils.md5(result.toString().getBytes(RestServices.UTF8)));
 		
 		if (eTag.equals(rsr.request.getHeader(RestServices.IFNONEMATCH_HEADER))) {
@@ -140,21 +154,59 @@ public class PublishedService {
 		case JSON:
 			rsr.write(result.toString(4));
 			break;
-		case HTML:
+/*		case HTML:
 			rsr.startHTMLDoc();
 			rsr.write("<h1>").write(key).write("</h1>");
 			rsr.write("<table>");
 			Iterator<String> it = result.keys();
 			while(it.hasNext()) {
 				String attr = it.next();
-				
+				rsr.write(String.format(
+						"\n<tr><td>$0%s</td><td>$1%s</td></tr>", attr, 
+						result.isJSONArray(attr) ? result.getJSONArray(attr).toString() : result.getString(attr)));
 			}
 			rsr.write("</table>");
 			rsr.endHTMLDoc();
 			break;
-		}
+		case XML:
+			rsr.startXMLDoc();
+			rsr.write("<" + this.servicename + ">");
+			it = result.keys();
+			while(it.hasNext()) {
+				String attr = it.next();
+				rsr.write("<").write(attr).write(">");
+				if (result.isJSONArray(arg0))
+				rsr.write("</").write(attr).write(">");
+				
+				rsr.write(String.format(
+						"\n<tr><td>$0%s</td><td>$1%s</td></tr>", attr, 
+						result.isJSONArray(attr) ? result.getJSONArray(attr).toString() : result.getString(attr)));
+			}
+			rsr.write("</" + this.servicename + ">");
+			break;
+*/		}
 		
 		rsr.close();
+	}
+
+	private JSONObject convertViewToJson(RestServiceRequest rsr, IMendixObject view) throws Exception {
+		JSONObject res = new JSONObject();
+		
+		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(rsr.getContext());
+		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
+			RestServices.serializeMember(rsr.getContext(), res, e.getValue(), view.getMetaObject());
+		
+		return res;
+	}
+
+	private IMetaObject getMetaEntity() {
+		if (this.metaEntity == null)
+			this.metaEntity = Core.getMetaObject(this.sourceentity);
+		return this.metaEntity;
+	}
+
+	private IMendixObject convertSourceToView(RestServiceRequest rsr, IMendixObject source) throws CoreException {
+		return (IMendixObject) Core.execute(rsr.getContext(), this.publishmicroflow, source);
 	}
 }
 
