@@ -4,9 +4,11 @@ import java.io.File;
 import java.security.AccessControlException;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.mendix.core.Core;
@@ -14,6 +16,7 @@ import com.mendix.core.objectmanagement.member.MendixObjectReference;
 import com.mendix.core.objectmanagement.member.MendixObjectReferenceSet;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 
@@ -103,33 +106,46 @@ public class RestServices {
 		 * Reference
 		 */
 		else if (member instanceof MendixObjectReference){
+			if (value != null) 
+				value = RestServices.identifierToRestURL((IMendixIdentifier) value);
+			
 			if (value == null)
 				target.put(memberName, JSONObject.NULL);
-			
-			IMendixIdentifier id = (IMendixIdentifier) value;
-			
-			throw new Exception("Not implemented yet"); //TODO:
+			else
+				target.put(memberName, value);
 		}
 		
 		/**
 		 * Referenceset
 		 */
 		else if (member instanceof MendixObjectReferenceSet){
-//			ArrayNode res = getMapper().createArrayNode();
-			
-	//		if (value == null)
-		//		return res;
-			
-	/*		for(IMendixIdentifier id : (List<IMendixIdentifier>) value) {
-				Object convertedValue = identifierConverter == null ? id.toLong() : identifierConverter.convertIdentifier(id);
-				if (convertedValue != null)
-					res.add(getMapper().valueToTree(convertedValue));
+			JSONArray ar = new JSONArray();
+			if (value != null) {
+				@SuppressWarnings("unchecked")
+				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
+				for(IMendixIdentifier id : ids) if (id != null) {
+					String url = RestServices.identifierToRestURL(id);
+					if (url != null)
+						ar.put(url);
+				}
 			}
-	*/		throw new Exception("Not implemented yet"); //TODO:
+			target.put(memberName, ar);
 			
 		}
 		
 		else
 			throw new IllegalStateException("Unimplemented membertype " + member.getClass().getSimpleName());
+	}
+	
+	private static String identifierToRestURL(IMendixIdentifier id) {
+		PublishedService service = RestServices.getServiceForEntity(id.getObject());
+		
+		// TODO Auto-generated method stub
+		return null;
+	}
+	private static PublishedService getServiceForEntity(IMendixObject object) {
+		// TODO Auto-generated method stub
+		//TODO: look into super entitites as well!
+		return null;
 	}
 }

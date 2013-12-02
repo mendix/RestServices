@@ -1,6 +1,7 @@
 package restservices;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 import javax.servlet.ServletOutputStream;
@@ -33,7 +34,7 @@ public class RestServiceRequest {
 		this.setResponseContentType();
 
 		try {
-			this.writer = response.getWriter();
+			this.writer =new PrintWriter(response.getOutputStream());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -92,5 +93,11 @@ public class RestServiceRequest {
 
 	public void setStatus(int status) {
 		response.setStatus(status);
+	}
+
+	public String autoGenerateLink(String value) {
+		if (value != null && (value.startsWith("http://") || value.startsWith("https://")))
+			return "<a href='"+ value+ "'>" + value+ "</a>";
+		return value;
 	}
 }

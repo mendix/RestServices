@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONObject;
+import org.json.JSONWriter;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset.Entry;
@@ -141,10 +142,13 @@ public class PublishedService {
 		
 		IMendixObject view = convertSourceToView(rsr, results.get(0));
 		JSONObject result = convertViewToJson(rsr, view);
-		String eTag = new String(DigestUtils.md5(result.toString().getBytes(RestServices.UTF8)));
+		
+		String jsonString = result.toString(4);
+		String eTag = DigestUtils.md5Hex(jsonString.getBytes(RestServices.UTF8));
 		
 		if (eTag.equals(rsr.request.getHeader(RestServices.IFNONEMATCH_HEADER))) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
+			rsr.close();
 			return;
 		}
 		
@@ -152,41 +156,53 @@ public class PublishedService {
 		
 		switch(rsr.getContentType()) {
 		case JSON:
-			rsr.write(result.toString(4));
+			rsr.write(jsonString);
 			break;
-/*		case HTML:
+		case HTML:
 			rsr.startHTMLDoc();
 			rsr.write("<h1>").write(key).write("</h1>");
-			rsr.write("<table>");
-			Iterator<String> it = result.keys();
-			while(it.hasNext()) {
-				String attr = it.next();
-				rsr.write(String.format(
-						"\n<tr><td>$0%s</td><td>$1%s</td></tr>", attr, 
-						result.isJSONArray(attr) ? result.getJSONArray(attr).toString() : result.getString(attr)));
-			}
-			rsr.write("</table>");
+			writeJSONDocAsHTML(rsr, result);
 			rsr.endHTMLDoc();
 			break;
 		case XML:
-			rsr.startXMLDoc();
-			rsr.write("<" + this.servicename + ">");
-			it = result.keys();
-			while(it.hasNext()) {
-				String attr = it.next();
-				rsr.write("<").write(attr).write(">");
-				if (result.isJSONArray(arg0))
-				rsr.write("</").write(attr).write(">");
-				
-				rsr.write(String.format(
-						"\n<tr><td>$0%s</td><td>$1%s</td></tr>", attr, 
-						result.isJSONArray(attr) ? result.getJSONArray(attr).toString() : result.getString(attr)));
-			}
-			rsr.write("</" + this.servicename + ">");
+			rsr.startXMLDoc(); //TODO: doesnt JSON.org provide a toXML?
+			writeJSONDocAsXML(rsr, result);
 			break;
-*/		}
+		}
 		
 		rsr.close();
+	}
+
+	private void writeJSONDocAsXML(RestServiceRequest rsr, JSONObject result) {
+		rsr.write("<" + this.servicename + ">");
+		Iterator<String> it = result.keys();
+		while(it.hasNext()) {
+			String attr = it.next();
+			rsr.write("<").write(attr).write(">");
+			if (result.isJSONArray(attr)) {
+				//TODO:
+			}
+			else if (result.get(attr) != null)
+				rsr.write(String.valueOf(result.get(attr)));
+				
+			rsr.write("</").write(attr).write(">");
+		}
+		rsr.write("</" + this.servicename + ">");
+	}
+
+	private void writeJSONDocAsHTML(RestServiceRequest rsr, JSONObject result) {
+		rsr.write("<table>");
+		Iterator<String> it = result.keys();
+		while(it.hasNext()) {
+			String attr = it.next();
+			if (result.isJSONArray(attr)) {
+				//TODO:
+			}
+			else
+				rsr.write(String.format(
+					"\n<tr><td>%s</td><td>%s</td></tr>", attr, rsr.autoGenerateLink(String.valueOf(result.get(attr)))));
+		}
+		rsr.write("</table>");
 	}
 
 	private JSONObject convertViewToJson(RestServiceRequest rsr, IMendixObject view) throws Exception {
