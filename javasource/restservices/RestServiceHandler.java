@@ -3,8 +3,6 @@ package restservices;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -15,37 +13,33 @@ import com.mendix.core.Core;
 import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
-import com.mendix.m2ee.log.ILogNode;
 
 public class RestServiceHandler extends RequestHandler{
 
-	private static final ILogNode LOG = Core.getLogger("RestPublisher");
 	private static RestServiceHandler instance = null;
-	private static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
-	private static Map<String, PublishedService> servicesByEntity = new HashMap<String, PublishedService>();
 	
 	public static void start() throws Exception {
 		if (instance == null) {
 			instance = new RestServiceHandler();
 			instance.loadConfig();
-			Core.addRequestHandler(RestServices.HANDLERPATH, instance);
+			Core.addRequestHandler(Constants.HANDLERPATH, instance);
 		}
 	}
 
 	private void loadConfig() throws JsonParseException, JsonMappingException, IOException {
 		//Read definitions of publish services
-		for(File configfile : new File(RestServices.getResourceFilePath() + "Published").listFiles(new FilenameFilter() {
+		for(File configfile : new File(Utils.getResourceFilePath() + "Published").listFiles(new FilenameFilter() {
 			 public boolean accept(File dir, String name) {
 			        return name.toLowerCase().endsWith(".json");
 			    }	
 		})) {
 			//TODO: might not work with cloud security since jackson uses reflection
-			PublishedService def = RestServices.getJsonMapper().readValue(configfile, PublishedService.class);
+			PublishedService def = Utils.getJsonMapper().readValue(configfile, PublishedService.class);
 			def.consistencyCheck();
-			services.put(def.getName(), def);
-			if (servicesByEntity.containsKey(def.getSourceEntity()))
+			RestServices.services.put(def.getName(), def);
+			if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))
 				throw new RuntimeException(String.format("Invalid service definition in '%s': Another services for entity '%s' is already defined", configfile.getName(), def.getSourceEntity()));
-			servicesByEntity.put(def.getSourceEntity(), def);
+			RestServices.servicesByEntity.put(def.getSourceEntity(), def);
 		}
 	}
 	
@@ -57,15 +51,15 @@ public class RestServiceHandler extends RequestHandler{
 		Request request = (Request) req.getOriginalRequest();
 		Response response = (Response) resp.getOriginalResponse();
 
-		response.setCharacterEncoding(RestServices.UTF8);
+		response.setCharacterEncoding(Constants.UTF8);
 		expireAlways(response);
 
-		LOG.info("incoming request: " + request.getMethod() + " " + path);
+		RestServices.LOG.info("incoming request: " + request.getMethod() + " " + path);
 		
 		if (parts.length == 0)
 			serve404(response);
 		
-		PublishedService service = services.get(parts[0]);
+		PublishedService service = RestServices.services.get(parts[0]);
 		if (service == null) {
 			serve404(response);
 			return;

@@ -1,22 +1,25 @@
 package restservices;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.JSONWriter;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multiset.Entry;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
+import com.mendix.core.objectmanagement.member.MendixObjectReference;
+import com.mendix.core.objectmanagement.member.MendixObjectReferenceSet;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.connectionbus.requests.IRetrievalSchema;
 import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.SortDirection;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
@@ -53,7 +56,6 @@ public class PublishedService {
 		// constraint is valid
 		// name is a valid identifier
 		// reserved attributes: _key, _etag
-		// no password type attributes
 	}
 
 	public String getName() {
@@ -94,7 +96,7 @@ public class PublishedService {
 				if (!RestServices.isValidKey(key))
 					continue;
 
-				String url = this.getBaseUrl() + "/" + key; //TODO: url param encode key?
+				String url = this.getServiceUrl() + "/" + key; //TODO: url param encode key?
 				switch(rsr.getContentType()) {
 				case HTML:
 					rsr.write("\n<a href='").write(url).write("'>").write(key).write("</a><br />");
@@ -127,7 +129,7 @@ public class PublishedService {
 		rsr.close();
 	}
 
-	private String getBaseUrl() {
+	private String getServiceUrl() {
 		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + this.servicename;
 	}
 
@@ -144,15 +146,17 @@ public class PublishedService {
 		JSONObject result = convertViewToJson(rsr, view);
 		
 		String jsonString = result.toString(4);
-		String eTag = DigestUtils.md5Hex(jsonString.getBytes(RestServices.UTF8));
+		String eTag = DigestUtils.md5Hex(jsonString.getBytes(Constants.UTF8));
 		
-		if (eTag.equals(rsr.request.getHeader(RestServices.IFNONEMATCH_HEADER))) {
+		if (eTag.equals(rsr.request.getHeader(Constants.IFNONEMATCH_HEADER))) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
 			rsr.close();
 			return;
 		}
+		rsr.response.setHeader(Constants.ETAG_HEADER, eTag);
 		
-		rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
+		result.put(Constants.KEY_ATTR, key);
+		result.put(Constants.ETAG_ATTR, eTag);
 		
 		switch(rsr.getContentType()) {
 		case JSON:
@@ -210,7 +214,7 @@ public class PublishedService {
 		
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(rsr.getContext());
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			RestServices.serializeMember(rsr.getContext(), res, e.getValue(), view.getMetaObject());
+			PublishedService.serializeMember(rsr.getContext(), res, e.getValue(), view.getMetaObject());
 		
 		return res;
 	}
@@ -223,6 +227,83 @@ public class PublishedService {
 
 	private IMendixObject convertSourceToView(RestServiceRequest rsr, IMendixObject source) throws CoreException {
 		return (IMendixObject) Core.execute(rsr.getContext(), this.publishmicroflow, source);
+	}
+
+	public static void serializeMember(IContext context, JSONObject target,
+			IMendixObjectMember<?> member, IMetaObject viewType) throws Exception {
+		if (context == null)
+			throw new IllegalStateException("Context is null");
+	
+		Object value = member.getValue(context);
+		String memberName = member.getName();
+	
+		//Primitive?
+		if (!(member instanceof MendixObjectReference) && !(member instanceof MendixObjectReferenceSet)) {
+			switch(viewType.getMetaPrimitive(member.getName()).getType()) {
+			case AutoNumber:
+			case Long:
+			case Boolean:
+			case Currency:
+			case Float:
+			case Integer:
+				//Numbers or bools should never be null!
+				if (value == null)
+					throw new IllegalStateException("Primitive member " + member.getName() + " should not be null!");
+	
+				target.put(memberName, value);
+				break;
+			case Enum:
+			case HashString:
+			case String:
+				if (value == null)
+					target.put(memberName, JSONObject.NULL);
+				target.put(memberName, value);
+				break;
+			case DateTime:
+				if (value == null)
+					target.put(memberName, JSONObject.NULL);
+					
+				target.put(memberName, (long)(Long)(((Date)value).getTime()));
+				break;
+			case Binary:
+			default: 
+				throw new IllegalStateException("Not supported Mendix Membertype for member " + memberName);
+			}
+		}
+			
+		/**
+		 * Reference
+		 */
+		else if (member instanceof MendixObjectReference){
+			if (value != null) 
+				value = RestServices.identifierToRestURL((IMendixIdentifier) value);
+			
+			if (value == null)
+				target.put(memberName, JSONObject.NULL);
+			else
+				target.put(memberName, value);
+		}
+		
+		/**
+		 * Referenceset
+		 */
+		else if (member instanceof MendixObjectReferenceSet){
+			JSONArray ar = new JSONArray();
+			if (value != null) {
+				@SuppressWarnings("unchecked")
+				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
+				for(IMendixIdentifier id : ids) if (id != null) {
+					String url = RestServices.identifierToRestURL(id);
+					if (url != null)
+						ar.put(url);
+				}
+			}
+			target.put(memberName, ar);
+			
+		}
+		
+		else
+			throw new IllegalStateException("Unimplemented membertype " + member.getClass().getSimpleName());
 	}
 }
 
