@@ -44,7 +44,7 @@ public class PublishedService {
 	}
 	
 	@JsonProperty
-	private String keyattribute;
+	private String idattribute;
 	
 	@JsonProperty
 	private String publishentity;
@@ -72,8 +72,8 @@ public class PublishedService {
 
 	public void serveListing(RestServiceRequest rsr) throws CoreException {
 		IRetrievalSchema schema = Core.createRetrievalSchema();
-		schema.addSortExpression(this.keyattribute, SortDirection.ASC);
-		schema.addMetaPrimitiveName(this.keyattribute);
+		schema.addSortExpression(this.idattribute, SortDirection.ASC);
+		schema.addMetaPrimitiveName(this.idattribute);
 		schema.setAmount(BATCHSIZE);
 
 		switch(rsr.getContentType()) {
@@ -96,7 +96,7 @@ public class PublishedService {
 			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + this.sourceentity + this.getConstraint(), schema, false);
 		
 			for(IMendixObject item : result) {
-				String key = item.getMember(rsr.getContext(), keyattribute).parseValueToString(rsr.getContext());
+				String key = item.getMember(rsr.getContext(), idattribute).parseValueToString(rsr.getContext());
 				if (!RestServices.isValidKey(key))
 					continue;
 
@@ -120,6 +120,7 @@ public class PublishedService {
 		
 		switch(rsr.getContentType()) {
 		case HTML:
+			rsr.write("<br/><small>View as: <a href='?contenttype=xml'>XML</a> <a href='?contenttype=json'>JSON</a></small>");
 			rsr.endHTMLDoc();
 			break;
 		case XML:
@@ -138,7 +139,7 @@ public class PublishedService {
 	}
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
-		String xpath = XPath.create(rsr.getContext(), this.sourceentity).eq(this.keyattribute, key).getXPath() + this.getConstraint();
+		String xpath = XPath.create(rsr.getContext(), this.sourceentity).eq(this.idattribute, key).getXPath() + this.getConstraint();
 		
 		List<IMendixObject> results = Core.retrieveXPathQuery(rsr.getContext(), xpath, 1, 0, ImmutableMap.of("id", "ASC"));
 		if (results.size() == 0) {
@@ -159,7 +160,7 @@ public class PublishedService {
 		}
 		rsr.response.setHeader(Constants.ETAG_HEADER, eTag);
 		
-		result.put(Constants.KEY_ATTR, key);
+		result.put(Constants.ID_ATTR, key);
 		result.put(Constants.ETAG_ATTR, eTag);
 		
 		switch(rsr.getContentType()) {
@@ -324,7 +325,7 @@ public class PublishedService {
 
 	public String getObjecturl(IContext c, IMendixObject obj) {
 		//Pre: inConstraint is checked!, obj is not null
-		String key = obj.getMember(c, keyattribute).parseValueToString(c);
+		String key = obj.getMember(c, idattribute).parseValueToString(c);
 		if (!RestServices.isValidKey(key))
 			throw new IllegalStateException("Invalid key for object " + obj.toString());
 		return this.getServiceUrl() + "/" + key;

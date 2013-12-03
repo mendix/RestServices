@@ -15,8 +15,8 @@ An identifier describing the name of your services. All api endpoints of this se
 ### sourceentity
 The entity you want to publish with this service. Note that no attributes except for the key attribute will be exposed directly to the consumers. The entity *must* be persistent. E.g.: `System.User`
 
-### keyattribute
-The attribute (non-empty, unique) identifiers a specific resource. The URI of a resource will be based on this keyattribute. For example keyattribute `Name` for `System.User` will result in URI's like `<application root url>/rest/users/MxAdmin`
+### idattribute
+The attribute (non-empty, unique) identifiers a specific resource. The URI of a resource will be based on this idattribute. For example idattribute `Name` for `System.User` will result in URI's like `<application root url>/rest/users/MxAdmin`
 
 ### constraint
 Optional Xpath constraint which must be met by an instance before it can be published throught this service. For example `[Active=true()]`

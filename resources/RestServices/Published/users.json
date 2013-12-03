@@ -2,7 +2,7 @@
 	"servicename": "users",
 	"sourceentity": "System.User",
 	"constraint": "[Active=true()]",
-	"keyattribute": "Name",
+	"idattribute": "Name",
 	"publishentity": "MyFirstModule.Userview", 
 	"publishmicroflow": "MyFirstModule.UserToUserview"
 }
