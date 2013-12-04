@@ -59,6 +59,15 @@ public class RestServices {
 	}
 
 	static final ILogNode LOG = Core.getLogger("RestPublisher");
+	
+	public static final String VERSION = "1.0.0";
+	
 	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
 	static Map<String, PublishedService> servicesByEntity = new HashMap<String, PublishedService>();
+
+	public static void getObject(IContext context, String url,
+			ObjectCache objectCache) {
+		// TODO Auto-generated method stub
+		
+	}
 }

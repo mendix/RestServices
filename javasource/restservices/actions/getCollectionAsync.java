@@ -10,27 +10,25 @@
 package restservices.actions;
 
 import com.mendix.systemwideinterfaces.core.UserAction;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class get extends UserAction<String>
+public class getCollectionAsync extends UserAction<Boolean>
 {
-	private IMendixObject __stub;
-	private restservices.proxies.RestObject stub;
+	private String collectionUrl;
+	private String callbackMicroflow;
 
-	public get(IMendixObject stub)
+	public getCollectionAsync(String collectionUrl, String callbackMicroflow)
 	{
 		super();
-		this.__stub = stub;
+		this.collectionUrl = collectionUrl;
+		this.callbackMicroflow = callbackMicroflow;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public Boolean executeAction() throws Exception
 	{
-		this.stub = __stub == null ? null : restservices.proxies.RestObject.initialize(getContext(), __stub);
-
 		// BEGIN USER CODE
 		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
 		// END USER CODE
@@ -42,7 +40,7 @@ public class get extends UserAction<String>
 	@Override
 	public String toString()
 	{
-		return "get";
+		return "getCollectionAsync";
 	}
 
 	// BEGIN EXTRA CODE

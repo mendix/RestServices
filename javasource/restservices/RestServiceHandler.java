@@ -9,6 +9,8 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 
+import restservices.RestServiceRequest.ContentType;
+
 import com.mendix.core.Core;
 import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
@@ -56,18 +58,18 @@ public class RestServiceHandler extends RequestHandler{
 
 		RestServices.LOG.info("incoming request: " + request.getMethod() + " " + path);
 		
-		if (parts.length == 0)
-			serve404(response);
-		
 		PublishedService service = RestServices.services.get(parts[0]);
-		if (service == null) {
+		if (service == null && parts.length > 0) {
 			serve404(response);
 			return;
 		}
 		
 		RestServiceRequest rsr = new RestServiceRequest(service, request, response);
-		
-		if ("GET".equals(request.getMethod()) && parts.length == 1) {
+
+		if ("GET".equals(request.getMethod()) && parts.length == 0) {
+			rsr.serveServiceOverview();
+		}
+		else if ("GET".equals(request.getMethod()) && parts.length == 1) {
 			checkReadAccess(request, response);
 			//TODO: check if listing is enabled
 			service.serveListing(rsr);

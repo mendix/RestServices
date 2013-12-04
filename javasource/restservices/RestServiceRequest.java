@@ -28,8 +28,8 @@ public class RestServiceRequest {
 		this.response = response;
 		this.context = Core.createSystemContext(); //TODO: should be based on user credentials if access was required?
 		
-		determineContentType();
-		this.setResponseContentType();
+		this.contentType = determineContentType(request);
+		setResponseContentType(response, contentType);
 
 		try {
 			this.writer =new PrintWriter(response.getOutputStream());
@@ -39,24 +39,23 @@ public class RestServiceRequest {
 		this.jsonwriter = new JSONWriter(writer);
 	}
 
-	private void determineContentType() {
+	public static ContentType determineContentType(Request request) {
 		if (request.getParameter(Constants.CONTENTTYPE_PARAM) != null)
-			this.contentType = ContentType.valueOf(request.getParameter(Constants.CONTENTTYPE_PARAM).toUpperCase());
-		else {
-			String ct = request.getHeader(Constants.ACCEPT_HEADER);
-			if (ct == null)
-				return;
-			else if (ct.contains("text/json"))
-				this.contentType = ContentType.JSON;
-			else if (ct.contains("html"))
-				this.contentType = ContentType.HTML;
-			else if (ct.contains("xml")) 
-				this.contentType = ContentType.XML;
+			return ContentType.valueOf(request.getParameter(Constants.CONTENTTYPE_PARAM).toUpperCase());
+		String ct = request.getHeader(Constants.ACCEPT_HEADER);
+		if (ct != null) {
+			if (ct.contains("text/json"))
+				return ContentType.JSON;
+			if (ct.contains("html"))
+				return ContentType.HTML;
+			if (ct.contains("xml")) 
+				return ContentType.XML;
 		}
+		return ContentType.JSON; //by default
 	}
 	
-	private void setResponseContentType() {
-		this.response.setContentType("text/" + this.contentType.toString().toLowerCase()+ "; charset=UTF-8");
+	public static void setResponseContentType(Response response, ContentType contentType) {
+		response.setContentType("text/" + contentType.toString().toLowerCase()+ "; charset=UTF-8");
 	}
 	
 	public ContentType getContentType() {
@@ -97,5 +96,39 @@ public class RestServiceRequest {
 		if (value != null && (value.startsWith("http://") || value.startsWith("https://")))
 			return "<a href='"+ value+ "'>" + value+ "</a>";
 		return value;
+	}
+
+	public void serveServiceOverview() {
+		switch(contentType) {
+		case JSON:
+			jsonwriter.object();
+			jsonwriter
+				.key("RestServices").value(RestServices.VERSION)
+				.key("services").array();
+			break;
+		case XML:
+			startXMLDoc();
+			write("<RestServices><version>").write(RestServices.VERSION).write("</version><services>");
+			break;
+		case HTML:
+			startHTMLDoc();
+			write("<h1>RestServices</h1><br />Version: ").write(RestServices.VERSION).write("<h3>Available services</h3>");
+		}
+		
+		for (PublishedService service : RestServices.services.values())
+			service.serveServiceDescription(this);
+		
+		switch(contentType) {
+		case JSON:
+			jsonwriter.endArray().endObject();
+			break;
+		case XML:
+			write("</services></RestServices>");
+			break;
+		case HTML:
+			endHTMLDoc();
+				
+		}
+		close();
 	}
 }

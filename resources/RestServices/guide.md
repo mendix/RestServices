@@ -22,7 +22,11 @@ The attribute (non-empty, unique) identifiers a specific resource. The URI of a 
 Optional Xpath constraint which must be met by an instance before it can be published throught this service. For example `[Active=true()]`
 
 ### publishentity
-The 'public interface' of the source entity. The publishentity is the object that will be exposed to the outer world. All its attributes will be serialized under their given name
+The 'public interface' of the source entity. The publishentity is the object that will be exposed to the outer world. All its attributes will be serialized under their given name and with the type that best represents them in json. 
+
+References are treated in a special way. To publish a reference, create a references *from* the publishentity *to* the *persistent* entity that should be published. When the RestModule wants to serialize this reference, it retreives the objects being referred to, searches for a matching publishing service definition and let this service create the corresponding URLs. For example, the following relation will search for a service that publishes `System.UserRole` objects when serializing a `UserView` object:
+
+MyFirstModule.UserView  ---- MyFirstModule.UserView_UserRole --> \* System.UserRole
 
 ### publishmicroflow
 The microflow that maps a sourceentity onto a publishentity. 

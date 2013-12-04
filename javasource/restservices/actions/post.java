@@ -15,21 +15,23 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 /**
  * 
  */
-public class get extends UserAction<String>
+public class post extends UserAction<String>
 {
-	private IMendixObject __stub;
-	private restservices.proxies.RestObject stub;
+	private String collectionUrl;
+	private IMendixObject __dataObject;
+	private restservices.proxies.RestObject dataObject;
 
-	public get(IMendixObject stub)
+	public post(String collectionUrl, IMendixObject dataObject)
 	{
 		super();
-		this.__stub = stub;
+		this.collectionUrl = collectionUrl;
+		this.__dataObject = dataObject;
 	}
 
 	@Override
 	public String executeAction() throws Exception
 	{
-		this.stub = __stub == null ? null : restservices.proxies.RestObject.initialize(getContext(), __stub);
+		this.dataObject = __dataObject == null ? null : restservices.proxies.RestObject.initialize(getContext(), __dataObject);
 
 		// BEGIN USER CODE
 		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
@@ -42,7 +44,7 @@ public class get extends UserAction<String>
 	@Override
 	public String toString()
 	{
-		return "get";
+		return "post";
 	}
 
 	// BEGIN EXTRA CODE
