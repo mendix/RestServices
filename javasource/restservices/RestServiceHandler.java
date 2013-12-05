@@ -49,7 +49,7 @@ public class RestServiceHandler extends RequestHandler{
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String path) throws Exception {
 		
-		String[] parts = path.split("/");
+		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
 		Request request = (Request) req.getOriginalRequest();
 		Response response = (Response) resp.getOriginalResponse();
 
@@ -58,10 +58,13 @@ public class RestServiceHandler extends RequestHandler{
 
 		RestServices.LOG.info("incoming request: " + request.getMethod() + " " + path);
 		
-		PublishedService service = RestServices.services.get(parts[0]);
-		if (service == null && parts.length > 0) {
-			serve404(response);
-			return;
+		PublishedService service = null;
+		if (parts.length > 0) {
+			service = RestServices.services.get(parts[0]);
+			if (service == null) {
+				serve404(response);
+				return;
+			}
 		}
 		
 		RestServiceRequest rsr = new RestServiceRequest(service, request, response);

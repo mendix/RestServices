@@ -1,9 +1,11 @@
 package restservices;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -22,7 +24,10 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
+import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
+import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 
 import communitycommons.XPath;
 
@@ -52,7 +57,9 @@ public class PublishedService {
 	@JsonProperty
 	private String publishmicroflow;
 
-	private IMetaObject metaEntity;
+	private IMetaObject sourceMetaEntity;
+
+	private IMetaObject publishMetaEntity;
 
 	public void consistencyCheck() {
 		// source exists and persistent
@@ -100,7 +107,7 @@ public class PublishedService {
 				if (!RestServices.isValidKey(key))
 					continue;
 
-				String url = this.getServiceUrl() + "/" + key; //TODO: url param encode key?
+				String url = this.getServiceUrl() + key; //TODO: url param encode key?
 				switch(rsr.getContentType()) {
 				case HTML:
 					rsr.write("\n<a href='").write(url).write("'>").write(key).write("</a><br />");
@@ -120,7 +127,6 @@ public class PublishedService {
 		
 		switch(rsr.getContentType()) {
 		case HTML:
-			rsr.write("<br/><small>View as: <a href='?contenttype=xml'>XML</a> <a href='?contenttype=json'>JSON</a></small>");
 			rsr.endHTMLDoc();
 			break;
 		case XML:
@@ -135,7 +141,7 @@ public class PublishedService {
 	}
 
 	private String getServiceUrl() {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + this.servicename;
+		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + this.servicename + "/";
 	}
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
@@ -171,7 +177,6 @@ public class PublishedService {
 			rsr.startHTMLDoc();
 			rsr.write("<h1>").write(servicename).write("/").write(key).write("</h1>");
 			writeJSONDocAsHTML(rsr, result);
-			rsr.write("<br/><small>View as: <a href='?contenttype=xml'>XML</a> <a href='?contenttype=json'>JSON</a></small>");
 			rsr.endHTMLDoc();
 			break;
 		case XML:
@@ -231,10 +236,16 @@ public class PublishedService {
 		return res;
 	}
 
-	private IMetaObject getMetaEntity() {
-		if (this.metaEntity == null)
-			this.metaEntity = Core.getMetaObject(this.sourceentity);
-		return this.metaEntity;
+	private IMetaObject getSourceMetaEntity() {
+		if (this.sourceMetaEntity == null)
+			this.sourceMetaEntity = Core.getMetaObject(this.sourceentity);
+		return this.sourceMetaEntity;
+	}
+	
+	private IMetaObject getPublishMetaEntity() {//TODO: or not use property but reflect on convert microflow?
+		if (this.publishMetaEntity == null)
+			this.publishMetaEntity = Core.getMetaObject(this.publishentity);
+		return this.publishMetaEntity;
 	}
 
 	private IMendixObject convertSourceToView(RestServiceRequest rsr, IMendixObject source) throws CoreException {
@@ -328,7 +339,56 @@ public class PublishedService {
 		String key = obj.getMember(c, idattribute).parseValueToString(c);
 		if (!RestServices.isValidKey(key))
 			throw new IllegalStateException("Invalid key for object " + obj.toString());
-		return this.getServiceUrl() + "/" + key;
+		return this.getServiceUrl() + key;
+	}
+
+	public Map<String, String> getPublishedMembers() {
+		Map<String, String> res = new HashMap<String, String>();
+		for(IMetaPrimitive prim : this.getPublishMetaEntity().getMetaPrimitives())
+			res.put(prim.getName(), prim.getType().toString());
+		for(IMetaAssociation assoc : this.getPublishMetaEntity().getMetaAssociationsParent()) {
+			PublishedService service = RestServices.getServiceForEntity(assoc.getChild().getName());
+			if (service == null)
+				continue;
+			String name = Utils.getShortMemberName(assoc.getName());
+			String type = assoc.getType() == AssociationType.REFERENCESET ? "[" + service.getServiceUrl() + "]" : service.getServiceUrl();
+			res.put(name,  type);
+		}
+		return res;
+	}
+	
+	public void serveServiceDescription(RestServiceRequest rsr) {
+		switch(rsr.getContentType()) {
+		case JSON:
+			rsr.jsonwriter.object()
+				.key("name").value(this.servicename)
+				.key("url").value(this.getServiceUrl())
+				.key("attributes").object();
+			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
+				rsr.jsonwriter.key(e.getKey()).value(e.getValue());
+			rsr.jsonwriter.endObject().endObject();
+			break;
+			
+		case XML:
+			rsr.write("<service><name>").write(this.servicename).write("</name><url>")
+			.write(this.getServiceUrl()).write("</url><attributes>");
+			
+			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
+				rsr.write("<attribute><name>").write(e.getKey()).write("</name><type>").write(e.getValue()).write("</type></attribute>");
+		
+			rsr.write("</attributes></service>");
+			break;
+
+		case HTML:
+			rsr.write("<hr /><h3>").write(this.servicename).write("</h3><p>Enpoint:</p><p>")
+			.write(rsr.autoGenerateLink(this.getServiceUrl())).write("</p><p>Attributes:</p><table>");
+			
+			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
+				rsr.write("<tr><td>").write(e.getKey()).write("</td><td>").write(e.getValue()).write("</td></tr>");
+		
+			rsr.write("</table>");
+			break;
+		}
 	}
 }
 

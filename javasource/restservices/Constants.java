@@ -14,7 +14,8 @@ public class Constants {
 			"body { font-family: Arial; font-size: 0.8em; padding: 20px 60px; } " +
 			"td {padding: 5px 10px; border: 1px solid #e2e2e2; } " +
 			"tr:nth-child(odd) {background-color: #e2e2e2; } " +
-			"h1 {color: navy; }";
+			"h1 {color: navy; }" +
+			"hr {border-style:none; border-bottom: 1px dotted #aaa;}";
 	public static final String TEXTJSON = "text/json";
 
 }
