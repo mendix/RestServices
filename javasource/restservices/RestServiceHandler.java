@@ -67,10 +67,10 @@ public class RestServiceHandler extends RequestHandler{
 			}
 		}
 		
-		RestServiceRequest rsr = new RestServiceRequest(service, request, response);
+		RestServiceRequest rsr = new RestServiceRequest(request, response);
 
 		if ("GET".equals(request.getMethod()) && parts.length == 0) {
-			rsr.serveServiceOverview();
+			serveServiceOverview(rsr);
 		}
 		else if ("GET".equals(request.getMethod()) && parts.length == 1) {
 			checkReadAccess(request, response);
@@ -96,5 +96,39 @@ public class RestServiceHandler extends RequestHandler{
 
 	private void serve404(Response response) { //TODO: require reason message
 		response.setStatus(IMxRuntimeResponse.NOT_FOUND);
+	}
+
+	public void serveServiceOverview(RestServiceRequest rsr) {
+		switch(rsr.getContentType()) {
+		case JSON:
+			rsr.jsonwriter.object();
+			rsr.jsonwriter
+				.key("RestServices").value(RestServices.VERSION)
+				.key("services").array();
+			break;
+		case XML:
+			rsr.startXMLDoc();
+			rsr.write("<RestServices><version>").write(RestServices.VERSION).write("</version><services>");
+			break;
+		case HTML:
+			rsr.startHTMLDoc();
+			rsr.write("<h1>RestServices</h1><br />Version: ").write(RestServices.VERSION).write("<h2>Available services</h2>");
+		}
+		
+		for (PublishedService service : RestServices.services.values())
+			service.serveServiceDescription(rsr);
+		
+		switch(rsr.getContentType()) {
+		case JSON:
+			rsr.jsonwriter.endArray().endObject();
+			break;
+		case XML:
+			rsr.write("</services></RestServices>");
+			break;
+		case HTML:
+			rsr.endHTMLDoc();
+				
+		}
+		rsr.close();
 	}
 }

@@ -14,7 +14,6 @@ import com.mendix.systemwideinterfaces.core.IContext;
 public class RestServiceRequest {
 	public static enum ContentType { JSON, XML, HTML }
 
-	private PublishedService service;
 	Request request;
 	Response response;
 	private ContentType contentType = ContentType.JSON;
@@ -22,8 +21,7 @@ public class RestServiceRequest {
 	private PrintWriter writer;
 	protected JSONWriter jsonwriter;
 
-	public RestServiceRequest(PublishedService service, Request request, Response response) {
-		this.service = service;
+	public RestServiceRequest(Request request, Response response) {
 		this.request = request;
 		this.response = response;
 		this.context = Core.createSystemContext(); //TODO: should be based on user credentials if access was required?
@@ -91,45 +89,5 @@ public class RestServiceRequest {
 
 	public void setStatus(int status) {
 		response.setStatus(status);
-	}
-
-	public String autoGenerateLink(String value) {
-		if (value != null && (value.startsWith("http://") || value.startsWith("https://")))
-			return "<a href='"+ value+ "'>" + value+ "</a>";
-		return value;
-	}
-
-	public void serveServiceOverview() {
-		switch(contentType) {
-		case JSON:
-			jsonwriter.object();
-			jsonwriter
-				.key("RestServices").value(RestServices.VERSION)
-				.key("services").array();
-			break;
-		case XML:
-			startXMLDoc();
-			write("<RestServices><version>").write(RestServices.VERSION).write("</version><services>");
-			break;
-		case HTML:
-			startHTMLDoc();
-			write("<h1>RestServices</h1><br />Version: ").write(RestServices.VERSION).write("<h2>Available services</h2>");
-		}
-		
-		for (PublishedService service : RestServices.services.values())
-			service.serveServiceDescription(this);
-		
-		switch(contentType) {
-		case JSON:
-			jsonwriter.endArray().endObject();
-			break;
-		case XML:
-			write("</services></RestServices>");
-			break;
-		case HTML:
-			endHTMLDoc();
-				
-		}
-		close();
 	}
 }

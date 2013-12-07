@@ -10,6 +10,7 @@ public class Constants {
 	public static final String ACCEPT_HEADER = "Accept";
 	public static final String ID_ATTR = "_id";
 	public static final String ETAG_ATTR = "_etag";
+	public static final String URL_ATTR = "_url";
 	public static final String STYLESHEET = 
 			"body { font-family: Arial; font-size: 0.8em; padding: 20px 60px; } " +
 			"td {padding: 5px 10px; border: 1px solid #e2e2e2; } " +

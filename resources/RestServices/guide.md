@@ -28,6 +28,8 @@ References are treated in a special way. To publish a reference, create a refere
 
 MyFirstModule.UserView  ---- MyFirstModule.UserView_UserRole --> \* System.UserRole
 
+//TODO: for options, primitive, restobject, restreference, other object
+
 ### publishmicroflow
 The microflow that maps a sourceentity onto a publishentity. 
 

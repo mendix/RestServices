@@ -9,6 +9,7 @@
 
 package restservices.actions;
 
+import restservices.RestServices;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -32,7 +33,7 @@ public class get extends UserAction<String>
 		this.stub = __stub == null ? null : restservices.proxies.RestObject.initialize(getContext(), __stub);
 
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		return RestServices.getObject(getContext(), __stub).toString();
 		// END USER CODE
 	}
 

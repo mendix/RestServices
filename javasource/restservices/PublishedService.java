@@ -217,10 +217,10 @@ public class PublishedService {
 			if (result.isJSONArray(attr)) {
 				JSONArray ar = result.getJSONArray(attr);
 				for(int i = 0; i < ar.length(); i++)
-					rsr.write(rsr.autoGenerateLink(ar.getString(i))).write("<br />");
+					rsr.write(Utils.autoGenerateLink(ar.getString(i))).write("<br />");
 			}
 			else
-				rsr.write(rsr.autoGenerateLink(String.valueOf(result.get(attr))));
+				rsr.write(Utils.autoGenerateLink(String.valueOf(result.get(attr))));
 			rsr.write("</td></tr>");
 		}
 		rsr.write("</table>");
@@ -381,7 +381,7 @@ public class PublishedService {
 
 		case HTML:
 			rsr.write("<hr /><h3>").write(this.servicename).write("</h3><p>Enpoint:</p><p>")
-			.write(rsr.autoGenerateLink(this.getServiceUrl())).write("</p><p>Attributes:</p><table>");
+			.write(Utils.autoGenerateLink(this.getServiceUrl())).write("</p><p>Attributes:</p><table>");
 			
 			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
 				rsr.write("<tr><td>").write(e.getKey()).write("</td><td>").write(e.getValue()).write("</td></tr>");

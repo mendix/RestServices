@@ -12,6 +12,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 public class ObjectCache {
+	//TODO: just one map with objecttype#url -> mendixobject
 	private Map<String, IMendixObject> restObjects = new HashMap<String, IMendixObject>();
 	private Map<String, IMendixObject> restReferences = new HashMap<String, IMendixObject>();
 	
@@ -32,14 +33,16 @@ public class ObjectCache {
 		}
 		else if (!Core.isSubClassOf(RestObject.getType(), otherSideType))
 			throw new Exception("Failed to load reference " + url + ": Not a subclass of RestObject: " + otherSideType);
-			
 		
 		IMendixObject res = restObjects.get(url);
 		if (res != null)
 			return res;
+		
 		res = Core.instantiate(context, otherSideType);
+		res.setValue(context, Constants.URL_ATTR, url);
 		restObjects.put(url, res);
-		RestServices.getObject(context, url, this);
+		
+		RestServices.getObject(context, res, this);
 		return res;
 	}
 

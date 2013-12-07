@@ -12,11 +12,17 @@ import java.util.Map;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.HttpResponse;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import restservices.proxies.Primitive;
+import restservices.proxies.RestObject;
+import restservices.proxies.RestPrimitiveType;
+import restservices.proxies.RestReference;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -31,34 +37,39 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
-public class ConsumedService {
-	@JsonProperty
-	private String serviceurl;
+public class Consumer {
 	
-	HttpClient client;
+	private static HttpClient client = new HttpClient();//TODO: not thread safe!
 	
-	public ConsumedService() {
-		client = new HttpClient();//TODO: not thread safe!
-	}
-	
-	String retrieveJsonUrl(String url) throws Exception {
+	/**
+	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
+	 */
+	public static Pair<Integer, String> retrieveJsonUrl(String url, String etag) throws Exception {
 		GetMethod get = new GetMethod(url);
 		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
+		
+		if (etag != null && !etag.isEmpty())
+			get.setRequestHeader(Constants.IFNONEMATCH_HEADER, etag);
 		
 		try {
 			int status = client.executeMethod(get);
 			String body = get.getResponseBodyAsString();
 			
+			if (status == IMxRuntimeResponse.NOT_MODIFIED)
+				return Pair.of(status, null);
+			if (status == IMxRuntimeResponse.NOT_FOUND)
+				return Pair.of(status, null);
 			if (status != IMxRuntimeResponse.OK)
 				throw new Exception("Request didn't respond with status 200 OK: " + status + "\n\n" + body);
-			return body;
+			
+			return Pair.of(status, body);
 		}
 		finally {
 			get.releaseConnection();
 		}
 	}
-	
-	public void getAllAsync(IContext context, String microflowName) throws Exception {
+/*	
+	public static void getAllAsync(IContext context, String serviceurl, String microflowName) throws Exception {
 		Map<String, IDataType> params = Core.getInputParameters(microflowName);
 		if (params == null)
 			throw new Exception("Unknown microflow: " + microflowName);
@@ -78,24 +89,27 @@ public class ConsumedService {
 			context.getSession().release(view.getId());
 		}
 	}
-	
-	public void getObject(IContext context, String url, IMendixObject target) throws JSONException, Exception {
+*/
+	/*
+	public static void getObject(IContext context, String url, IMendixObject target) throws JSONException, Exception {
 		JSONObject object = new JSONObject(retrieveJsonUrl(url));
 		ObjectCache cache = new ObjectCache();
 		cache.putObject(url, target);
 		readJsonIntoMendixObject(context, object, target, cache);
 	}
+	*/
 	
-	public IMendixObject getObject(IContext context, String url, String targetType, ObjectCache cache) throws JSONException, Exception {
+	/*
+	public static IMendixObject getObject(IContext context, String url, String targetType, ObjectCache cache) throws JSONException, Exception {
 		JSONObject object = new JSONObject(retrieveJsonUrl(url));
 		IMendixObject target = Core.instantiate(context, targetType);
 		cache.putObject(url, target);
 		readJsonIntoMendixObject(context, object, target, cache);
 		return target;
 	}
+	*/
 
-
-	private void readJsonIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
+	static void readJsonIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
@@ -107,10 +121,8 @@ public class ConsumedService {
 				
 				//Reference
 				if (member instanceof MendixObjectReference) {
-					if (!object.isNull(attr)) {
-						IMendixObject child = cache.getObject(context, object.getString(attr), otherSideType);
-						((MendixObjectReference)member).setValue(context, child.getId());
-					}
+					if (!object.isNull(attr)) 
+						((MendixObjectReference)member).setValue(context, readJsonIntoMendixObject(context, object.get(attr), otherSideType, cache));
 				}
 				//ReferenceSet
 				else {
@@ -118,9 +130,9 @@ public class ConsumedService {
 					List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
 					
 					for(int i = 0; i < children.length(); i++) {
-						IMendixObject child = cache.getObject(context, children.getString(i), otherSideType);
+						IMendixIdentifier child = readJsonIntoMendixObject(context, object.get(attr), otherSideType, cache);
 						if (child != null)
-							ids.add(child.getId());
+							ids.add(child);
 					}
 					
 					((MendixObjectReferenceSet)member).setValue(context, ids);
@@ -139,7 +151,53 @@ public class ConsumedService {
 		Core.commit(context, target);
 	}
 
-	private Object jsonAttributeToPrimitive(PrimitiveType type,	JSONObject object, String attr) throws Exception {
+	private static IMendixIdentifier readJsonIntoMendixObject(IContext context,
+			Object jsonValue, String targetType, ObjectCache cache) throws JSONException, Exception {
+		//TODO: use cache
+		IMendixObject res = Core.instantiate(context, targetType);
+		
+		//Primitive
+		if (Core.isSubClassOf(Primitive.entityName, targetType)) {
+			Primitive prim = Primitive.initialize(context, res);
+			if (jsonValue instanceof String) {
+				prim.setStringValue((String) jsonValue);
+				prim.setPrimitiveType(RestPrimitiveType.String);
+			}
+			else if (jsonValue instanceof Boolean) {
+				prim.setBooleanValue((Boolean) jsonValue);
+				prim.setPrimitiveType(RestPrimitiveType._Boolean);
+			}
+			else if (jsonValue instanceof Long || jsonValue instanceof Double || jsonValue instanceof Integer || jsonValue instanceof Float) {
+				prim.setPrimitiveType(RestPrimitiveType.Number);
+				prim.setNumberValue(Double.parseDouble(jsonValue.toString()));
+			}
+			else
+				throw new RuntimeException("Unable to convert value of type '" + jsonValue.getClass().getName()+ "' to rest primitive: " + jsonValue.toString());
+		}
+		
+		//Reference
+		else if (Core.isSubClassOf(RestReference.entityName, targetType)) {
+			if (!(jsonValue instanceof String))
+				throw new RuntimeException("Expected json string value to create reference to '" + targetType + "'");
+			res.setValue(context, Constants.URL_ATTR, jsonValue);
+		}
+		
+		else if (Core.isSubClassOf(RestObject.entityName, targetType)) {
+			if (!(jsonValue instanceof String))
+				throw new RuntimeException("Expected json string value to create reference to '" + targetType + "'");
+			res = cache.getObject(context, (String) jsonValue, targetType);
+		}
+		else {
+			if (!(jsonValue instanceof JSONObject))
+				throw new RuntimeException("Expected json object value to create reference to '" + targetType + "'");
+			readJsonIntoMendixObject(context, (JSONObject) jsonValue, res, cache);
+		}
+		Core.commit(context, res);
+		return res.getId();
+	
+	}
+
+	private static Object jsonAttributeToPrimitive(PrimitiveType type,	JSONObject object, String attr) throws Exception {
 		switch(type) {
 		case Currency:
 		case Float:

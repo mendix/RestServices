@@ -38,4 +38,22 @@ public class Utils {
 		return memberName.replaceFirst("^.+\\.", "");
 	}
 
+	public static String autoGenerateLink(String value) {
+		if (isUrl(value))
+			return "<a href='"+ value+ "'>" + value+ "</a>";
+		return value;
+	}
+
+	public static boolean isUrl(String url) {
+		//a bit naive maybe.... //TODO:
+		return url != null && (url.startsWith("http://") || url.startsWith("https://"));
+	}
+
+	public static String getKeyFromUrl(String url) {
+		int i = url.lastIndexOf('/'); //TODO: naive as well...
+		if (i == -1 || i == url.length() -1)
+			throw new RuntimeException("Not a key containing url: " + url);
+		return url.substring(i + 1);
+	}
+
 }
