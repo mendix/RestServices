@@ -109,7 +109,7 @@ public class Consumer {
 	}
 	*/
 
-	static void readJsonIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
+	static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
@@ -122,7 +122,7 @@ public class Consumer {
 				//Reference
 				if (member instanceof MendixObjectReference) {
 					if (!object.isNull(attr)) 
-						((MendixObjectReference)member).setValue(context, readJsonIntoMendixObject(context, object.get(attr), otherSideType, cache));
+						((MendixObjectReference)member).setValue(context, readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache));
 				}
 				//ReferenceSet
 				else {
@@ -130,7 +130,7 @@ public class Consumer {
 					List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
 					
 					for(int i = 0; i < children.length(); i++) {
-						IMendixIdentifier child = readJsonIntoMendixObject(context, object.get(attr), otherSideType, cache);
+						IMendixIdentifier child = readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache);
 						if (child != null)
 							ids.add(child);
 					}
@@ -151,7 +151,7 @@ public class Consumer {
 		Core.commit(context, target);
 	}
 
-	private static IMendixIdentifier readJsonIntoMendixObject(IContext context,
+	private static IMendixIdentifier readJsonValueIntoMendixObject(IContext context,
 			Object jsonValue, String targetType, ObjectCache cache) throws JSONException, Exception {
 		//TODO: use cache
 		IMendixObject res = Core.instantiate(context, targetType);
@@ -190,7 +190,7 @@ public class Consumer {
 		else {
 			if (!(jsonValue instanceof JSONObject))
 				throw new RuntimeException("Expected json object value to create reference to '" + targetType + "'");
-			readJsonIntoMendixObject(context, (JSONObject) jsonValue, res, cache);
+			readJsonObjectIntoMendixObject(context, (JSONObject) jsonValue, res, cache);
 		}
 		Core.commit(context, res);
 		return res.getId();

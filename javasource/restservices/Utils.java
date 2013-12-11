@@ -53,7 +53,11 @@ public class Utils {
 		int i = url.lastIndexOf('/'); //TODO: naive as well...
 		if (i == -1 || i == url.length() -1)
 			throw new RuntimeException("Not a key containing url: " + url);
-		return url.substring(i + 1);
+		String key = url.substring(i + 1);
+		i = key.indexOf('?');
+		if (i > -1)
+			key = key.substring(0, i);
+		return key;
 	}
 
 }

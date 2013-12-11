@@ -26,9 +26,22 @@ The 'public interface' of the source entity. The publishentity is the object tha
 
 References are treated in a special way. To publish a reference, create a references *from* the publishentity *to* the *persistent* entity that should be published. When the RestModule wants to serialize this reference, it retreives the objects being referred to, searches for a matching publishing service definition and let this service create the corresponding URLs. For example, the following relation will search for a service that publishes `System.UserRole` objects when serializing a `UserView` object:
 
-MyFirstModule.UserView  ---- MyFirstModule.UserView_UserRole --> \* System.UserRole
+MyFirstModule.UserView  ---- MyFirstModule.roles --> \* System.UserRole
 
-//TODO: for options, primitive, restobject, restreference, other object
+will result in something like:
+
+{ roles : 'http://host/rest/roles/roleid'}
+
+However, if a reference being serialized, does not refer to a persistent entity, but to a *transient* entity, the complete transient object is serialized into the result set instead of generating an URL.
+
+MyFirstModule.UserView  ---- MyFirstModule.roles --> \* MyFirstModule.UserRoleView
+
+will result in something like:
+
+{ roles : { name: 'Admin', uuid: 'sdf32234kjsadf' }}
+
+
+If a referenceset is published, this behaves the same as publishing a reference, but the result is wrapped in an JSON array. 
 
 ### publishmicroflow
 The microflow that maps a sourceentity onto a publishentity. 

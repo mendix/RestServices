@@ -154,7 +154,7 @@ public class PublishedService {
 		}
 		
 		IMendixObject view = convertSourceToView(rsr, results.get(0));
-		JSONObject result = convertViewToJson(rsr, view);
+		JSONObject result = convertViewToJson(rsr.getContext(), view);
 				
 		String jsonString = result.toString(4);
 		String eTag = DigestUtils.md5Hex(jsonString.getBytes(Constants.UTF8));
@@ -225,13 +225,45 @@ public class PublishedService {
 		}
 		rsr.write("</table>");
 	}
+	
+	/**
+	 * returns a json string containingURL if id is persistable or json object if with the json representation if the object is not. s
+	 * @param rsr
+	 * @param id
+	 * @return
+	 * @throws Exception 
+	 */
+	public static Object identifierToJSON(IContext context, IMendixIdentifier id) throws Exception {
+		if (id == null)
+			return null;
+		
+		PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
+		if (service == null) {
+			RestServices.LOG.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
+			return null;
+		}
+		
+		if (service.identifierInConstraint(context, id)) {
+			IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
+			if (obj == null) {
+				RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
+				return null;
+			}
+			if (obj.getMetaObject().isPersistable())
+				return service.getObjecturl(context, obj);
+			else 
+				return convertViewToJson(context, obj);
+		}
+		return null;
+	}
 
-	private JSONObject convertViewToJson(RestServiceRequest rsr, IMendixObject view) throws Exception {
+	//TODO: move to separate class?
+	public static JSONObject convertViewToJson(IContext context, IMendixObject view) throws Exception {
 		JSONObject res = new JSONObject();
 		
-		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(rsr.getContext());
+		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			PublishedService.serializeMember(rsr.getContext(), res, e.getValue(), view.getMetaObject());
+			PublishedService.serializeMember(context, res, e.getValue(), view.getMetaObject());
 		
 		return res;
 	}
@@ -299,7 +331,7 @@ public class PublishedService {
 		 */
 		else if (member instanceof MendixObjectReference){
 			if (value != null) 
-				value = RestServices.identifierToRestURL((IMendixIdentifier) value);
+				value = identifierToJSON(context, (IMendixIdentifier) value);
 			
 			if (value == null)
 				target.put(Utils.getShortMemberName(memberName), JSONObject.NULL);
@@ -316,7 +348,7 @@ public class PublishedService {
 				@SuppressWarnings("unchecked")
 				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
 				for(IMendixIdentifier id : ids) if (id != null) {
-					String url = RestServices.identifierToRestURL(id);
+					Object url = identifierToJSON(context, id);
 					if (url != null)
 						ar.put(url);
 				}

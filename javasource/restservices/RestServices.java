@@ -38,28 +38,6 @@ public class RestServices {
 		return keyPattern.matcher(key).matches();
 	}
 	
-	public static String identifierToRestURL(IMendixIdentifier id) throws CoreException {
-		if (id == null)
-			return null;
-		
-		PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
-		if (service == null) {
-			LOG.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
-			return null;
-		}
-		
-		IContext c= Core.createSystemContext();
-		if (service.identifierInConstraint(c, id)) {
-			IMendixObject obj = Core.retrieveId(c, id); //TODO: inefficient, especially for refsets, use retrieveIds?
-			if (obj == null) {
-				LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
-				return null;
-			}
-			return service.getObjecturl(c, obj);
-		}
-		return null;
-	}
-	
 	public static PublishedService getServiceForEntity(String entityType) {
 		if (servicesByEntity.containsKey(entityType))
 			return servicesByEntity.get(entityType);
@@ -110,7 +88,7 @@ public class RestServices {
 		
 		//parse
 		cache.putObject(url, target);
-		Consumer.readJsonIntoMendixObject(context, new JSONObject(result.getRight()), target, cache);
+		Consumer.readJsonObjectIntoMendixObject(context, new JSONObject(result.getRight()), target, cache);
 
 		return GetResult.OK;
 	}
