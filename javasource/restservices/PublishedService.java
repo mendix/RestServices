@@ -181,7 +181,9 @@ public class PublishedService {
 			break;
 		case XML:
 			rsr.startXMLDoc(); //TODO: doesnt JSON.org provide a toXML?
+			rsr.write("<" + this.servicename + ">");
 			writeJSONDocAsXML(rsr, result);
+			rsr.write("</" + this.servicename + ">");
 			break;
 		}
 		
@@ -190,24 +192,45 @@ public class PublishedService {
 	}
 
 	private void writeJSONDocAsXML(RestServiceRequest rsr, JSONObject result) {
-		rsr.write("<" + this.servicename + ">");
 		Iterator<String> it = result.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
 			rsr.write("<").write(attr).write(">");
 			if (result.isJSONArray(attr)) {
 				JSONArray ar = result.getJSONArray(attr);
-				for(int i = 0; i < ar.length(); i++)
-					rsr.write("<item>").write(ar.getString(i)).write("</item>");
+				for(int i = 0; i < ar.length(); i++) {
+					rsr.write("<item>");
+					writeJSONValueToXML(rsr, ar.get(i));
+					rsr.write("</item>");
+				}
 			}
 			else if (result.get(attr) != null)
-				rsr.write(String.valueOf(result.get(attr)));
+				writeJSONValueToXML(rsr, result.get(attr));
 				
 			rsr.write("</").write(attr).write(">");
 		}
-		rsr.write("</" + this.servicename + ">");
 	}
 
+	private void writeJSONValueToXML(RestServiceRequest rsr, Object value) {
+		if (value == null) {
+			
+		}
+		else if (value instanceof JSONObject)
+			writeJSONDocAsXML(rsr, (JSONObject) value);
+		else
+			rsr.write(String.valueOf(value));
+	}
+
+	private void writeJSONValueToHTML(RestServiceRequest rsr, Object value) {
+		if (value == null) {
+			rsr.write("&lt;null&gt;");
+		}
+		else if (value instanceof JSONObject)
+			writeJSONDocAsHTML(rsr, (JSONObject) value);
+		else
+			rsr.write(Utils.autoGenerateLink(String.valueOf(value)));
+	}
+	
 	private void writeJSONDocAsHTML(RestServiceRequest rsr, JSONObject result) {
 		rsr.write("<table>");
 		Iterator<String> it = result.keys();
@@ -216,11 +239,13 @@ public class PublishedService {
 			rsr.write("<tr><td>").write(attr).write("</td><td>");
 			if (result.isJSONArray(attr)) {
 				JSONArray ar = result.getJSONArray(attr);
-				for(int i = 0; i < ar.length(); i++)
-					rsr.write(Utils.autoGenerateLink(ar.getString(i))).write("<br />");
+				for(int i = 0; i < ar.length(); i++) {
+					writeJSONValueToHTML(rsr, ar.get(i));
+					rsr.write("<br />");
+				}
 			}
 			else
-				rsr.write(Utils.autoGenerateLink(String.valueOf(result.get(attr))));
+				writeJSONValueToHTML(rsr, result.get(attr));
 			rsr.write("</td></tr>");
 		}
 		rsr.write("</table>");
@@ -237,24 +262,35 @@ public class PublishedService {
 		if (id == null)
 			return null;
 		
-		PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
-		if (service == null) {
-			RestServices.LOG.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
+		/* persistable object, generate url */
+		if (Core.getMetaObject(id.getObjectType()).isPersistable()) {
+		
+			PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
+			if (service == null) {
+				RestServices.LOG.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
+				return null;
+			}
+		
+			if (service.identifierInConstraint(context, id)) {
+				IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
+				if (obj == null) {
+					RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
+					return null;
+				}
+				return service.getObjecturl(context, obj);
+			}
 			return null;
 		}
 		
-		if (service.identifierInConstraint(context, id)) {
+		/* transient object, export */
+		else {
 			IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
 			if (obj == null) {
 				RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
 				return null;
 			}
-			if (obj.getMetaObject().isPersistable())
-				return service.getObjecturl(context, obj);
-			else 
-				return convertViewToJson(context, obj);
+			return convertViewToJson(context, obj);
 		}
-		return null;
 	}
 
 	//TODO: move to separate class?

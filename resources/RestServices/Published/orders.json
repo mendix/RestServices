@@ -1,0 +1,8 @@
+{
+	"servicename": "orders",
+	"sourceentity": "Test.Order",
+	"constraint": "",
+	"idattribute": "Nr",
+	"publishentity": "Test.OrderView", 
+	"publishmicroflow": "Test.OrderToView"
+}

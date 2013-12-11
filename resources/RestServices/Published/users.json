@@ -1,8 +1,0 @@
-{
-	"servicename": "users",
-	"sourceentity": "System.User",
-	"constraint": "[Active=true()]",
-	"idattribute": "Name",
-	"publishentity": "MyFirstModule.Userview", 
-	"publishmicroflow": "MyFirstModule.UserToUserview"
-}
