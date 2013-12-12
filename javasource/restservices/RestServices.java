@@ -1,6 +1,5 @@
 package restservices;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -11,13 +10,10 @@ import org.json.JSONObject;
 import restservices.proxies.GetResult;
 import restservices.proxies.RestObject;
 
-
 import com.mendix.core.Core;
-import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 
@@ -66,7 +62,7 @@ public class RestServices {
 			throw new IllegalArgumentException("Context should not be null");
 		if (target == null)
 			throw new IllegalArgumentException("Target should not be null");
-		if (Core.isSubClassOf(RestObject.getType(), target.getType()))
+		if (!Core.isSubClassOf(RestObject.getType(), target.getType()))
 			throw new IllegalArgumentException("Target should be subclass of RestObject");
 		
 		String url = target.getValue(context, Constants.URL_ATTR);

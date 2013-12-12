@@ -9,6 +9,8 @@
 
 package restservices.actions;
 
+import restservices.Consumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
@@ -32,7 +34,8 @@ public class registerCredentials extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		Consumer.registerCredentials(urlBasePath, username, password);
+		return true;
 		// END USER CODE
 	}
 

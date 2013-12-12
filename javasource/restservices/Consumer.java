@@ -1,20 +1,18 @@
 package restservices;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
+import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.HttpResponse;
-import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,14 +22,11 @@ import restservices.proxies.RestObject;
 import restservices.proxies.RestPrimitiveType;
 import restservices.proxies.RestReference;
 
-import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
-import com.mendix.core.CoreException;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;
 import com.mendix.core.objectmanagement.member.MendixObjectReferenceSet;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
@@ -45,6 +40,9 @@ public class Consumer {
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
 	 */
 	public static Pair<Integer, String> retrieveJsonUrl(String url, String etag) throws Exception {
+		if (RestServices.LOG.isDebugEnabled())
+			RestServices.LOG.debug("Fetching '" + url + "' etag: " + etag + "..");
+		
 		GetMethod get = new GetMethod(url);
 		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
 		
@@ -54,6 +52,9 @@ public class Consumer {
 		try {
 			int status = client.executeMethod(get);
 			String body = get.getResponseBodyAsString();
+		
+			if (RestServices.LOG.isDebugEnabled())
+				RestServices.LOG.debug("Fetched '" + url + "'. Status: " + status + "\n\n" + body);
 			
 			if (status == IMxRuntimeResponse.NOT_MODIFIED)
 				return Pair.of(status, null);
@@ -68,6 +69,15 @@ public class Consumer {
 			get.releaseConnection();
 		}
 	}
+	
+	public static void registerCredentials(String urlBasePath, String username, String password) throws MalformedURLException
+	{
+		client.getParams().setAuthenticationPreemptive(true);
+		Credentials defaultcreds = new UsernamePasswordCredentials(username, password);
+		URL url = new URL(urlBasePath);
+		client.getState().setCredentials(new AuthScope(url.getHost(), url.getPort(), AuthScope.ANY_REALM), defaultcreds);
+	}
+	
 /*	
 	public static void getAllAsync(IContext context, String serviceurl, String microflowName) throws Exception {
 		Map<String, IDataType> params = Core.getInputParameters(microflowName);
@@ -114,9 +124,10 @@ public class Consumer {
 		while(it.hasNext()) {
 			String attr = it.next();
 			String assocName = target.getMetaObject().getModuleName() + "." + attr;
-			IMendixObjectMember<?> member = target.getMember(context, attr);
+						
 			
 			if (target.hasMember(assocName)) {
+				IMendixObjectMember<?> member = target.getMember(context, assocName);
 				String otherSideType = target.getMetaObject().getMetaAssociationParent(assocName).getChild().getName();
 				
 				//Reference
@@ -222,4 +233,6 @@ public class Consumer {
 			throw new Exception("Unsupported attribute type '" + type + "' in attribute '" + attr + "'");
 		}	
 	}
+
+	
 }
