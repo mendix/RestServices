@@ -10,10 +10,15 @@ import org.json.JSONObject;
 public class DataWriter {
 
 	private static class State {
+		public State()
+		{
+			// TODO Auto-generated constructor stub
+		}
 		boolean hasSomething = false;
 		boolean isArray = false;
 		boolean isObject = false;
 		boolean isKey = false;
+		boolean isListItem = false;
 		String key = null;
 	}
 	
@@ -33,55 +38,62 @@ public class DataWriter {
 	
 	public DataWriter array() {
 		writeValueStart();
+		states.push(new State());
+		state().isArray = true;
 		
 		if (mode == JSON)
 			write("[");
 		else if (mode == HTML)
 			write("<ol>");
 		
-		states.push(new State());
-		state().isArray = true;
 		return this;
 	}
 	
 	public DataWriter endArray() {
+		writeValueEnd();
+		
 		assrt(state().isArray, "unexpected endArray");
-		states.pop();
 		
 		if (mode == JSON)
 			write("]");
 		else if (mode == HTML)
 			write("</ol>");
 		
+		states.pop();
 		return this;
 	}
 	
 	public DataWriter object() {
 		writeValueStart();
 		
+		states.push(new State());
+		state().isObject = true;
+
 		if (mode == JSON)
 			write("{");
 		else if (mode == HTML)
-			write("<table>");
+			write("\n<table>");
 		
-		states.push(new State());
-		state().isObject = true;
 		return this;
 	}
 	
 	public DataWriter endObject() {
+		writeValueEnd();
 		assrt(state().isObject, "unexpected endArray");
 		
 		if (mode == JSON)
 			write("}");
 		else if (mode == HTML)
-			write("</table>");
+			write("\n</table>");
 
+		states.pop();
 		writeValueEnd();
 		return this;
 	}
 
 	public DataWriter key(String keyName) {
+		writeValueEnd();
+		
 		assrt(state().isObject, "Key can only be used in state 'beginObject'");
 		writeValueStart();
 		
@@ -95,7 +107,7 @@ public class DataWriter {
 		else if (mode == XML)
 			write("<").write(keyName).write(">");
 		else if (mode == HTML)
-			write("<tr><td>").write(StringEscapeUtils.escapeHtml4(keyName)).write("</td><td>");
+			write("\n<tr><td>").write(StringEscapeUtils.escapeHtml4(keyName)).write("</td><td>");
 		
 		return this;
 	}
@@ -195,12 +207,18 @@ public class DataWriter {
 	private void writeValueStart() {
 		if (mode == JSON && state().hasSomething)
 			write(",");
-		else if (mode == XML && state().isArray)
-			write("<item>");
-		else if (mode == HTML && state().isArray)
-			write("<li>");
-		
 		state().hasSomething = true;
+		
+		if (state().isArray) {
+			states.push(new State());
+			state().isListItem = true;
+			
+			if (mode == XML)
+				write("<item>");
+			else if (mode == HTML)
+				write("\n<li>");
+		}
+		
 	}
 	
 	private void writeValueEnd() {
@@ -212,10 +230,15 @@ public class DataWriter {
 
 			states.pop();
 		}
-		if (mode == XML && state().isArray)
-			write("</item>");
-		if (mode == XML && state().isArray)
-			write("</li>");
+		
+		else if (state().isListItem) {
+			if (mode == XML)
+				write("</item>");
+			if (mode == HTML)
+				write("</li>");
+			
+			states.pop();
+		}
 	}
 
 	private State state() {

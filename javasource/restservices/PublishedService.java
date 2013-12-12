@@ -2,7 +2,6 @@ package restservices;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -11,8 +10,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import restservices.RestServiceRequest.ContentType;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -30,7 +27,6 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
-
 import communitycommons.XPath;
 
 public class PublishedService {
@@ -289,7 +285,7 @@ public class PublishedService {
 				if (value == null)
 					target.put(memberName, JSONObject.NULL);
 					
-				target.put(memberName, (long)(Long)(((Date)value).getTime()));
+				target.put(memberName, (long)(((Date)value).getTime()));
 				break;
 			case Binary:
 			default: 
@@ -362,11 +358,6 @@ public class PublishedService {
 	}
 	
 	public void serveServiceDescription(RestServiceRequest rsr) {
-		if (rsr.getContentType() == ContentType.XML)
-			rsr.write("<service>");
-		else if (rsr.getContentType() == ContentType.HTML)
-			rsr.write("<hr /><h3>").write(this.servicename).write("</h3>");
-
 		rsr.datawriter.object()
 			.key("name").value(this.servicename)
 			.key("url").value(this.getServiceUrl())
@@ -376,9 +367,6 @@ public class PublishedService {
 			rsr.datawriter.key(e.getKey()).value(e.getValue());
 		
 		rsr.datawriter.endObject().endObject();
-
-		if (rsr.getContentType() == ContentType.XML)
-			rsr.write("</service>");
 	}
 }
 

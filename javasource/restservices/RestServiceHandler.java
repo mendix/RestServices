@@ -115,6 +115,8 @@ public class RestServiceHandler extends RequestHandler{
 		for (PublishedService service : RestServices.services.values())
 			service.serveServiceDescription(rsr);
 		
+		rsr.datawriter.endArray().endObject();
+		
 		if (rsr.getContentType() == ContentType.XML) 
 			rsr.write("</RestServices>");
 		else if (rsr.getContentType() == ContentType.HTML) 
