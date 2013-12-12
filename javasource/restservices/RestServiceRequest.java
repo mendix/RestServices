@@ -19,7 +19,7 @@ public class RestServiceRequest {
 	private ContentType contentType = ContentType.JSON;
 	private IContext context;
 	private PrintWriter writer;
-	protected JSONWriter jsonwriter;
+	protected DataWriter datawriter;
 
 	public RestServiceRequest(Request request, Response response) {
 		this.request = request;
@@ -34,7 +34,7 @@ public class RestServiceRequest {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		this.jsonwriter = new JSONWriter(writer);
+		this.datawriter = new DataWriter(writer, contentType == ContentType.HTML ? DataWriter.HTML : contentType == ContentType.XML ? DataWriter.XML : DataWriter.JSON);
 	}
 
 	public static ContentType determineContentType(Request request) {

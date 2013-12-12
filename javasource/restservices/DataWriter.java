@@ -28,9 +28,10 @@ public class DataWriter {
 	public DataWriter(PrintWriter writer, int mode) {
 		this.mode = mode;
 		this.writer = writer;
+		states.push(new State()); //root state to avoid NPE's
 	}
 	
-	public DataWriter beginArray() {
+	public DataWriter array() {
 		writeValueStart();
 		
 		if (mode == JSON)
@@ -44,6 +45,7 @@ public class DataWriter {
 	}
 	
 	public DataWriter endArray() {
+		assrt(state().isArray, "unexpected endArray");
 		states.pop();
 		
 		if (mode == JSON)
@@ -54,7 +56,7 @@ public class DataWriter {
 		return this;
 	}
 	
-	public DataWriter beginObject() {
+	public DataWriter object() {
 		writeValueStart();
 		
 		if (mode == JSON)
@@ -68,6 +70,8 @@ public class DataWriter {
 	}
 	
 	public DataWriter endObject() {
+		assrt(state().isObject, "unexpected endArray");
+		
 		if (mode == JSON)
 			write("}");
 		else if (mode == HTML)
@@ -105,8 +109,17 @@ public class DataWriter {
 			writeJSONObject((JSONObject)value);
 		else if (value instanceof JSONArray)
 			writeJSONArray((JSONArray) value);
-		
-		assrt(false, "Expected String, JSONObject or JSONArray");
+		else if (value instanceof Long)
+			value((long)(Long) value);
+		else if (value instanceof Double)
+			value((double)(Double) value);
+		else if (value instanceof Integer)
+			value((long)(Integer) value);
+		else if (value instanceof Float)
+			value((double)(Float) value);
+
+		else
+			assrt(false, "Expected String, Number, JSONObject or JSONArray");
 		return this;
 	}
 	
@@ -126,7 +139,7 @@ public class DataWriter {
 			else if (mode == XML)
 				write(StringEscapeUtils.escapeXml(value));
 			else if (mode == HTML)
-				write(StringEscapeUtils.escapeHtml4(value));
+				write(Utils.autoGenerateLink(StringEscapeUtils.escapeHtml4(value)));
 		}	
 		
 		writeValueEnd();
@@ -156,7 +169,7 @@ public class DataWriter {
 			writeValueEnd();
 		}
 		else {
-			beginObject();
+			object();
 			for(String key : JSONObject.getNames(json))
 				key(key).value(json.get(key));
 			endObject();
@@ -171,7 +184,7 @@ public class DataWriter {
 			writeValueEnd();
 		}
 		else {
-			beginArray();
+			array();
 			for(int i = 0, l = json.length(); i < l; i++)
 				value(json.get(i));
 			endArray();

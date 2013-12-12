@@ -12,6 +12,8 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import restservices.RestServiceRequest.ContentType;
+
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -92,12 +94,14 @@ public class PublishedService {
 			rsr.write("<items>");
 			break;
 		case JSON:
-			rsr.jsonwriter.array();
+			rsr.datawriter.array();
 			break;
 		}
 		
 		long offset = 0;
 		List<IMendixObject> result;
+		
+		rsr.datawriter.array();
 		do {
 			schema.setOffset(offset);
 			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + this.sourceentity + this.getConstraint(), schema, false);
@@ -108,22 +112,13 @@ public class PublishedService {
 					continue;
 
 				String url = this.getServiceUrl() + key; //TODO: url param encode key?
-				switch(rsr.getContentType()) {
-				case HTML:
-					rsr.write("\n<a href='").write(url).write("'>").write(key).write("</a><br />");
-					break;
-				case XML:
-					rsr.write("\n<item>").write(url).write("</item>");
-					break;
-				case JSON:
-					rsr.jsonwriter.value(url);
-					break;
-				}
+				rsr.datawriter.value(url);
 			}
 			
 			offset += BATCHSIZE;
 		}
 		while(!result.isEmpty());
+		rsr.datawriter.endArray();
 		
 		switch(rsr.getContentType()) {
 		case HTML:
@@ -133,7 +128,7 @@ public class PublishedService {
 			rsr.write("</items>");
 			break;
 		case JSON:
-			rsr.jsonwriter.endArray();
+			rsr.datawriter.endArray();
 			break;
 		}
 		
@@ -176,13 +171,13 @@ public class PublishedService {
 		case HTML:
 			rsr.startHTMLDoc();
 			rsr.write("<h1>").write(servicename).write("/").write(key).write("</h1>");
-			writeJSONDocAsHTML(rsr, result);
+			rsr.datawriter.value(result);
 			rsr.endHTMLDoc();
 			break;
 		case XML:
 			rsr.startXMLDoc(); //TODO: doesnt JSON.org provide a toXML?
 			rsr.write("<" + this.servicename + ">");
-			writeJSONDocAsXML(rsr, result);
+			rsr.datawriter.value(result);
 			rsr.write("</" + this.servicename + ">");
 			break;
 		}
@@ -191,66 +186,6 @@ public class PublishedService {
 		rsr.getContext().getSession().release(view.getId());
 	}
 
-	private void writeJSONDocAsXML(RestServiceRequest rsr, JSONObject result) {
-		Iterator<String> it = result.keys();
-		while(it.hasNext()) {
-			String attr = it.next();
-			rsr.write("<").write(attr).write(">");
-			if (result.isJSONArray(attr)) {
-				JSONArray ar = result.getJSONArray(attr);
-				for(int i = 0; i < ar.length(); i++) {
-					rsr.write("<item>");
-					writeJSONValueToXML(rsr, ar.get(i));
-					rsr.write("</item>");
-				}
-			}
-			else if (result.get(attr) != null)
-				writeJSONValueToXML(rsr, result.get(attr));
-				
-			rsr.write("</").write(attr).write(">");
-		}
-	}
-
-	private void writeJSONValueToXML(RestServiceRequest rsr, Object value) {
-		if (value == null) {
-			
-		}
-		else if (value instanceof JSONObject)
-			writeJSONDocAsXML(rsr, (JSONObject) value);
-		else
-			rsr.write(String.valueOf(value));
-	}
-
-	private void writeJSONValueToHTML(RestServiceRequest rsr, Object value) {
-		if (value == null) {
-			rsr.write("&lt;null&gt;");
-		}
-		else if (value instanceof JSONObject)
-			writeJSONDocAsHTML(rsr, (JSONObject) value);
-		else
-			rsr.write(Utils.autoGenerateLink(String.valueOf(value)));
-	}
-	
-	private void writeJSONDocAsHTML(RestServiceRequest rsr, JSONObject result) {
-		rsr.write("<table>");
-		Iterator<String> it = result.keys();
-		while(it.hasNext()) {
-			String attr = it.next();
-			rsr.write("<tr><td>").write(attr).write("</td><td>");
-			if (result.isJSONArray(attr)) {
-				JSONArray ar = result.getJSONArray(attr);
-				for(int i = 0; i < ar.length(); i++) {
-					writeJSONValueToHTML(rsr, ar.get(i));
-					rsr.write("<br />");
-				}
-			}
-			else
-				writeJSONValueToHTML(rsr, result.get(attr));
-			rsr.write("</td></tr>");
-		}
-		rsr.write("</table>");
-	}
-	
 	/**
 	 * returns a json string containingURL if id is persistable or json object if with the json representation if the object is not. s
 	 * @param rsr
@@ -299,7 +234,7 @@ public class PublishedService {
 		
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			PublishedService.serializeMember(context, res, e.getValue(), view.getMetaObject());
+			serializeMember(context, res, e.getValue(), view.getMetaObject());
 		
 		return res;
 	}
@@ -410,6 +345,7 @@ public class PublishedService {
 		return this.getServiceUrl() + key;
 	}
 
+	//TODO: replace with something recursive
 	public Map<String, String> getPublishedMembers() {
 		Map<String, String> res = new HashMap<String, String>();
 		for(IMetaPrimitive prim : this.getPublishMetaEntity().getMetaPrimitives())
@@ -426,37 +362,23 @@ public class PublishedService {
 	}
 	
 	public void serveServiceDescription(RestServiceRequest rsr) {
-		switch(rsr.getContentType()) {
-		case JSON:
-			rsr.jsonwriter.object()
-				.key("name").value(this.servicename)
-				.key("url").value(this.getServiceUrl())
-				.key("attributes").object();
-			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
-				rsr.jsonwriter.key(e.getKey()).value(e.getValue());
-			rsr.jsonwriter.endObject().endObject();
-			break;
-			
-		case XML:
-			rsr.write("<service><name>").write(this.servicename).write("</name><url>")
-			.write(this.getServiceUrl()).write("</url><attributes>");
-			
-			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
-				rsr.write("<attribute><name>").write(e.getKey()).write("</name><type>").write(e.getValue()).write("</type></attribute>");
-		
-			rsr.write("</attributes></service>");
-			break;
+		if (rsr.getContentType() == ContentType.XML)
+			rsr.write("<service>");
+		else if (rsr.getContentType() == ContentType.HTML)
+			rsr.write("<hr /><h3>").write(this.servicename).write("</h3>");
 
-		case HTML:
-			rsr.write("<hr /><h3>").write(this.servicename).write("</h3><p>Enpoint:</p><p>")
-			.write(Utils.autoGenerateLink(this.getServiceUrl())).write("</p><p>Attributes:</p><table>");
-			
-			for(Entry<String, String> e : getPublishedMembers().entrySet()) 
-				rsr.write("<tr><td>").write(e.getKey()).write("</td><td>").write(e.getValue()).write("</td></tr>");
+		rsr.datawriter.object()
+			.key("name").value(this.servicename)
+			.key("url").value(this.getServiceUrl())
+			.key("attributes").object();
 		
-			rsr.write("</table>");
-			break;
-		}
+		for(Entry<String, String> e : getPublishedMembers().entrySet()) 
+			rsr.datawriter.key(e.getKey()).value(e.getValue());
+		
+		rsr.datawriter.endObject().endObject();
+
+		if (rsr.getContentType() == ContentType.XML)
+			rsr.write("</service>");
 	}
 }
 

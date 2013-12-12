@@ -99,36 +99,27 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	public void serveServiceOverview(RestServiceRequest rsr) {
-		switch(rsr.getContentType()) {
-		case JSON:
-			rsr.jsonwriter.object();
-			rsr.jsonwriter
-				.key("RestServices").value(RestServices.VERSION)
-				.key("services").array();
-			break;
-		case XML:
+		if (rsr.getContentType() == ContentType.XML) {
 			rsr.startXMLDoc();
-			rsr.write("<RestServices><version>").write(RestServices.VERSION).write("</version><services>");
-			break;
-		case HTML:
-			rsr.startHTMLDoc();
-			rsr.write("<h1>RestServices</h1><br />Version: ").write(RestServices.VERSION).write("<h2>Available services</h2>");
+			rsr.write("<RestServices>");
 		}
+		else if (rsr.getContentType() == ContentType.HTML) {
+			rsr.startHTMLDoc();
+			rsr.write("<h1>RestServices</h1>");
+		}
+
+		rsr.datawriter.object()
+			.key("RestServices").value(RestServices.VERSION)
+			.key("services").array();
 		
 		for (PublishedService service : RestServices.services.values())
 			service.serveServiceDescription(rsr);
 		
-		switch(rsr.getContentType()) {
-		case JSON:
-			rsr.jsonwriter.endArray().endObject();
-			break;
-		case XML:
-			rsr.write("</services></RestServices>");
-			break;
-		case HTML:
+		if (rsr.getContentType() == ContentType.XML) 
+			rsr.write("</RestServices>");
+		else if (rsr.getContentType() == ContentType.HTML) 
 			rsr.endHTMLDoc();
-				
-		}
+
 		rsr.close();
 	}
 }
