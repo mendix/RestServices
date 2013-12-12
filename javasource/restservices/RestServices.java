@@ -1,10 +1,12 @@
 package restservices;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import restservices.proxies.GetResult;
@@ -52,6 +54,32 @@ public class RestServices {
 	}
 
 
+
+	public static void getCollection(IContext context, String collectionUrl, List<IMendixObject> resultList, IMendixObject firstResult) throws Exception
+	{
+		if (resultList.size() > 0)
+			throw new RuntimeException("Expected stub collection to have size 0");
+		
+		Pair<Integer, String> result = Consumer.retrieveJsonUrl(collectionUrl, null);
+		if (result.getLeft() != IMxRuntimeResponse.OK)
+			throw new RuntimeException("Expected status OK on " + collectionUrl);
+		
+		ObjectCache cache = new ObjectCache();
+		JSONArray ar = new JSONArray(result.getRight()); //TODO: stream would be faster!
+		
+		for(int i = 0; i < ar.length(); i++) {
+			IMendixObject item;
+			
+			if (i == 0)
+				item = firstResult;
+			else
+				item = Core.instantiate(context, firstResult.getType());
+			
+			Consumer.readJsonObjectIntoMendixObject(context, ar.getJSONObject(i), item, cache);
+			resultList.add(item);
+		}
+	}
+	
 	public static GetResult getObject(IContext context, IMendixObject target) throws Exception {
 		return getObject(context, target, new ObjectCache());
 	}

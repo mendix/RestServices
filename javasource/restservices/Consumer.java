@@ -34,7 +34,11 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
 public class Consumer {
 	
-	private static HttpClient client = new HttpClient();//TODO: not thread safe!
+	/*TODO: MultiThreadedHttpConnectionManager connectionManager = 
+      		new MultiThreadedHttpConnectionManager();
+      	HttpClient client = new HttpClient(connectionManager);*/
+	
+	private static HttpClient client = new HttpClient();
 	
 	/**
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
@@ -233,6 +237,7 @@ public class Consumer {
 			throw new Exception("Unsupported attribute type '" + type + "' in attribute '" + attr + "'");
 		}	
 	}
+
 
 	
 }

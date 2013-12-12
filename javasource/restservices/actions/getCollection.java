@@ -9,8 +9,9 @@
 
 package restservices.actions;
 
-import com.mendix.systemwideinterfaces.core.UserAction;
+import restservices.RestServices;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
@@ -42,7 +43,8 @@ public class getCollection extends UserAction<Boolean>
 		this.firstResult = __firstResult == null ? null : restservices.proxies.RestObject.initialize(getContext(), __firstResult);
 
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		RestServices.getCollection(getContext(), collectionUrl, __resultList, __firstResult);
+		return true;
 		// END USER CODE
 	}
 
