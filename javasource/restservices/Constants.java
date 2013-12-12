@@ -8,7 +8,7 @@ public class Constants {
 	public static final String ETAG_HEADER = "ETag";
 	public static final String IFNONEMATCH_HEADER = "If-None-Match";
 	public static final String ACCEPT_HEADER = "Accept";
-	public static final String ID_ATTR = "_id";
+	public static final String ID_ATTR = "_id"; //TODO: is _id really needed?
 	public static final String ETAG_ATTR = "_etag";
 	public static final String URL_ATTR = "_url";
 	public static final String STYLESHEET = 

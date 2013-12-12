@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.Utils;
-
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
