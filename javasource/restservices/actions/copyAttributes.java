@@ -9,31 +9,33 @@
 
 package restservices.actions;
 
-import restservices.Consumer;
+import restservices.Utils;
+
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
+ * Copies all common primitive attributes from source to target. 
  * 
+ * Note that no automatic type conversion is done. 
  */
-public class registerCredentials extends UserAction<Boolean>
+public class copyAttributes extends UserAction<Boolean>
 {
-	private String urlBasePath;
-	private String username;
-	private String password;
+	private IMendixObject source;
+	private IMendixObject target;
 
-	public registerCredentials(String urlBasePath, String username, String password)
+	public copyAttributes(IMendixObject source, IMendixObject target)
 	{
 		super();
-		this.urlBasePath = urlBasePath;
-		this.username = username;
-		this.password = password;
+		this.source = source;
+		this.target = target;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		Consumer.registerCredentials(urlBasePath, username, password);
+		Utils.copyAttributes(getContext(), source, target);
 		return true;
 		// END USER CODE
 	}
@@ -44,7 +46,7 @@ public class registerCredentials extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "registerCredentials";
+		return "copyAttributes";
 	}
 
 	// BEGIN EXTRA CODE

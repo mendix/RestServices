@@ -7,6 +7,10 @@ import java.util.regex.Pattern;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.mendix.core.Core;
+import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
+import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
 public class Utils {
 
@@ -58,6 +62,23 @@ public class Utils {
 		if (i > -1)
 			key = key.substring(0, i);
 		return key;
+	}
+
+	public static void copyAttributes(IContext context, IMendixObject source, IMendixObject target)
+	{
+		if (source == null)
+			throw new IllegalStateException("source is null");
+		if (target == null)
+			throw new IllegalStateException("target is null");
+		
+		for(IMetaPrimitive e : target.getMetaObject().getMetaPrimitives()) {
+			if (!source.hasMember(e.getName()))
+				continue;
+			if (e.isVirtual() || e.getType() == PrimitiveType.AutoNumber)
+				continue;
+			
+			target.setValue(context, e.getName(), source.getValue(context, e.getName()));
+		}
 	}
 
 }
