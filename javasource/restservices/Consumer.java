@@ -164,7 +164,7 @@ public class Consumer {
 				List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
 				
 				for(int i = 0; i < children.length(); i++) {
-					IMendixIdentifier child = readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache);
+					IMendixIdentifier child = readJsonValueIntoMendixObject(context, children.get(i), otherSideType, cache);
 					if (child != null)
 						ids.add(child);
 				}

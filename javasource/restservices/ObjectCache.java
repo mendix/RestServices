@@ -7,7 +7,6 @@ import restservices.proxies.RestObject;
 import restservices.proxies.RestReference;
 
 import com.mendix.core.Core;
-import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -39,10 +38,11 @@ public class ObjectCache {
 			return res;
 		
 		res = Core.instantiate(context, otherSideType);
-		res.setValue(context, Constants.URL_ATTR, url);
+		if (res.hasMember(Constants.URL_ATTR))
+			res.setValue(context, Constants.URL_ATTR, url);
 		restObjects.put(url, res);
 		
-		RestServices.getObject(context, res, this);
+		RestServices.getObject(context, url, res, this);
 		return res;
 	}
 

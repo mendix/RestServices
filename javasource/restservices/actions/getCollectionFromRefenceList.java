@@ -20,9 +20,9 @@ public class getCollectionFromRefenceList extends UserAction<Boolean>
 	private java.util.List<IMendixObject> __references;
 	private java.util.List<restservices.proxies.RestReference> references;
 	private java.util.List<IMendixObject> __resultList;
-	private java.util.List<restservices.proxies.RestObject> resultList;
+	private java.util.List<restservices.proxies.AnyObject> resultList;
 	private IMendixObject __firstResult;
-	private restservices.proxies.RestObject firstResult;
+	private restservices.proxies.AnyObject firstResult;
 
 	public getCollectionFromRefenceList(java.util.List<IMendixObject> references, java.util.List<IMendixObject> resultList, IMendixObject firstResult)
 	{
@@ -40,12 +40,12 @@ public class getCollectionFromRefenceList extends UserAction<Boolean>
 			for (IMendixObject __referencesElement : __references)
 				this.references.add(restservices.proxies.RestReference.initialize(getContext(), __referencesElement));
 
-		this.resultList = new java.util.ArrayList<restservices.proxies.RestObject>();
+		this.resultList = new java.util.ArrayList<restservices.proxies.AnyObject>();
 		if (__resultList != null)
 			for (IMendixObject __resultListElement : __resultList)
-				this.resultList.add(restservices.proxies.RestObject.initialize(getContext(), __resultListElement));
+				this.resultList.add(restservices.proxies.AnyObject.initialize(getContext(), __resultListElement));
 
-		this.firstResult = __firstResult == null ? null : restservices.proxies.RestObject.initialize(getContext(), __firstResult);
+		this.firstResult = __firstResult == null ? null : restservices.proxies.AnyObject.initialize(getContext(), __firstResult);
 
 		// BEGIN USER CODE
 		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");

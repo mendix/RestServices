@@ -10,30 +10,29 @@
 package restservices.actions;
 
 import restservices.RestServices;
-import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
 public class get extends UserAction<String>
 {
-	private IMendixObject __stub;
-	private restservices.proxies.RestObject stub;
+	private String url;
+	private IMendixObject stub;
 
-	public get(IMendixObject stub)
+	public get(String url, IMendixObject stub)
 	{
 		super();
-		this.__stub = stub;
+		this.url = url;
+		this.stub = stub;
 	}
 
 	@Override
 	public String executeAction() throws Exception
 	{
-		this.stub = __stub == null ? null : restservices.proxies.RestObject.initialize(getContext(), __stub);
-
 		// BEGIN USER CODE
-		return RestServices.getObject(getContext(), __stub).toString();
+		return RestServices.getObject(getContext(), url, stub).toString();
 		// END USER CODE
 	}
 

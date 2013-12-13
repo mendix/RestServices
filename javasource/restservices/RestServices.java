@@ -80,27 +80,27 @@ public class RestServices {
 		}
 	}
 	
-	public static GetResult getObject(IContext context, IMendixObject target) throws Exception {
-		return getObject(context, target, new ObjectCache());
+	public static GetResult getObject(IContext context, String url, IMendixObject target) throws Exception {
+		return getObject(context, url, target, new ObjectCache());
 	}
 	
-	public static GetResult getObject(IContext context, IMendixObject target, ObjectCache cache) throws Exception {
+	public static GetResult getObject(IContext context, String url, IMendixObject target, ObjectCache cache) throws Exception {
 		//pre
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
 		if (target == null)
 			throw new IllegalArgumentException("Target should not be null");
-		if (!Core.isSubClassOf(RestObject.getType(), target.getType()))
-			throw new IllegalArgumentException("Target should be subclass of RestObject");
 		
-		String url = target.getValue(context, Constants.URL_ATTR);
 		if (!Utils.isUrl(url))
 			throw new IllegalArgumentException("Target should have a valid URL attribute");
 		
+		String etag = null;
 		//analyze input
-		String key = Utils.getKeyFromUrl(url);
-		target.setValue(context, Constants.ID_ATTR, key);
-		String etag = target.getValue(context, Constants.ETAG_ATTR);
+		if (Core.isSubClassOf(RestObject.entityName, target.getType())) {
+			String key = Utils.getKeyFromUrl(url);
+			target.setValue(context, Constants.ID_ATTR, key);
+			etag = target.getValue(context, Constants.ETAG_ATTR);
+		}
 
 		//fetch
 		Pair<Integer, String> result = Consumer.retrieveJsonUrl(url, etag);
