@@ -1,5 +1,6 @@
 package restservices;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -144,11 +145,11 @@ public class PublishedService {
 			return;
 		}
 		
-		IMendixObject view = convertSourceToView(rsr, results.get(0));
+		IMendixObject view = convertSourceToView(rsr.getContext(), results.get(0));
 		JSONObject result = convertViewToJson(rsr.getContext(), view);
 				
 		String jsonString = result.toString(4);
-		String eTag = DigestUtils.md5Hex(jsonString.getBytes(Constants.UTF8));
+		String eTag = getMD5Hash(jsonString);
 		
 		if (eTag.equals(rsr.request.getHeader(Constants.IFNONEMATCH_HEADER))) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
@@ -157,7 +158,6 @@ public class PublishedService {
 		}
 		rsr.response.setHeader(Constants.ETAG_HEADER, eTag);
 		
-		result.put(Constants.ID_ATTR, key);
 		result.put(Constants.ETAG_ATTR, eTag);
 		
 		switch(rsr.getContentType()) {
@@ -180,6 +180,12 @@ public class PublishedService {
 		
 		rsr.close();
 		rsr.getContext().getSession().release(view.getId());
+	}
+	
+	//TODO: move to utils
+	public static String getMD5Hash(String jsonString)
+			throws UnsupportedEncodingException {
+		return DigestUtils.md5Hex(jsonString.getBytes(Constants.UTF8));
 	}
 
 	/**
@@ -247,8 +253,8 @@ public class PublishedService {
 		return this.publishMetaEntity;
 	}
 
-	private IMendixObject convertSourceToView(RestServiceRequest rsr, IMendixObject source) throws CoreException {
-		return (IMendixObject) Core.execute(rsr.getContext(), this.publishmicroflow, source);
+	public IMendixObject convertSourceToView(IContext context, IMendixObject source) throws CoreException {
+		return (IMendixObject) Core.execute(context, this.publishmicroflow, source);
 	}
 
 	public static void serializeMember(IContext context, JSONObject target,
@@ -335,10 +341,14 @@ public class PublishedService {
 
 	public String getObjecturl(IContext c, IMendixObject obj) {
 		//Pre: inConstraint is checked!, obj is not null
-		String key = obj.getMember(c, idattribute).parseValueToString(c);
+		String key = getKey(c, obj);
 		if (!RestServices.isValidKey(key))
 			throw new IllegalStateException("Invalid key for object " + obj.toString());
 		return this.getServiceUrl() + key;
+	}
+
+	public String getKey(IContext c, IMendixObject obj) {
+		return obj.getMember(c, idattribute).parseValueToString(c);
 	}
 
 	//TODO: replace with something recursive
