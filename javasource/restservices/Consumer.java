@@ -127,41 +127,57 @@ public class Consumer {
 		Iterator<String> it = object.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
-			String assocName = target.getMetaObject().getModuleName() + "." + attr;
-						
+			String targetattr =  null;;
+			//String assocName = target.getMetaObject().getModuleName() + "." + attr;
 			
-			if (target.hasMember(assocName)) {
-				IMendixObjectMember<?> member = target.getMember(context, assocName);
-				String otherSideType = target.getMetaObject().getMetaAssociationParent(assocName).getChild().getName();
+			if (target.hasMember(attr)) 
+				targetattr = attr;
+			else if (target.hasMember(target.getMetaObject().getModuleName() + "." + attr)) 
+				targetattr = target.getMetaObject().getModuleName() + "." + attr;
+			if (target.hasMember("_" + attr)) //To support attributes with names which are reserved names in Mendix 
+				targetattr = "_" + attr;
+			else if (target.hasMember(target.getMetaObject().getModuleName() + "._" + attr)) 
+				targetattr = target.getMetaObject().getModuleName() + "._" + attr;
+			
+			if (targetattr == null) {
+				if (RestServices.LOG.isDebugEnabled())
+					RestServices.LOG.debug("Skipping attribute '" + attr + "', not found in targettype: '" + target.getType() + "'");
+				continue;
+			}
+			
+			IMendixObjectMember<?> member = target.getMember(context, targetattr);
+			
+			if (member.isVirtual())
+				continue;
+			
+			//Reference
+			else if (member instanceof MendixObjectReference) {
+				String otherSideType = target.getMetaObject().getMetaAssociationParent(targetattr).getChild().getName();
+				if (!object.isNull(attr)) 
+					((MendixObjectReference)member).setValue(context, readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache));
+			}
+			
+			//ReferenceSet
+			else if (member instanceof MendixObjectReferenceSet){
+				String otherSideType = target.getMetaObject().getMetaAssociationParent(targetattr).getChild().getName();
+				JSONArray children = object.getJSONArray(attr);
+				List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
 				
-				//Reference
-				if (member instanceof MendixObjectReference) {
-					if (!object.isNull(attr)) 
-						((MendixObjectReference)member).setValue(context, readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache));
+				for(int i = 0; i < children.length(); i++) {
+					IMendixIdentifier child = readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache);
+					if (child != null)
+						ids.add(child);
 				}
-				//ReferenceSet
-				else {
-					JSONArray children = object.getJSONArray(attr);
-					List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
-					
-					for(int i = 0; i < children.length(); i++) {
-						IMendixIdentifier child = readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache);
-						if (child != null)
-							ids.add(child);
-					}
-					
-					((MendixObjectReferenceSet)member).setValue(context, ids);
-				}
+				
+				((MendixObjectReferenceSet)member).setValue(context, ids);
 			}
 			
 			//Primitive member
-			else if (target.hasMember(attr)){
-				PrimitiveType attrtype = target.getMetaObject().getMetaPrimitive(attr).getType();
+			else if (target.hasMember(targetattr)){
+				PrimitiveType attrtype = target.getMetaObject().getMetaPrimitive(targetattr).getType();
 				if (attrtype != PrimitiveType.AutoNumber)
-					target.setValue(context, attr, jsonAttributeToPrimitive(attrtype, object, attr));
+					target.setValue(context, targetattr, jsonAttributeToPrimitive(attrtype, object, attr));
 			}
-			else if (RestServices.LOG.isDebugEnabled())
-				RestServices.LOG.debug("Skipping attribute '" + attr + "', not found in targettype: '" + target.getType() + "'");
 		}
 		Core.commit(context, target);
 	}
