@@ -129,7 +129,8 @@ public class DataWriter {
 			value((long)(Integer) value);
 		else if (value instanceof Float)
 			value((double)(Float) value);
-
+		else if (value instanceof Boolean)
+			value((boolean)(Boolean)value);
 		else
 			assrt(false, "Expected String, Number, JSONObject or JSONArray");
 		return this;

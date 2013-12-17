@@ -1,5 +1,9 @@
 package restservices;
 
+import java.util.Collection;
+
+import org.json.JSONObject;
+
 public class Constants {
 
 	public final static String HANDLERPATH = "rest/";
@@ -18,5 +22,7 @@ public class Constants {
 			"h1 {color: navy; }" +
 			"hr {border-style:none; border-bottom: 1px dotted #aaa;}";
 	public static final String TEXTJSON = "text/json";
+	public static final int LONGPOLL_MAXDURATION = 60; //In seconds
+	public static final int MAXPOLLQUEUE_LENGTH = 10000;
 
 }
