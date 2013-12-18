@@ -1,6 +1,9 @@
 package restservices;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.Stack;
 
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -28,9 +31,9 @@ public class DataWriter {
 	
 	private int mode;
 	private Stack<State> states = new Stack<State>();
-	private PrintWriter writer;
+	private OutputStream writer;
 	
-	public DataWriter(PrintWriter writer, int mode) {
+	public DataWriter(OutputStream writer, int mode) {
 		this.mode = mode;
 		this.writer = writer;
 		states.push(new State()); //root state to avoid NPE's
@@ -206,7 +209,7 @@ public class DataWriter {
 	}
 	
 	private void writeValueStart() {
-		if (mode == JSON && state().hasSomething)
+		if (mode == JSON && (state().isArray || state().isObject) && state().hasSomething)
 			write(",");
 		state().hasSomething = true;
 		
@@ -247,7 +250,11 @@ public class DataWriter {
 	}
 	
 	private DataWriter write(String data) {
-		this.writer.write(data);
+		try {
+			this.writer.write(data.getBytes(Constants.UTF8));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		return this;
 	}
 	

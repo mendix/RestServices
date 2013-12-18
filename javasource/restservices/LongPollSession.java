@@ -22,7 +22,7 @@ class LongPollSession {
 	private final String id = "FeedRequest#" + nextId++;  
 	private volatile boolean inSync = false;
 	
-	final private LinkedBlockingQueue<String> pendingInstructions = new LinkedBlockingQueue<String>(Constants.MAXPOLLQUEUE_LENGTH);
+	final private LinkedBlockingQueue<JSONObject> pendingInstructions = new LinkedBlockingQueue<JSONObject>(Constants.MAXPOLLQUEUE_LENGTH);
 	
 	final private Continuation continuation;
 	
@@ -35,7 +35,7 @@ class LongPollSession {
 	}
 
 
-	public void addInstruction(String json) throws IOException 
+	public void addInstruction(JSONObject json) throws IOException 
 	{
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug(this.id + " received instruction " + json.toString());
@@ -56,10 +56,10 @@ class LongPollSession {
 	public void writePendingChanges() throws IOException {
 		//MWE: hmm... printwriter doesn't do the job!
 		//PrintWriter writer = new PrintWriter(continuation.getServletResponse().getOutputStream());
-		String instr = null;
+		JSONObject instr = null;
 
 		while(null != (instr = pendingInstructions.poll())) 
-			continuation.getServletResponse().getOutputStream().write(instr.getBytes(Constants.UTF8));
+			continuation.getServletResponse().getOutputStream().write(instr.toString().getBytes(Constants.UTF8));
 		continuation.getServletResponse().flushBuffer();
 	}
 
@@ -70,7 +70,5 @@ class LongPollSession {
 		if (!this.isEmpty())
 			this.writePendingChanges();
 	}
-
-
 }
 

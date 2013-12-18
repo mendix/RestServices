@@ -1,6 +1,8 @@
 package restservices;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -439,22 +441,22 @@ public class PublishedService {
 				@Override
 				public void onItem(ObjectState item, long offset, long total)
 						throws Exception {
-					writeObjectStateToJson(item, rsr.datawriter);
+					rsr.datawriter.value(writeObjectStateToJson(item));
 				}
 			});
 	}
 	
 	//TODO: move to other class
-	private void writeObjectStateToJson(ObjectState state, DataWriter dw){
-		dw
-			.object()
-			.key("key").value(state.getkey()) //TODO: use constants
-			.key("url").value(getServiceUrl() + state.getkey())
-			.key("rev").value(state.getrevision())
-			.key("etag").value(state.getetag())
-			.key("deleted").value(state.getdeleted())
-			.key("data").value(new JSONObject(state.getjson())) //TODO: optimize! valueRaw
-			.endObject();
+	private JSONObject writeObjectStateToJson(ObjectState state){
+		JSONObject res = new JSONObject();
+		res
+			.put("key", state.getkey()) //TODO: use constants
+			.put("url", getServiceUrl() + state.getkey())
+			.put("rev", state.getrevision())
+			.put("etag", state.getetag())
+			.put("deleted", state.getdeleted())
+			.put("data", new JSONObject(state.getjson()));
+		return res;
 	}
 
 	private void serveChangesFeed(RestServiceRequest rsr, long since) throws IOException, CoreException {
@@ -575,15 +577,13 @@ public class PublishedService {
 		publishUpdate(objectState);
 	}
 
-	private void publishUpdate(ObjectState objectState) {
+	private void publishUpdate(ObjectState objectState) throws UnsupportedEncodingException {
 		// TODO async, parallel, separate thread etc etc. Or is continuation.resume async and isn't that needed at all?
-		StringBuilderWriter json = new StringBuilderWriter();
-		DataWriter dw = new DataWriter(new PrintWriter(json), DataWriter.JSON);
-		writeObjectStateToJson(objectState, dw);
+		JSONObject json = writeObjectStateToJson(objectState);
 		
 		for(LongPollSession s: longPollSessions)
 			try {
-				s.addInstruction(json.toString());
+				s.addInstruction(json);
 			} catch (IOException e) {
 				RestServices.LOG.warn("Failed to publish update to some client: " + json);
 			}

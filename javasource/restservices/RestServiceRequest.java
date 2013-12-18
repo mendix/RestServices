@@ -2,6 +2,7 @@ package restservices;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 
 
 import org.eclipse.jetty.server.Request;
@@ -18,7 +19,6 @@ public class RestServiceRequest {
 	Response response;
 	private ContentType contentType = ContentType.JSON;
 	private IContext context;
-	private PrintWriter writer;
 	protected DataWriter datawriter;
 
 	public RestServiceRequest(Request request, Response response) {
@@ -30,11 +30,10 @@ public class RestServiceRequest {
 		setResponseContentType(response, contentType);
 
 		try {
-			this.writer =new PrintWriter(response.getOutputStream());
+			this.datawriter = new DataWriter(response.getOutputStream(), contentType == ContentType.HTML ? DataWriter.HTML : contentType == ContentType.XML ? DataWriter.XML : DataWriter.JSON);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		this.datawriter = new DataWriter(writer, contentType == ContentType.HTML ? DataWriter.HTML : contentType == ContentType.XML ? DataWriter.XML : DataWriter.JSON);
 	}
 
 	public static ContentType determineContentType(Request request) {
@@ -61,7 +60,11 @@ public class RestServiceRequest {
 	}
 	
 	public RestServiceRequest write(String data) {
-		this.writer.print(data);
+		try {
+			this.response.getOutputStream().write(data.getBytes(Constants.UTF8));
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		return this;
 	}
 
@@ -70,7 +73,11 @@ public class RestServiceRequest {
 	}
 
 	public void close() {
-		this.writer.close();
+		try {
+			this.response.getOutputStream().close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public void startHTMLDoc() {
