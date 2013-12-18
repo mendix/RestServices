@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 
+import javax.servlet.ServletOutputStream;
+
 import org.eclipse.jetty.continuation.Continuation;
 import org.json.JSONObject;
 
@@ -33,7 +35,7 @@ class LongPollSession {
 	}
 
 
-	public void addInstruction(String json) 
+	public void addInstruction(String json) throws IOException 
 	{
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug(this.id + " received instruction " + json.toString());
@@ -43,7 +45,7 @@ class LongPollSession {
 			
 		//schedule continuations async so we might serve multiple instructions at the same time
 		if (inSync)
-			resumeContinuation();
+			writePendingChanges();
 	}
 
 	public boolean isEmpty()
@@ -51,37 +53,22 @@ class LongPollSession {
 		return pendingInstructions.isEmpty();
 	}
 
-	public void resumeContinuation() 
-	{
-		if (resumeMutex.tryAcquire()) { //Only resume if not already resuming
-			try {
-				if (continuation.isSuspended()) {
-					if (RestServices.LOG.isDebugEnabled())
-						RestServices.LOG.debug(this.id + " continuing.");
-					continuation.resume();
-				}
-			}
-			finally {
-				resumeMutex.release();
-			}
-		}
-		
-	}
-	
 	public void writePendingChanges() throws IOException {
-		PrintWriter writer = new PrintWriter(continuation.getServletResponse().getOutputStream());
+		//MWE: hmm... printwriter doesn't do the job!
+		//PrintWriter writer = new PrintWriter(continuation.getServletResponse().getOutputStream());
 		String instr = null;
-		
+
 		while(null != (instr = pendingInstructions.poll())) 
-			writer.write(instr);
+			continuation.getServletResponse().getOutputStream().write(instr.getBytes(Constants.UTF8));
+		continuation.getServletResponse().flushBuffer();
 	}
 
 
-	public void markInSync() {
+	public void markInSync() throws IOException {
 		this.inSync  = true;
 		
 		if (!this.isEmpty())
-			this.resumeContinuation();
+			this.writePendingChanges();
 	}
 
 

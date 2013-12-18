@@ -18,15 +18,12 @@ import org.apache.commons.io.output.StringBuilderWriter;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.eclipse.jetty.continuation.Continuation;
 import org.eclipse.jetty.continuation.ContinuationSupport;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import restservices.RestServiceRequest.ContentType;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceState;
-import restservices.proxies.Subscriber;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -461,55 +458,30 @@ public class PublishedService {
 	}
 
 	private void serveChangesFeed(RestServiceRequest rsr, long since) throws IOException, CoreException {
-		boolean autoclose = true;
-			
-		//Caveat: //see: http://trac/platform/browser/tags/3.1.1/runtime/appcontainer/src/com/mendix/m2ee/server/request/HttpMxRuntimeResponse.java, 
-		//RuntimeRequest.getWriter does not return the ServletResponse.writer, but a wrapped ServletResponse.Outputstream!
-		try {
 			Continuation continuation = ContinuationSupport.getContinuation(rsr.request);
 				
 			if (continuation.isInitial()) {	
 				// - this request just arrived (first branch) -> sleep until message arrive
 				debug("New continuation on " + rsr.request.getPathInfo());
 
-				continuation.setTimeout(Constants.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
-				continuation.suspend();
+				writeChanges(rsr, Core.createSystemContext(), since); //TODO: write changes or add to queue?
+				rsr.response.flushBuffer();
 				
 				LongPollSession lpsession = new LongPollSession(continuation, this);
 				longPollSessions.add(lpsession);
 				continuation.setAttribute("lpsession", lpsession);
 				
-				writeChanges(rsr, Core.createSystemContext(), since); //TODO: write changes or add to queue?
 				lpsession.markInSync();
 
-				//No close!
-				autoclose = false;
+				continuation.setTimeout(Constants.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
+				continuation.suspend(rsr.response);
 			}
-			else {
-				LongPollSession lpsession = (LongPollSession) continuation.getAttribute("lpsession");
-				
-				//This branch is taken when either:
-				// 1. jetty timed this request out
-				// 2. PollSession.addInstruction triggered a resumeContinuation()
-
-				debug("Continuing continuation for " + lpsession + ": state " + 
-						(continuation.isInitial() ? "Initial" : continuation.isExpired() ? "Expired" : continuation.isResumed() ? "Resumed" : "Unknown?!"));
-				lpsession.writePendingChanges();
-
-				if (continuation.isExpired()) {
-					longPollSessions.remove(lpsession);
-
-					//TODO: autoclose = true?
-				}
-				else
-					continuation.suspend();
+			else if (continuation.isExpired()) {
+					longPollSessions.remove((LongPollSession)continuation.getAttribute("lpsession"));
+					continuation.complete();
 			}
-		}
-		finally {
-			//TODO: this can probably be removed in the final 3.3 build
-			if (autoclose)
-				rsr.close();
-		}
+			else
+				throw new IllegalStateException("Illegal state");
 	}
 	
 
@@ -541,7 +513,7 @@ public class PublishedService {
 							long total) throws Exception {
 						if (offset % 100 == 0)
 							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
-						ChangeTracker.onAfterCommit(context, item, true); //TODO: can be false if the constraint is applied raw above!
+						ChangeTracker.publishUpdate(context, item, true); //TODO: can be false if the constraint is applied raw above!
 					}
 				});
 			
@@ -610,7 +582,11 @@ public class PublishedService {
 		writeObjectStateToJson(objectState, dw);
 		
 		for(LongPollSession s: longPollSessions)
-			s.addInstruction(json.toString());
+			try {
+				s.addInstruction(json.toString());
+			} catch (IOException e) {
+				RestServices.LOG.warn("Failed to publish update to some client: " + json);
+			}
 	}
 
 }

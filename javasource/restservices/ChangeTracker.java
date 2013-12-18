@@ -9,11 +9,11 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 public class ChangeTracker {
 
-	public static void onAfterCommit(IContext context, IMendixObject source) throws Exception {
-		onAfterCommit(context, source, true);
+	public static void publishUpdate(IContext context, IMendixObject source) throws Exception {
+		publishUpdate(context, source, true);
 	}
 	
-	public static void onAfterCommit(IContext context, IMendixObject source, boolean checkConstraint) {
+	public static void publishUpdate(IContext context, IMendixObject source, boolean checkConstraint) {
 		if (source == null)
 			return;
 		
@@ -42,4 +42,26 @@ public class ChangeTracker {
 			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
 		}
 	}
+
+	public static void publishDelete(IContext context, IMendixObject source) {
+		if (source == null)
+			return;
+		//publishDelete has no checksontraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
+		PublishedService service = RestServices.getServiceForEntity(source.getType());
+		
+		try {
+	
+			String key = service.getKey(context, source);
+			if (!RestServices.isValidKey(key)) {
+				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
+				return;
+			}
+				
+			service.processUpdate(key, null, null, true);
+		}
+		catch(Exception e) {
+			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
+		}
+	}
+
 }
