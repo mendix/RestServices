@@ -9,20 +9,16 @@
 
 package restservices.actions;
 
-import restservices.proxies.CollectionFollowState;
-
-import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.UserAction;
-import communitycommons.XPath;
 
 /**
  * 
  */
-public class resetCollectionFollowInformation extends UserAction<Boolean>
+public class stopFollowCollection extends UserAction<Boolean>
 {
 	private String collectionUrl;
 
-	public resetCollectionFollowInformation(String collectionUrl)
+	public stopFollowCollection(String collectionUrl)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -32,8 +28,7 @@ public class resetCollectionFollowInformation extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		XPath.create(Core.createSystemContext(), CollectionFollowState.class).eq(CollectionFollowState.MemberNames.CollectionUrl).deleteAll();
-		return true;
+		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
 		// END USER CODE
 	}
 
@@ -43,7 +38,7 @@ public class resetCollectionFollowInformation extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "resetCollectionFollowInformation";
+		return "stopFollowCollection";
 	}
 
 	// BEGIN EXTRA CODE

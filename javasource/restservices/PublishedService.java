@@ -570,7 +570,7 @@ public class PublishedService {
 		
 		objectState.setetag(eTag);
 		objectState.setdeleted(deleted);
-		objectState.setjson(jsonString);
+		objectState.setjson(deleted ? "" : jsonString);
 		objectState.setrevision(rev);
 		objectState.commit();
 		

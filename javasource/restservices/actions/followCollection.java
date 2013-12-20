@@ -9,6 +9,7 @@
 
 package restservices.actions;
 
+import restservices.ChangeFeedListener;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -18,10 +19,10 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class followCollection extends UserAction<Boolean>
 {
 	private String collectionUrl;
-	private IMendixObject updateMicroflow;
+	private String updateMicroflow;
 	private String deleteMicroflow;
 
-	public followCollection(String collectionUrl, IMendixObject updateMicroflow, String deleteMicroflow)
+	public followCollection(String collectionUrl, String updateMicroflow, String deleteMicroflow)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -33,7 +34,8 @@ public class followCollection extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		ChangeFeedListener.follow(collectionUrl, updateMicroflow, deleteMicroflow);
+		return true;
 		// END USER CODE
 	}
 
