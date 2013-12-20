@@ -2,12 +2,14 @@ package restservices;
 
 import java.io.File;
 import java.security.AccessControlException;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
@@ -79,6 +81,16 @@ public class Utils {
 			
 			target.setValue(context, e.getName(), source.getValue(context, e.getName()));
 		}
+	}
+
+	public static IDataType getFirstArgumentType(String microflow) {
+		Map<String, IDataType> args = Core.getInputParameters(microflow);
+		if (args == null)
+			throw new RuntimeException("Unknown microflow: " + microflow);
+		if (args.size() == 0)
+			throw new RuntimeException("Microflow " + microflow + " should have at least one argument!");
+		
+		return args.entrySet().iterator().next().getValue();
 	}
 
 }

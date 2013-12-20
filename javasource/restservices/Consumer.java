@@ -1,5 +1,7 @@
 package restservices;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -13,9 +15,12 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.lang3.tuple.Pair;
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParser;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import restservices.proxies.Primitive;
 import restservices.proxies.RestObject;
@@ -27,6 +32,7 @@ import com.mendix.core.objectmanagement.member.MendixObjectReference;
 import com.mendix.core.objectmanagement.member.MendixObjectReferenceSet;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
@@ -38,7 +44,7 @@ public class Consumer {
       		new MultiThreadedHttpConnectionManager();
       	HttpClient client = new HttpClient(connectionManager);*/
 	
-	private static HttpClient client = new HttpClient();
+	static HttpClient client = new HttpClient();
 	
 	/**
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
@@ -122,6 +128,44 @@ public class Consumer {
 		return target;
 	}
 	*/
+	
+	static void syncCollection(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
+		GetMethod get = new GetMethod(collectionUrl);
+		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
+		
+		int status = client.executeMethod(get);
+		if (status != IMxRuntimeResponse.OK)
+			throw new RuntimeException("Failed to setup stream to " + collectionUrl +  ", status: " + status);
+		
+		InputStream in = get.getResponseBodyAsStream();
+		try {
+			JSONTokener jt = new JSONTokener(in);
+			JSONObject instr;
+			while(null != (instr = new JSONObject(jt))) {
+				IContext c = Core.createSystemContext();
+				
+				//TODO: store revision
+
+				if (instr.getBoolean("deleted")) {
+					Core.execute(c, onDeleteMF, instr.getString("key"));
+				}
+				else {
+					IDataType type = Utils.getFirstArgumentType(onUpdateMF);
+					if (!type.isMendixObject())
+						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
+
+					IMendixObject target = Core.instantiate(c, type.getObjectType());
+					readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
+					Core.commit(c, target);
+					Core.execute(c, onUpdateMF, target);
+				}
+			}
+		}
+		finally {
+			in.close();
+		}
+		
+	}
 
 	static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
