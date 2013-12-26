@@ -11,7 +11,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-import restservices.proxies.CollectionFollowState;
+import restservices.proxies.FollowChangesState;
 
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -26,7 +26,7 @@ public class ChangeFeedListener {
 	private String url;
 	private String onUpdateMF;
 	private String onDeleteMF;
-	private CollectionFollowState state;
+	private FollowChangesState state;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
 
 	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
@@ -38,7 +38,7 @@ public class ChangeFeedListener {
 			throw new IllegalStateException("Already listening to " + url);
 		
 		activeListeners.put(url, this);
-		this.state = XPath.create(Core.createSystemContext(), CollectionFollowState.class).findOrCreate(CollectionFollowState.MemberNames.CollectionUrl, url);
+		this.state = XPath.create(Core.createSystemContext(), FollowChangesState.class).findOrCreate(FollowChangesState.MemberNames.CollectionUrl, url);
 		
 		restartConnection();
 	}

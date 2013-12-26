@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.proxies.CollectionFollowState;
+import restservices.proxies.FollowChangesState;
 
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.UserAction;
@@ -18,11 +18,11 @@ import communitycommons.XPath;
 /**
  * 
  */
-public class resetCollectionFollowInformation extends UserAction<Boolean>
+public class resetFollowChangesState extends UserAction<Boolean>
 {
 	private String collectionUrl;
 
-	public resetCollectionFollowInformation(String collectionUrl)
+	public resetFollowChangesState(String collectionUrl)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -32,7 +32,7 @@ public class resetCollectionFollowInformation extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		XPath.create(Core.createSystemContext(), CollectionFollowState.class).eq(CollectionFollowState.MemberNames.CollectionUrl).deleteAll();
+		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl).deleteAll();
 		return true;
 		// END USER CODE
 	}
@@ -43,7 +43,7 @@ public class resetCollectionFollowInformation extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "resetCollectionFollowInformation";
+		return "resetFollowChangesState";
 	}
 
 	// BEGIN EXTRA CODE

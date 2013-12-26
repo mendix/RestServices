@@ -15,13 +15,13 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 /**
  * 
  */
-public class updateCollection extends UserAction<Boolean>
+public class fetchChanges extends UserAction<Boolean>
 {
 	private String collectionUrl;
 	private IMendixObject updateMicroflow;
 	private String deleteMicroflow;
 
-	public updateCollection(String collectionUrl, IMendixObject updateMicroflow, String deleteMicroflow)
+	public fetchChanges(String collectionUrl, IMendixObject updateMicroflow, String deleteMicroflow)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -43,7 +43,7 @@ public class updateCollection extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "updateCollection";
+		return "fetchChanges";
 	}
 
 	// BEGIN EXTRA CODE

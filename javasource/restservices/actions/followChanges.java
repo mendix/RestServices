@@ -16,13 +16,13 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 /**
  * 
  */
-public class followCollection extends UserAction<Boolean>
+public class followChanges extends UserAction<Boolean>
 {
 	private String collectionUrl;
 	private String updateMicroflow;
 	private String deleteMicroflow;
 
-	public followCollection(String collectionUrl, String updateMicroflow, String deleteMicroflow)
+	public followChanges(String collectionUrl, String updateMicroflow, String deleteMicroflow)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -45,7 +45,7 @@ public class followCollection extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "followCollection";
+		return "followChanges";
 	}
 
 	// BEGIN EXTRA CODE

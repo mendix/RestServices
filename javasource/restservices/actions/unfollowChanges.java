@@ -9,16 +9,18 @@
 
 package restservices.actions;
 
+import restservices.ChangeFeedListener;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
-public class stopFollowCollection extends UserAction<Boolean>
+public class unfollowChanges extends UserAction<Boolean>
 {
 	private String collectionUrl;
 
-	public stopFollowCollection(String collectionUrl)
+	public unfollowChanges(String collectionUrl)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -28,7 +30,8 @@ public class stopFollowCollection extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		ChangeFeedListener.unfollow(collectionUrl);
+		return true;
 		// END USER CODE
 	}
 
@@ -38,7 +41,7 @@ public class stopFollowCollection extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "stopFollowCollection";
+		return "unfollowChanges";
 	}
 
 	// BEGIN EXTRA CODE
