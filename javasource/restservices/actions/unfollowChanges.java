@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.ChangeFeedListener;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**

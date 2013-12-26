@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.ServletOutputStream;
 
 import org.eclipse.jetty.continuation.Continuation;
@@ -24,13 +25,13 @@ class LongPollSession {
 	
 	final private LinkedBlockingQueue<JSONObject> pendingInstructions = new LinkedBlockingQueue<JSONObject>(Constants.MAXPOLLQUEUE_LENGTH);
 	
-	final private Continuation continuation;
+	final private AsyncContext continuation;
 	
 	final private Semaphore resumeMutex = new Semaphore(1);
 	private final PublishedService service;
 	
-	public LongPollSession(Continuation continuation, PublishedService publishedService) {
-		this.continuation = continuation;
+	public LongPollSession(AsyncContext asyncContext, PublishedService publishedService) {
+		this.continuation = asyncContext;
 		this.service = publishedService;
 	}
 
@@ -59,8 +60,8 @@ class LongPollSession {
 		JSONObject instr = null;
 
 		while(null != (instr = pendingInstructions.poll())) 
-			continuation.getServletResponse().getOutputStream().write(instr.toString().getBytes(Constants.UTF8));
-		continuation.getServletResponse().flushBuffer();
+			continuation.getResponse().getOutputStream().write(instr.toString().getBytes(Constants.UTF8));
+		continuation.getResponse().flushBuffer();
 	}
 
 
@@ -69,6 +70,11 @@ class LongPollSession {
 		
 		if (!this.isEmpty())
 			this.writePendingChanges();
+	}
+
+
+	public void complete() {
+		this.continuation.complete(); //TODO: or, endless loop?		
 	}
 }
 

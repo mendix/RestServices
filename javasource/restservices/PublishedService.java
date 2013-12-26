@@ -15,6 +15,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.servlet.AsyncContext;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.output.StringBuilderWriter;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -462,30 +464,34 @@ public class PublishedService {
 	}
 
 	private void serveChangesFeed(RestServiceRequest rsr, long since) throws IOException, CoreException {
-			Continuation continuation = ContinuationSupport.getContinuation(rsr.request);
+			//Continuation continuation = ContinuationSupport.getContinuation(rsr.request);
 				
-			if (continuation.isInitial()) {	
+			if (rsr.request.getAttribute("lpsession") == null) {	
 				// - this request just arrived (first branch) -> sleep until message arrive
 				debug("New continuation on " + rsr.request.getPathInfo());
 
+				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
+				rsr.response.getOutputStream().write("\r\n\r\n".getBytes(Constants.UTF8)); //TODO: extract constant
 				writeChanges(rsr, Core.createSystemContext(), since); //TODO: write changes or add to queue?
 				rsr.response.flushBuffer();
+				if (!rsr.response.isCommitted())
+					throw new IllegalStateException("Not committing");
 				
-				LongPollSession lpsession = new LongPollSession(continuation, this);
+				AsyncContext asyncContext = rsr.request.startAsync();
+				
+				LongPollSession lpsession = new LongPollSession(asyncContext, this);
 				longPollSessions.add(lpsession);
-				continuation.setAttribute("lpsession", lpsession);
+				rsr.request.setAttribute("lpsession", lpsession);
 				
 				lpsession.markInSync();
 
-				continuation.setTimeout(Constants.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
-				continuation.suspend(rsr.response);
+				asyncContext.setTimeout(Constants.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
 			}
-			else if (continuation.isExpired()) {
-					longPollSessions.remove((LongPollSession)continuation.getAttribute("lpsession"));
-					continuation.complete();
+			else {
+				LongPollSession lpsession = (LongPollSession)rsr.request.getAttribute("lpsession");
+				longPollSessions.remove(lpsession);
+				lpsession.complete();
 			}
-			else
-				throw new IllegalStateException("Illegal state");
 	}
 	
 

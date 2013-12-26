@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.proxies.FollowChangesState;
-
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import communitycommons.XPath;
