@@ -399,6 +399,8 @@ public class PublishedService {
 	}
 
 	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException {
+		rsr.response.setStatus(IMxRuntimeResponse.OK);
+		rsr.response.flushBuffer();
 		long since = 0;
 
 		if (rsr.getContentType() == ContentType.HTML) //TODO: make separate block for this in rsr!

@@ -45,15 +45,17 @@ public class ChangeFeedListener {
 
 	private void restartConnection() throws IOException,
 			HttpException {
-		String requestUrl = url + "?feed=true&since=" + state.getRevision() + 1; //revision expresses the last *received* revision, so start +1. 
+		//TODO: build args in better way, check for ? existence already and such
+		String requestUrl = url + "/changes?feed=true&since=" + state.getRevision() + 1; //revision expresses the last *received* revision, so start +1. 
 		
 		GetMethod get = new GetMethod(requestUrl);
 		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
 		
-		int status = Consumer.client.executeMethod(get);
-		if (status != IMxRuntimeResponse.OK)
-			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
-		
+//TODO:		int status = 
+		Consumer.client.executeMethod(get);
+//		if (status != IMxRuntimeResponse.OK)
+//			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
+//		get.getResponseBody()
 		this.inputStream = get.getResponseBodyAsStream();
 
 		(new Thread() {
