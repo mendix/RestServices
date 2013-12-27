@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.publish.PublishedService;
+import restservices.publish.ChangeManager;
 
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
@@ -35,7 +35,7 @@ public class publishUpdate extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		PublishedService.publishUpdate(getContext(), source);
+		ChangeManager.publishUpdate(getContext(), source);
 		return true;
 		// END USER CODE
 	}

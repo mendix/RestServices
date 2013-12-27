@@ -10,7 +10,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 
 import restservices.RestServices;
-import restservices.RestServices;
 import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.Utils;
 
@@ -80,7 +79,7 @@ public class RestServiceHandler extends RequestHandler{
 		else if ("GET".equals(request.getMethod()) && parts.length == 2) {
 			checkReadAccess(request, response);
 			if ("changes".equals(parts[1]))
-				service.serveChanges(rsr);
+				service.getChangeManager().serveChanges(rsr);
 			else
 				service.serveGet(rsr, parts[1]);
 		}

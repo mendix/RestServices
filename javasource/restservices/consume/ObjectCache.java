@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import restservices.RestServices;
-import restservices.RestServices;
 import restservices.proxies.RestObject;
 import restservices.proxies.RestReference;
 
@@ -12,7 +11,7 @@ import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
-public class ObjectCache {
+public class ObjectCache { //TODO: make class private?
 	//TODO: just one map with objecttype#url -> mendixobject
 	private Map<String, IMendixObject> restObjects = new HashMap<String, IMendixObject>();
 	private Map<String, IMendixObject> restReferences = new HashMap<String, IMendixObject>();
@@ -44,7 +43,7 @@ public class ObjectCache {
 			res.setValue(context, RestServices.URL_ATTR, url);
 		restObjects.put(url, res);
 		
-		RestServices.getObject(context, url, res, this);
+		RestConsumer.getObject(context, url, res, this);
 		return res;
 	}
 

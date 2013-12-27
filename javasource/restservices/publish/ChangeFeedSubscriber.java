@@ -1,24 +1,13 @@
 package restservices.publish;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
 
 import javax.servlet.AsyncContext;
-import javax.servlet.ServletOutputStream;
 
-import org.eclipse.jetty.continuation.Continuation;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.RestServices;
-
-import com.mendix.core.Core;
 
 class ChangeFeedSubscriber {
 	
@@ -30,12 +19,8 @@ class ChangeFeedSubscriber {
 	
 	final private AsyncContext continuation;
 	
-	final private Semaphore resumeMutex = new Semaphore(1);
-	private final PublishedService service;
-	
-	public ChangeFeedSubscriber(AsyncContext asyncContext, PublishedService publishedService) {
+	public ChangeFeedSubscriber(AsyncContext asyncContext) {
 		this.continuation = asyncContext;
-		this.service = publishedService;
 	}
 
 

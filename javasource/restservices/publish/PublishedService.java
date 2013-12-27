@@ -1,60 +1,33 @@
 package restservices.publish;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
-import javax.servlet.AsyncContext;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.output.StringBuilderWriter;
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.eclipse.jetty.continuation.Continuation;
-import org.eclipse.jetty.continuation.ContinuationSupport;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.proxies.ObjectState;
-import restservices.proxies.ServiceState;
-import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.Utils;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
-import com.mendix.core.objectmanagement.member.MendixObjectReference;
-import com.mendix.core.objectmanagement.member.MendixObjectReferenceSet;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.connectionbus.requests.IRetrievalSchema;
 import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.SortDirection;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import communitycommons.XPath;
-import communitycommons.XPath.IBatchProcessor;
 
 public class PublishedService {
-
-	private static final long BATCHSIZE = 1000;
-	final private Set<ChangeFeedSubscriber> longPollSessions = Collections.newSetFromMap(new ConcurrentHashMap<ChangeFeedSubscriber, Boolean>());
-
 
 	@JsonProperty
 	private String servicename;
@@ -81,8 +54,12 @@ public class PublishedService {
 	private IMetaObject sourceMetaEntity;
 
 	private IMetaObject publishMetaEntity;
-	private IMendixObject serviceState;
-
+	private ChangeManager changeManager = new ChangeManager(this);
+	
+	public ChangeManager getChangeManager() {
+		return changeManager;
+	}
+	
 	public void consistencyCheck() {
 		// source exists and persistent
 		// keyattr exists
@@ -103,7 +80,7 @@ public class PublishedService {
 		IRetrievalSchema schema = Core.createRetrievalSchema();
 		schema.addSortExpression(this.idattribute, SortDirection.ASC);
 		schema.addMetaPrimitiveName(this.idattribute);
-		schema.setAmount(BATCHSIZE);
+		schema.setAmount(RestServices.BATCHSIZE);
 
 		switch(rsr.getContentType()) {
 		case HTML:
@@ -128,14 +105,14 @@ public class PublishedService {
 		
 			for(IMendixObject item : result) {
 				String key = item.getMember(rsr.getContext(), idattribute).parseValueToString(rsr.getContext());
-				if (!RestServices.isValidKey(key))
+				if (!Utils.isValidKey(key))
 					continue;
 
 				String url = this.getServiceUrl() + key; //TODO: url param encode key?
 				rsr.datawriter.value(url);
 			}
 			
-			offset += BATCHSIZE;
+			offset += RestServices.BATCHSIZE;
 		}
 		while(!result.isEmpty());
 		rsr.datawriter.endArray();
@@ -155,7 +132,7 @@ public class PublishedService {
 		rsr.close();
 	}
 
-	private String getServiceUrl() {
+	public String getServiceUrl() {
 		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + this.servicename + "/";
 	}
 
@@ -169,10 +146,10 @@ public class PublishedService {
 		}
 		
 		IMendixObject view = convertSourceToView(rsr.getContext(), results.get(0));
-		JSONObject result = convertViewToJson(rsr.getContext(), view);
+		JSONObject result = JsonSerializer.convertMendixObjectToJson(rsr.getContext(), view);
 				
 		String jsonString = result.toString(4);
-		String eTag = getMD5Hash(jsonString);
+		String eTag = Utils.getMD5Hash(jsonString);
 		
 		if (eTag.equals(rsr.request.getHeader(RestServices.IFNONEMATCH_HEADER))) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
@@ -205,66 +182,7 @@ public class PublishedService {
 		rsr.getContext().getSession().release(view.getId());
 	}
 	
-	//TODO: move to utils
-	public static String getMD5Hash(String jsonString)
-			throws UnsupportedEncodingException {
-		return DigestUtils.md5Hex(jsonString.getBytes(RestServices.UTF8));
-	}
-
-	/**
-	 * returns a json string containingURL if id is persistable or json object if with the json representation if the object is not. s
-	 * @param rsr
-	 * @param id
-	 * @return
-	 * @throws Exception 
-	 */
-	public static Object identifierToJSON(IContext context, IMendixIdentifier id) throws Exception {
-		if (id == null)
-			return null;
-		
-		/* persistable object, generate url */
-		if (Core.getMetaObject(id.getObjectType()).isPersistable()) {
-		
-			PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
-			if (service == null) {
-				RestServices.LOG.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
-				return null;
-			}
-		
-			if (service.identifierInConstraint(context, id)) {
-				IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
-				if (obj == null) {
-					RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
-					return null;
-				}
-				return service.getObjecturl(context, obj);
-			}
-			return null;
-		}
-		
-		/* transient object, export */
-		else {
-			IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
-			if (obj == null) {
-				RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
-				return null;
-			}
-			return convertViewToJson(context, obj);
-		}
-	}
-
-	//TODO: move to separate class?
-	public static JSONObject convertViewToJson(IContext context, IMendixObject view) throws Exception {
-		JSONObject res = new JSONObject();
-		
-		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
-		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			serializeMember(context, res, e.getValue(), view.getMetaObject());
-		
-		return res;
-	}
-
-	private IMetaObject getSourceMetaEntity() {
+	public IMetaObject getSourceMetaEntity() {
 		if (this.sourceMetaEntity == null)
 			this.sourceMetaEntity = Core.getMetaObject(this.sourceentity);
 		return this.sourceMetaEntity;
@@ -280,82 +198,6 @@ public class PublishedService {
 		return (IMendixObject) Core.execute(context, this.publishmicroflow, source);
 	}
 
-	public static void serializeMember(IContext context, JSONObject target,
-			IMendixObjectMember<?> member, IMetaObject viewType) throws Exception {
-		if (context == null)
-			throw new IllegalStateException("Context is null");
-	
-		Object value = member.getValue(context);
-		String memberName = member.getName();
-		
-		//Primitive?
-		if (!(member instanceof MendixObjectReference) && !(member instanceof MendixObjectReferenceSet)) {
-			switch(viewType.getMetaPrimitive(member.getName()).getType()) {
-			case AutoNumber:
-			case Long:
-			case Boolean:
-			case Currency:
-			case Float:
-			case Integer:
-				//Numbers or bools should never be null!
-				if (value == null)
-					throw new IllegalStateException("Primitive member " + member.getName() + " should not be null!");
-	
-				target.put(memberName, value);
-				break;
-			case Enum:
-			case HashString:
-			case String:
-				if (value == null)
-					target.put(memberName, JSONObject.NULL);
-				target.put(memberName, value);
-				break;
-			case DateTime:
-				if (value == null)
-					target.put(memberName, JSONObject.NULL);
-					
-				target.put(memberName, (long)(((Date)value).getTime()));
-				break;
-			case Binary:
-			default: 
-				throw new IllegalStateException("Not supported Mendix Membertype for member " + memberName);
-			}
-		}
-			
-		/**
-		 * Reference
-		 */
-		else if (member instanceof MendixObjectReference){
-			if (value != null) 
-				value = identifierToJSON(context, (IMendixIdentifier) value);
-			
-			if (value == null)
-				target.put(Utils.getShortMemberName(memberName), JSONObject.NULL);
-			else
-				target.put(Utils.getShortMemberName(memberName), value);
-		}
-		
-		/**
-		 * Referenceset
-		 */
-		else if (member instanceof MendixObjectReferenceSet){
-			JSONArray ar = new JSONArray();
-			if (value != null) {
-				@SuppressWarnings("unchecked")
-				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
-				for(IMendixIdentifier id : ids) if (id != null) {
-					Object url = identifierToJSON(context, id);
-					if (url != null)
-						ar.put(url);
-				}
-			}
-			target.put(Utils.getShortMemberName(memberName), ar);			
-		}
-		
-		else
-			throw new IllegalStateException("Unimplemented membertype " + member.getClass().getSimpleName());
-	}
-
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
 		if (this.getConstraint().isEmpty())
 			return true;
@@ -365,7 +207,7 @@ public class PublishedService {
 	public String getObjecturl(IContext c, IMendixObject obj) {
 		//Pre: inConstraint is checked!, obj is not null
 		String key = getKey(c, obj);
-		if (!RestServices.isValidKey(key))
+		if (!Utils.isValidKey(key))
 			throw new IllegalStateException("Invalid key for object " + obj.toString());
 		return this.getServiceUrl() + key;
 	}
@@ -402,256 +244,9 @@ public class PublishedService {
 		rsr.datawriter.endObject().endObject();
 	}
 
-	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException {
-		rsr.response.setStatus(IMxRuntimeResponse.OK);
-		rsr.response.flushBuffer();
-		long since = 0;
-
-		if (rsr.getContentType() == ContentType.HTML) //TODO: make separate block for this in rsr!
-			rsr.startHTMLDoc();
-		else if (rsr.getContentType() == ContentType.XML)
-			rsr.startXMLDoc();
-
-		if (rsr.request.getParameter("since") != null) //TODO: extract since constant
-			since = Long.parseLong(rsr.request.getParameter("since"));
-		
-		if ("true".equals(rsr.request.getParameter("feed"))) 
-			serveChangesFeed(rsr, since);
-		else {
-			serveChangesList(rsr, since);
-			
-			if (rsr.getContentType() == ContentType.HTML) //TODO: make separate block for this in rsr!
-				rsr.endHTMLDoc();
-		}
-	}
-
-	private void serveChangesList(final RestServiceRequest rsr, long since) throws CoreException {
-		IContext c = Core.createSystemContext();
-		
-		
-		rsr.datawriter.array();
-		writeChanges(rsr, c, since);
-		rsr.datawriter.endArray();
-		
-		rsr.close();
-	}
-
-	public void writeChanges(final RestServiceRequest rsr, IContext c,
-			long since) throws CoreException {
-		XPath.create(c, ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceState, this.getServiceState(c))
-			.compare(ObjectState.MemberNames.revision, ">", since)
-			.addSortingAsc(ObjectState.MemberNames.revision)
-			.batch((int) BATCHSIZE, new IBatchProcessor<ObjectState>() {
-
-				@Override
-				public void onItem(ObjectState item, long offset, long total)
-						throws Exception {
-					rsr.datawriter.value(writeObjectStateToJson(item));
-				}
-			});
-	}
-	
-	//TODO: move to other class
-	private JSONObject writeObjectStateToJson(ObjectState state){
-		JSONObject res = new JSONObject();
-		res
-			.put("key", state.getkey()) //TODO: use constants
-			.put("url", getServiceUrl() + state.getkey())
-			.put("rev", state.getrevision())
-			.put("etag", state.getetag())
-			.put("deleted", state.getdeleted())
-			.put("data", new JSONObject(state.getjson()));
-		return res;
-	}
-
-	private void serveChangesFeed(RestServiceRequest rsr, long since) throws IOException, CoreException {
-			//Continuation continuation = ContinuationSupport.getContinuation(rsr.request);
-				
-			if (rsr.request.getAttribute("lpsession") == null) {	
-				// - this request just arrived (first branch) -> sleep until message arrive
-				debug("New continuation on " + rsr.request.getPathInfo());
-
-				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
-				rsr.response.getOutputStream().write("\r\n\r\n".getBytes(RestServices.UTF8)); //TODO: extract constant
-				writeChanges(rsr, Core.createSystemContext(), since); //TODO: write changes or add to queue?
-				rsr.response.flushBuffer();
-				if (!rsr.response.isCommitted())
-					throw new IllegalStateException("Not committing");
-				
-				AsyncContext asyncContext = rsr.request.startAsync();
-				
-				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, this);
-				longPollSessions.add(lpsession);
-				rsr.request.setAttribute("lpsession", lpsession);
-				
-				lpsession.markInSync();
-
-				asyncContext.setTimeout(RestServices.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
-			}
-			else {
-				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
-				longPollSessions.remove(lpsession);
-				lpsession.complete();
-			}
-	}
-	
-
-	private void debug(String msg) {
+	void debug(String msg) {
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug(msg);
-	}
-
-	public synchronized ServiceState getServiceState(final IContext context) throws CoreException {
-		if (context.isInTransaction())
-			throw new IllegalStateException("Context for getServiceState should not be in transaction!");
-		
-		if (this.serviceState == null)
-			this.serviceState = XPath.create(context, ServiceState.class)
-				.findOrCreateNoCommit(ServiceState.MemberNames.Name, getName()).getMendixObject();
-		
-		if (this.serviceState.isNew()) {
-			//TODO: ..and change tracking enabled
-			
-			Core.commit(context, serviceState); //TODO: will break if initializing breaks halfway...
-			
-			RestServices.LOG.info(this.getName() + ": Initializing change log. This might take a while...");
-			XPath.create(context, this.sourceentity)
-				//.raw(this.constraint) //TODO:!
-				.batch((int) BATCHSIZE, new IBatchProcessor<IMendixObject>() {
-
-					@Override
-					public void onItem(IMendixObject item, long offset,
-							long total) throws Exception {
-						if (offset % 100 == 0)
-							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
-						PublishedService.publishUpdate(context, item, true); //TODO: can be false if the constraint is applied raw above!
-					}
-				});
-			
-			RestServices.LOG.info(this.getName() + ": Initializing change log. DONE");
-		}
-		
-		return ServiceState.initialize(context, serviceState);
-	}
-
-	synchronized void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
-	
-		IContext context = Core.createSystemContext();
-	
-		ServiceState serviceState = getServiceState(context);
-		
-		ObjectState objectState = XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.key, key)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceState, serviceState)
-				.first();
-		
-		//not yet published
-		if (objectState == null) {
-			if (deleted) //no need to publish if it wasn't yet published
-				return;
-			
-			objectState = new ObjectState(context);
-			objectState.setkey(key);
-			objectState.setObjectState_ServiceState(serviceState);
-			storeUpdate(context, objectState, eTag, jsonString, deleted);
-		}
-		
-		else if (objectState != null && objectState.getetag().equals(eTag) && objectState.getdeleted() != deleted) 
-			return; //nothing changed
-	
-		else
-			storeUpdate(context, objectState, eTag, jsonString, deleted);
-	}
-
-	private synchronized long getNextRevisionId(IContext context) throws CoreException {
-		ServiceState state = getServiceState(context);
-		long rev = state.getRevision() + 1;
-		state.setRevision(rev);
-		state.commit();
-		return rev;
-	}
-	
-	private void storeUpdate(IContext context,  ObjectState objectState,
-			String eTag, String jsonString, boolean deleted) throws Exception {
-		
-		/* store the update*/
-		long rev = getNextRevisionId(context);
-		
-		objectState.setetag(eTag);
-		objectState.setdeleted(deleted);
-		objectState.setjson(deleted ? "" : jsonString);
-		objectState.setrevision(rev);
-		objectState.commit();
-		
-		publishUpdate(objectState);
-	}
-
-	private void publishUpdate(ObjectState objectState) throws UnsupportedEncodingException {
-		// TODO async, parallel, separate thread etc etc. Or is continuation.resume async and isn't that needed at all?
-		JSONObject json = writeObjectStateToJson(objectState);
-		
-		for(ChangeFeedSubscriber s: longPollSessions)
-			try {
-				s.addInstruction(json);
-			} catch (IOException e) {
-				RestServices.LOG.warn("Failed to publish update to some client: " + json);
-			}
-	}
-
-	public static void publishUpdate(IContext context, IMendixObject source, boolean checkConstraint) {
-		if (source == null)
-			return;
-		
-		PublishedService service = RestServices.getServiceForEntity(source.getType());
-		
-		try {
-			//Check if publishable
-			if (checkConstraint && !service.identifierInConstraint(context, source.getId()))
-				return; 
-			
-			String key = service.getKey(context, source);
-			if (!RestServices.isValidKey(key)) {
-				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
-				return;
-			}
-				
-			IMendixObject view = service.convertSourceToView(context, source);
-			JSONObject result = PublishedService.convertViewToJson(context, view);
-					
-			String jsonString = result.toString(4);
-			String eTag = PublishedService.getMD5Hash(jsonString);
-			
-			service.processUpdate(key, jsonString, eTag, false);
-		}
-		catch(Exception e) {
-			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
-		}
-	}
-
-	public static void publishUpdate(IContext context, IMendixObject source) throws Exception {
-		publishUpdate(context, source, true);
-	}
-
-	public static void publishDelete(IContext context, IMendixObject source) {
-		if (source == null)
-			return;
-		//publishDelete has no checksontraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
-		PublishedService service = RestServices.getServiceForEntity(source.getType());
-		
-		try {
-	
-			String key = service.getKey(context, source);
-			if (!RestServices.isValidKey(key)) {
-				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
-				return;
-			}
-				
-			service.processUpdate(key, null, null, true);
-		}
-		catch(Exception e) {
-			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
-		}
 	}
 
 }

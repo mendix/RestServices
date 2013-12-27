@@ -1,11 +1,15 @@
 package restservices.util;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.security.AccessControlException;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.codehaus.jackson.map.ObjectMapper;
+
+import restservices.RestServices;
 
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
@@ -92,5 +96,19 @@ public class Utils {
 		
 		return args.entrySet().iterator().next().getValue();
 	}
+
+	//TODO: move to utils
+	public static String getMD5Hash(String jsonString)
+			throws UnsupportedEncodingException {
+		return DigestUtils.md5Hex(jsonString.getBytes(RestServices.UTF8));
+	}
+
+	public static boolean isValidKey(String key) {
+		if (key == null)
+			return false;
+		return keyPattern.matcher(key).matches();
+	}
+
+	static Pattern keyPattern = Pattern.compile("^[-a-zA-Z0-9_~@^*:;,.]+$"); //anything that doesnt need special url parsing goes..
 
 }

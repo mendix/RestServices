@@ -1,13 +1,9 @@
 package restservices.publish;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
-import org.json.JSONWriter;
 
 import restservices.RestServices;
 import restservices.util.DataWriter;

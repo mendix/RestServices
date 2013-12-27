@@ -1,9 +1,6 @@
 package restservices.util;
 
-import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.Stack;
 
 import org.apache.commons.lang3.StringEscapeUtils;

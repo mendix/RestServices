@@ -10,6 +10,8 @@
 package restservices.actions;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
@@ -43,7 +45,7 @@ public class getCollection extends UserAction<Boolean>
 		this.firstResult = __firstResult == null ? null : restservices.proxies.AnyObject.initialize(getContext(), __firstResult);
 
 		// BEGIN USER CODE
-		RestServices.getCollection(getContext(), collectionUrl, __resultList, __firstResult);
+		RestConsumer.getCollection(getContext(), collectionUrl, __resultList, __firstResult);
 		return true;
 		// END USER CODE
 	}

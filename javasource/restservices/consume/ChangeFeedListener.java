@@ -12,7 +12,6 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
-import restservices.RestServices;
 import restservices.proxies.FollowChangesState;
 import restservices.util.Utils;
 
@@ -72,7 +71,7 @@ public class ChangeFeedListener {
 		}).start();
 	}
 
-	void listen()
+	private void listen()
 			throws CoreException, Exception {
 		JSONTokener jt = new JSONTokener(inputStream);
 		JSONObject instr = null;
@@ -95,7 +94,7 @@ public class ChangeFeedListener {
 						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
 	
 					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					RestConsumer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
+					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
 					Core.commit(c, target);
 					Core.execute(c, onUpdateMF, target);
 				}

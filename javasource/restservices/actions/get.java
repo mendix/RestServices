@@ -10,6 +10,8 @@
 package restservices.actions;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
@@ -32,7 +34,7 @@ public class get extends UserAction<String>
 	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestServices.getObject(getContext(), url, stub).toString();
+		return RestConsumer.getObject(getContext(), url, stub).toString();
 		// END USER CODE
 	}
 
