@@ -1,4 +1,4 @@
-package restservices;
+package restservices.consume;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,10 +22,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import restservices.RestServices;
+import restservices.RestServices;
 import restservices.proxies.Primitive;
 import restservices.proxies.RestObject;
 import restservices.proxies.RestPrimitiveType;
 import restservices.proxies.RestReference;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;
@@ -38,7 +41,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
-public class Consumer {
+public class RestConsumer {
 	
 	/*TODO: MultiThreadedHttpConnectionManager connectionManager = 
       		new MultiThreadedHttpConnectionManager();
@@ -54,10 +57,10 @@ public class Consumer {
 			RestServices.LOG.debug("Fetching '" + url + "' etag: " + etag + "..");
 		
 		GetMethod get = new GetMethod(url);
-		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
+		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
 		if (etag != null && !etag.isEmpty())
-			get.setRequestHeader(Constants.IFNONEMATCH_HEADER, etag);
+			get.setRequestHeader(RestServices.IFNONEMATCH_HEADER, etag);
 		
 		try {
 			int status = client.executeMethod(get);
@@ -131,7 +134,7 @@ public class Consumer {
 	
 	static void syncCollection(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
 		GetMethod get = new GetMethod(collectionUrl);
-		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
+		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
 		int status = client.executeMethod(get);
 		if (status != IMxRuntimeResponse.OK)
@@ -167,7 +170,7 @@ public class Consumer {
 		
 	}
 
-	static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
+	public static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
@@ -254,7 +257,7 @@ public class Consumer {
 		else if (Core.isSubClassOf(RestReference.entityName, targetType)) {
 			if (!(jsonValue instanceof String))
 				throw new RuntimeException("Expected json string value to create reference to '" + targetType + "'");
-			res.setValue(context, Constants.URL_ATTR, jsonValue);
+			res.setValue(context, RestServices.URL_ATTR, jsonValue);
 		}
 		
 		else if (Core.isSubClassOf(RestObject.entityName, targetType)) {

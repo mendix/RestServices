@@ -1,4 +1,4 @@
-package restservices;
+package restservices.publish;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -8,6 +8,9 @@ import java.io.UnsupportedEncodingException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.json.JSONWriter;
+
+import restservices.RestServices;
+import restservices.util.DataWriter;
 
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
@@ -37,9 +40,9 @@ public class RestServiceRequest {
 	}
 
 	public static ContentType determineContentType(Request request) {
-		if (request.getParameter(Constants.CONTENTTYPE_PARAM) != null)
-			return ContentType.valueOf(request.getParameter(Constants.CONTENTTYPE_PARAM).toUpperCase());
-		String ct = request.getHeader(Constants.ACCEPT_HEADER);
+		if (request.getParameter(RestServices.CONTENTTYPE_PARAM) != null)
+			return ContentType.valueOf(request.getParameter(RestServices.CONTENTTYPE_PARAM).toUpperCase());
+		String ct = request.getHeader(RestServices.ACCEPT_HEADER);
 		if (ct != null) {
 			if (ct.contains("text/json"))
 				return ContentType.JSON;
@@ -61,7 +64,7 @@ public class RestServiceRequest {
 	
 	public RestServiceRequest write(String data) {
 		try {
-			this.response.getOutputStream().write(data.getBytes(Constants.UTF8));
+			this.response.getOutputStream().write(data.getBytes(RestServices.UTF8));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -81,7 +84,7 @@ public class RestServiceRequest {
 	}
 
 	public void startHTMLDoc() {
-		this.write("<!DOCTYPE HTML><html><head><style>" + Constants.STYLESHEET + "</style><head><body>");		
+		this.write("<!DOCTYPE HTML><html><head><style>" + RestServices.STYLESHEET + "</style><head><body>");		
 	}
 
 

@@ -1,4 +1,4 @@
-package restservices;
+package restservices.util;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -9,6 +9,8 @@ import java.util.Stack;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import restservices.RestServices;
 
 public class DataWriter {
 
@@ -251,7 +253,7 @@ public class DataWriter {
 	
 	private DataWriter write(String data) {
 		try {
-			this.writer.write(data.getBytes(Constants.UTF8));
+			this.writer.write(data.getBytes(RestServices.UTF8));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

@@ -1,4 +1,4 @@
-package restservices;
+package restservices.publish;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -9,7 +9,10 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 
-import restservices.RestServiceRequest.ContentType;
+import restservices.RestServices;
+import restservices.RestServices;
+import restservices.publish.RestServiceRequest.ContentType;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.externalinterface.connector.RequestHandler;
@@ -24,7 +27,7 @@ public class RestServiceHandler extends RequestHandler{
 		if (instance == null) {
 			instance = new RestServiceHandler();
 			instance.loadConfig();
-			Core.addRequestHandler(Constants.HANDLERPATH, instance);
+			Core.addRequestHandler(RestServices.HANDLERPATH, instance);
 		}
 	}
 
@@ -38,10 +41,7 @@ public class RestServiceHandler extends RequestHandler{
 			//TODO: might not work with cloud security since jackson uses reflection
 			PublishedService def = Utils.getJsonMapper().readValue(configfile, PublishedService.class);
 			def.consistencyCheck();
-			RestServices.services.put(def.getName(), def);
-			if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))
-				throw new RuntimeException(String.format("Invalid service definition in '%s': Another services for entity '%s' is already defined", configfile.getName(), def.getSourceEntity()));
-			RestServices.servicesByEntity.put(def.getSourceEntity(), def);
+			RestServices.registerService(def.getName(), def);
 		}
 	}
 	
@@ -53,14 +53,14 @@ public class RestServiceHandler extends RequestHandler{
 		Request request = (Request) req.getOriginalRequest();
 		Response response = (Response) resp.getOriginalResponse();
 
-		response.setCharacterEncoding(Constants.UTF8);
+		response.setCharacterEncoding(RestServices.UTF8);
 		expireAlways(response);
 
 		RestServices.LOG.info("incoming request: " + request.getMethod() + " " + path);
 		
 		PublishedService service = null;
 		if (parts.length > 0) {
-			service = RestServices.services.get(parts[0]);
+			service = RestServices.getService(parts[0]);
 			if (service == null) {
 				serve404(response);
 				return;
@@ -115,8 +115,8 @@ public class RestServiceHandler extends RequestHandler{
 			.key("RestServices").value(RestServices.VERSION)
 			.key("services").array();
 		
-		for (PublishedService service : RestServices.services.values())
-			service.serveServiceDescription(rsr);
+		for (String service : RestServices.getServiceNames())
+			RestServices.getService(service).serveServiceDescription(rsr);
 		
 		rsr.datawriter.endArray().endObject();
 		

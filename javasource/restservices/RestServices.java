@@ -3,14 +3,19 @@ package restservices;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import restservices.consume.RestConsumer;
+import restservices.consume.ObjectCache;
 import restservices.proxies.GetResult;
 import restservices.proxies.RestObject;
+import restservices.publish.PublishedService;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -23,7 +28,7 @@ public class RestServices {
 	
 	static Pattern keyPattern = Pattern.compile("^[-a-zA-Z0-9_~@^*:;,.]+$"); //anything that doesnt need special url parsing goes..
 
-	static final ILogNode LOG = Core.getLogger("RestPublisher");
+	public static final ILogNode LOG = Core.getLogger("RestPublisher");
 	
 	public static final String VERSION = "1.0.0";
 	
@@ -60,7 +65,7 @@ public class RestServices {
 		if (resultList.size() > 0)
 			throw new RuntimeException("Expected stub collection to have size 0");
 		
-		Pair<Integer, String> result = Consumer.retrieveJsonUrl(collectionUrl, null);
+		Pair<Integer, String> result = RestConsumer.retrieveJsonUrl(collectionUrl, null);
 		if (result.getLeft() != IMxRuntimeResponse.OK)
 			throw new RuntimeException("Expected status OK on " + collectionUrl);
 		
@@ -75,7 +80,7 @@ public class RestServices {
 			else
 				item = Core.instantiate(context, firstResult.getType());
 			
-			Consumer.readJsonObjectIntoMendixObject(context, ar.getJSONObject(i), item, cache);
+			RestConsumer.readJsonObjectIntoMendixObject(context, ar.getJSONObject(i), item, cache);
 			resultList.add(item);
 		}
 	}
@@ -98,12 +103,12 @@ public class RestServices {
 		//analyze input
 		if (Core.isSubClassOf(RestObject.entityName, target.getType())) {
 			String key = Utils.getKeyFromUrl(url);
-			target.setValue(context, Constants.ID_ATTR, key);
-			etag = target.getValue(context, Constants.ETAG_ATTR);
+			target.setValue(context, RestServices.ID_ATTR, key);
+			etag = target.getValue(context, RestServices.ETAG_ATTR);
 		}
 
 		//fetch
-		Pair<Integer, String> result = Consumer.retrieveJsonUrl(url, etag);
+		Pair<Integer, String> result = RestConsumer.retrieveJsonUrl(url, etag);
 		
 		if (result.getLeft() == IMxRuntimeResponse.NOT_MODIFIED)
 			return GetResult.NotModified;
@@ -112,8 +117,54 @@ public class RestServices {
 		
 		//parse
 		cache.putObject(url, target);
-		Consumer.readJsonObjectIntoMendixObject(context, new JSONObject(result.getRight()), target, cache);
+		RestConsumer.readJsonObjectIntoMendixObject(context, new JSONObject(result.getRight()), target, cache);
 
 		return GetResult.OK;
+	}
+
+	public static final String UTF8 = "UTF-8";
+
+	public static final String URL_ATTR = "_url";
+
+	public static final String TEXTJSON = "text/json";
+
+	public static final String STYLESHEET = 
+	"body { font-family: Arial; font-size: 0.8em; padding: 20px 60px; } " +
+	"td {padding: 5px 10px; border: 1px solid #e2e2e2; } " +
+	"tr:nth-child(odd) {background-color: #e2e2e2; } " +
+	"h1 {color: navy; }" +
+	"hr {border-style:none; border-bottom: 1px dotted #aaa;}";
+
+	public static final int MAXPOLLQUEUE_LENGTH = 10000;
+
+	public static final int LONGPOLL_MAXDURATION = 60; //In seconds
+
+	public static final String IFNONEMATCH_HEADER = "If-None-Match";
+
+	public static final String ID_ATTR = "_id"; //TODO: is _id really needed?
+
+	public final static String HANDLERPATH = "rest/";
+
+	public static final String ETAG_HEADER = "ETag";
+
+	public static final String ETAG_ATTR = "_etag";
+
+	public static final String CONTENTTYPE_PARAM = "contenttype";
+
+	public static final String ACCEPT_HEADER = "Accept";
+
+	public static void registerService(String name, PublishedService def) {
+		services.put(name,  def);
+		if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))
+			throw new RuntimeException(String.format("Invalid service definition in '%s': Another services for entity '%s' is already defined", name, def.getSourceEntity()));
+		RestServices.servicesByEntity.put(def.getSourceEntity(), def);
+	}
+
+	public static PublishedService getService(String name) {
+		return services.get(name);
+	}
+
+	public static Set<String> getServiceNames() {
+		return services.keySet();
 	}
 }

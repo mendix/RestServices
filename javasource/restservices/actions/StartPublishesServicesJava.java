@@ -9,7 +9,8 @@
 
 package restservices.actions;
 
-import restservices.RestServiceHandler;
+import restservices.publish.RestServiceHandler;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**

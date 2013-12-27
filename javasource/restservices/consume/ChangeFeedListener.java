@@ -1,4 +1,4 @@
-package restservices;
+package restservices.consume;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +11,10 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import restservices.RestServices;
+import restservices.RestServices;
 import restservices.proxies.FollowChangesState;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -49,12 +52,11 @@ public class ChangeFeedListener {
 		String requestUrl = url + "/changes?feed=true&since=" + state.getRevision() + 1; //revision expresses the last *received* revision, so start +1. 
 		
 		GetMethod get = new GetMethod(requestUrl);
-		get.setRequestHeader(Constants.ACCEPT_HEADER, Constants.TEXTJSON);
+		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
-//TODO:		int status = 
-		Consumer.client.executeMethod(get);
-//		if (status != IMxRuntimeResponse.OK)
-//			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
+		int status = RestConsumer.client.executeMethod(get);
+		if (status != IMxRuntimeResponse.OK)
+			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
 //		get.getResponseBody()
 		this.inputStream = get.getResponseBodyAsStream();
 
@@ -93,7 +95,7 @@ public class ChangeFeedListener {
 						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
 	
 					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					Consumer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
+					RestConsumer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
 					Core.commit(c, target);
 					Core.execute(c, onUpdateMF, target);
 				}

@@ -17,11 +17,11 @@ import communitycommons.XPath;
 /**
  * 
  */
-public class resetFollowChangesState extends UserAction<Boolean>
+public class resetChangeTracking extends UserAction<Boolean>
 {
 	private String collectionUrl;
 
-	public resetFollowChangesState(String collectionUrl)
+	public resetChangeTracking(String collectionUrl)
 	{
 		super();
 		this.collectionUrl = collectionUrl;

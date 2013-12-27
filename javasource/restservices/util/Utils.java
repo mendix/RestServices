@@ -1,4 +1,4 @@
-package restservices;
+package restservices.util;
 
 import java.io.File;
 import java.security.AccessControlException;
@@ -40,7 +40,7 @@ public class Utils {
 		return mapper;
 	}
 
-	static String getShortMemberName(String memberName) {
+	public static String getShortMemberName(String memberName) {
 		return memberName.replaceFirst("^.+\\.", "");
 	}
 

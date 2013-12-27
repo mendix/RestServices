@@ -1,8 +1,10 @@
-package restservices;
+package restservices.consume;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import restservices.RestServices;
+import restservices.RestServices;
 import restservices.proxies.RestObject;
 import restservices.proxies.RestReference;
 
@@ -38,8 +40,8 @@ public class ObjectCache {
 			return res;
 		
 		res = Core.instantiate(context, otherSideType);
-		if (res.hasMember(Constants.URL_ATTR))
-			res.setValue(context, Constants.URL_ATTR, url);
+		if (res.hasMember(RestServices.URL_ATTR))
+			res.setValue(context, RestServices.URL_ATTR, url);
 		restObjects.put(url, res);
 		
 		RestServices.getObject(context, url, res, this);

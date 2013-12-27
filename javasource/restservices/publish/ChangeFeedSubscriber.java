@@ -1,4 +1,4 @@
-package restservices;
+package restservices.publish;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -15,22 +15,25 @@ import javax.servlet.ServletOutputStream;
 import org.eclipse.jetty.continuation.Continuation;
 import org.json.JSONObject;
 
+import restservices.RestServices;
+import restservices.RestServices;
+
 import com.mendix.core.Core;
 
-class LongPollSession {
+class ChangeFeedSubscriber {
 	
 	static long nextId = 1L;
 	private final String id = "FeedRequest#" + nextId++;  
 	private volatile boolean inSync = false;
 	
-	final private LinkedBlockingQueue<JSONObject> pendingInstructions = new LinkedBlockingQueue<JSONObject>(Constants.MAXPOLLQUEUE_LENGTH);
+	final private LinkedBlockingQueue<JSONObject> pendingInstructions = new LinkedBlockingQueue<JSONObject>(RestServices.MAXPOLLQUEUE_LENGTH);
 	
 	final private AsyncContext continuation;
 	
 	final private Semaphore resumeMutex = new Semaphore(1);
 	private final PublishedService service;
 	
-	public LongPollSession(AsyncContext asyncContext, PublishedService publishedService) {
+	public ChangeFeedSubscriber(AsyncContext asyncContext, PublishedService publishedService) {
 		this.continuation = asyncContext;
 		this.service = publishedService;
 	}
@@ -60,7 +63,7 @@ class LongPollSession {
 		JSONObject instr = null;
 
 		while(null != (instr = pendingInstructions.poll())) 
-			continuation.getResponse().getOutputStream().write(instr.toString().getBytes(Constants.UTF8));
+			continuation.getResponse().getOutputStream().write(instr.toString().getBytes(RestServices.UTF8));
 		continuation.getResponse().flushBuffer();
 	}
 

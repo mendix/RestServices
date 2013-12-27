@@ -9,7 +9,8 @@
 
 package restservices.actions;
 
-import restservices.Consumer;
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
@@ -33,7 +34,7 @@ public class registerCredentials extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		Consumer.registerCredentials(urlBasePath, username, password);
+		RestConsumer.registerCredentials(urlBasePath, username, password);
 		return true;
 		// END USER CODE
 	}

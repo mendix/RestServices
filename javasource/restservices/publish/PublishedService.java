@@ -1,4 +1,4 @@
-package restservices;
+package restservices.publish;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -25,9 +25,11 @@ import org.eclipse.jetty.continuation.ContinuationSupport;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import restservices.RestServiceRequest.ContentType;
+import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceState;
+import restservices.publish.RestServiceRequest.ContentType;
+import restservices.util.Utils;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -51,7 +53,7 @@ import communitycommons.XPath.IBatchProcessor;
 public class PublishedService {
 
 	private static final long BATCHSIZE = 1000;
-	final private Set<LongPollSession> longPollSessions = Collections.newSetFromMap(new ConcurrentHashMap<LongPollSession, Boolean>());
+	final private Set<ChangeFeedSubscriber> longPollSessions = Collections.newSetFromMap(new ConcurrentHashMap<ChangeFeedSubscriber, Boolean>());
 
 
 	@JsonProperty
@@ -172,14 +174,14 @@ public class PublishedService {
 		String jsonString = result.toString(4);
 		String eTag = getMD5Hash(jsonString);
 		
-		if (eTag.equals(rsr.request.getHeader(Constants.IFNONEMATCH_HEADER))) {
+		if (eTag.equals(rsr.request.getHeader(RestServices.IFNONEMATCH_HEADER))) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
 			rsr.close();
 			return;
 		}
-		rsr.response.setHeader(Constants.ETAG_HEADER, eTag);
+		rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
 		
-		result.put(Constants.ETAG_ATTR, eTag);
+		result.put(RestServices.ETAG_ATTR, eTag);
 		
 		switch(rsr.getContentType()) {
 		case JSON:
@@ -206,7 +208,7 @@ public class PublishedService {
 	//TODO: move to utils
 	public static String getMD5Hash(String jsonString)
 			throws UnsupportedEncodingException {
-		return DigestUtils.md5Hex(jsonString.getBytes(Constants.UTF8));
+		return DigestUtils.md5Hex(jsonString.getBytes(RestServices.UTF8));
 	}
 
 	/**
@@ -471,7 +473,7 @@ public class PublishedService {
 				debug("New continuation on " + rsr.request.getPathInfo());
 
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
-				rsr.response.getOutputStream().write("\r\n\r\n".getBytes(Constants.UTF8)); //TODO: extract constant
+				rsr.response.getOutputStream().write("\r\n\r\n".getBytes(RestServices.UTF8)); //TODO: extract constant
 				writeChanges(rsr, Core.createSystemContext(), since); //TODO: write changes or add to queue?
 				rsr.response.flushBuffer();
 				if (!rsr.response.isCommitted())
@@ -479,16 +481,16 @@ public class PublishedService {
 				
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
-				LongPollSession lpsession = new LongPollSession(asyncContext, this);
+				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, this);
 				longPollSessions.add(lpsession);
 				rsr.request.setAttribute("lpsession", lpsession);
 				
 				lpsession.markInSync();
 
-				asyncContext.setTimeout(Constants.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
+				asyncContext.setTimeout(RestServices.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
 			}
 			else {
-				LongPollSession lpsession = (LongPollSession)rsr.request.getAttribute("lpsession");
+				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
 				longPollSessions.remove(lpsession);
 				lpsession.complete();
 			}
@@ -523,7 +525,7 @@ public class PublishedService {
 							long total) throws Exception {
 						if (offset % 100 == 0)
 							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
-						ChangeTracker.publishUpdate(context, item, true); //TODO: can be false if the constraint is applied raw above!
+						PublishedService.publishUpdate(context, item, true); //TODO: can be false if the constraint is applied raw above!
 					}
 				});
 			
@@ -589,12 +591,67 @@ public class PublishedService {
 		// TODO async, parallel, separate thread etc etc. Or is continuation.resume async and isn't that needed at all?
 		JSONObject json = writeObjectStateToJson(objectState);
 		
-		for(LongPollSession s: longPollSessions)
+		for(ChangeFeedSubscriber s: longPollSessions)
 			try {
 				s.addInstruction(json);
 			} catch (IOException e) {
 				RestServices.LOG.warn("Failed to publish update to some client: " + json);
 			}
+	}
+
+	public static void publishUpdate(IContext context, IMendixObject source, boolean checkConstraint) {
+		if (source == null)
+			return;
+		
+		PublishedService service = RestServices.getServiceForEntity(source.getType());
+		
+		try {
+			//Check if publishable
+			if (checkConstraint && !service.identifierInConstraint(context, source.getId()))
+				return; 
+			
+			String key = service.getKey(context, source);
+			if (!RestServices.isValidKey(key)) {
+				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
+				return;
+			}
+				
+			IMendixObject view = service.convertSourceToView(context, source);
+			JSONObject result = PublishedService.convertViewToJson(context, view);
+					
+			String jsonString = result.toString(4);
+			String eTag = PublishedService.getMD5Hash(jsonString);
+			
+			service.processUpdate(key, jsonString, eTag, false);
+		}
+		catch(Exception e) {
+			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
+		}
+	}
+
+	public static void publishUpdate(IContext context, IMendixObject source) throws Exception {
+		publishUpdate(context, source, true);
+	}
+
+	public static void publishDelete(IContext context, IMendixObject source) {
+		if (source == null)
+			return;
+		//publishDelete has no checksontraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
+		PublishedService service = RestServices.getServiceForEntity(source.getType());
+		
+		try {
+	
+			String key = service.getKey(context, source);
+			if (!RestServices.isValidKey(key)) {
+				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
+				return;
+			}
+				
+			service.processUpdate(key, null, null, true);
+		}
+		catch(Exception e) {
+			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
+		}
 	}
 
 }
