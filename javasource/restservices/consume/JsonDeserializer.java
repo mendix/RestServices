@@ -30,7 +30,7 @@ public class JsonDeserializer {
 		Iterator<String> it = object.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
-			String targetattr =  null;;
+			String targetattr =  null;
 			//String assocName = target.getMetaObject().getModuleName() + "." + attr;
 			
 			if (target.hasMember(attr)) 

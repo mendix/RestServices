@@ -114,10 +114,9 @@ public class ChangeManager {
 	
 				asyncContext.setTimeout(RestServices.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
 			}
-			else {
+			else { //expired
 				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
 				longPollSessions.remove(lpsession);
-				lpsession.complete();
 			}
 	}
 

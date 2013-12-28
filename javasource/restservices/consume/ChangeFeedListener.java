@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -16,7 +17,6 @@ import restservices.proxies.FollowChangesState;
 import restservices.util.Utils;
 
 import com.mendix.core.Core;
-import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
@@ -71,8 +71,8 @@ public class ChangeFeedListener {
 		}).start();
 	}
 
-	private void listen()
-			throws CoreException, Exception {
+	void listen()
+			throws Exception {
 		JSONTokener jt = new JSONTokener(inputStream);
 		JSONObject instr = null;
 		
@@ -109,11 +109,12 @@ public class ChangeFeedListener {
 			}
 		}
 		catch(Exception e) {
-			graceFullDisconnected = false; //TODO unless..
+			//Not graceful disconnected?
+			if (!(jt.end() && e instanceof JSONException))
+				throw new RuntimeException(e);
 		}
 		
-		if (graceFullDisconnected)
-			restartConnection();
+		restartConnection();
 	}
 	
 	private void close() throws IOException {

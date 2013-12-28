@@ -42,7 +42,7 @@ public class resetChangeTracking extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "resetFollowChangesState";
+		return "resetChangeTracking";
 	}
 
 	// BEGIN EXTRA CODE

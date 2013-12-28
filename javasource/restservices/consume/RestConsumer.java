@@ -123,7 +123,8 @@ public class RestConsumer {
 		try {
 			JSONTokener jt = new JSONTokener(in);
 			JSONObject instr;
-			while(null != (instr = new JSONObject(jt))) {
+			while(true) {
+				instr = new JSONObject(jt);
 				IContext c = Core.createSystemContext();
 				
 				//TODO: store revision

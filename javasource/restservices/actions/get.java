@@ -11,7 +11,6 @@ package restservices.actions;
 
 import restservices.RestServices;
 import restservices.consume.RestConsumer;
-
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 

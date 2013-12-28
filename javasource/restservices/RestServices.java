@@ -56,7 +56,7 @@ public class RestServices {
 
 	public static final int MAXPOLLQUEUE_LENGTH = 10000;
 
-	public static final int LONGPOLL_MAXDURATION = 60; //In seconds
+	public static final int LONGPOLL_MAXDURATION = 50; //In seconds
 
 	public static final String IFNONEMATCH_HEADER = "If-None-Match";
 
