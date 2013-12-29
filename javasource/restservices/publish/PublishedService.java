@@ -137,15 +137,13 @@ public class PublishedService {
 	}
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
-		String xpath = XPath.create(rsr.getContext(), this.sourceentity).eq(this.idattribute, key).getXPath() + this.getConstraint();
-		
-		List<IMendixObject> results = Core.retrieveXPathQuery(rsr.getContext(), xpath, 1, 0, ImmutableMap.of("id", "ASC"));
-		if (results.size() == 0) {
+		IMendixObject source = getObjectByKey(rsr.getContext(), key);
+		if (source == null) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_FOUND);
 			return;
 		}
 		
-		IMendixObject view = convertSourceToView(rsr.getContext(), results.get(0));
+		IMendixObject view = convertSourceToView(rsr.getContext(), source);
 		JSONObject result = JsonSerializer.convertMendixObjectToJson(rsr.getContext(), view);
 				
 		String jsonString = result.toString(4);
@@ -181,7 +179,50 @@ public class PublishedService {
 		rsr.close();
 		rsr.getContext().getSession().release(view.getId());
 	}
+
+	private IMendixObject getObjectByKey(IContext context,
+			String key) throws CoreException {
+		String xpath = XPath.create(context, this.sourceentity).eq(this.idattribute, key).getXPath() + this.getConstraint();
+		
+		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
+		return results.size() == 0 ? null : results.get(0);
+	}
 	
+	public serveDelete(RestServiceRequest rsr, String key, String etag) {
+		//TODO: check delete api enabled?
+		
+		IMendixObject source = getObjectByKey(rsr.getContext(), key);
+		
+		if (source == null) {
+			rsr.setStatus(IMxRuntimeResponse.NOT_FOUND);
+			return;
+		}
+
+		if (!verifyEtag(source, etag)) {
+			rsr.setStatusConflicted();
+			return;
+		}
+		
+		if (this.deletemicroflow)
+			Core.execute(rsr.getContext(), this.deletemicroflow, source);
+		else
+			Core.delete(rsr.getContext(), source);
+		
+		rsr.setStatus(IMxRuntimeResponse.OK);
+	}
+	
+	private boolean verifyEtag(IContext context, IMendixObject source, String etag) {
+		if (!this.detectConflicts)
+			return true;
+		
+		IMendixObject view = convertSourceToView(context, source);
+		JSONObject result = JsonSerializer.convertMendixObjectToJson(context, view);
+				
+		String jsonString = result.toString(4);
+		String eTag = Utils.getMD5Hash(jsonString);
+		return eTag.equals(etag);
+	}
+
 	public IMetaObject getSourceMetaEntity() {
 		if (this.sourceMetaEntity == null)
 			this.sourceMetaEntity = Core.getMetaObject(this.sourceentity);
