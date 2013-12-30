@@ -3,7 +3,9 @@ package restservices.util;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.security.AccessControlException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -110,5 +112,27 @@ public class Utils {
 	}
 
 	static Pattern keyPattern = Pattern.compile("^[-a-zA-Z0-9_~@^*:;,.]+$"); //anything that doesnt need special url parsing goes..
+
+	public static boolean isEmpty(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
+	public static boolean isNotEmpty(String value) {
+		return !isEmpty(value);
+	}
+
+	public static Map<String, String> getArgumentTypes(String mf) {
+		Map<String, String> args = new HashMap<String, String>();
+		for(Entry<String, IDataType> e : Core.getInputParameters(mf).entrySet()) {
+			args.put(e.getKey(), 
+					e.getValue().isMendixObject() 
+					? e.getValue().getObjectType() 
+					: e.getValue().isList() 
+						? e.getValue().getObjectType() + "*"
+						: e.getValue().getType().toString()
+			);
+		}
+		return args;
+	}
 
 }

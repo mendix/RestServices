@@ -94,7 +94,7 @@ public class ChangeFeedListener {
 						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
 	
 					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
+					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache(true));
 					Core.commit(c, target);
 					Core.execute(c, onUpdateMF, target);
 				}

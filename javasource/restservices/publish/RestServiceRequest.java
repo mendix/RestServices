@@ -96,4 +96,5 @@ public class RestServiceRequest {
 	public void setStatus(int status) {
 		response.setStatus(status);
 	}
+
 }

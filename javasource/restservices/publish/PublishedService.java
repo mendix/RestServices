@@ -3,13 +3,17 @@ package restservices.publish;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.consume.JsonDeserializer;
+import restservices.consume.ObjectCache;
 import restservices.util.Utils;
 
 import com.google.common.collect.ImmutableMap;
@@ -21,10 +25,13 @@ import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.So
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.IMendixObject.ObjectState;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
+import com.sun.xml.internal.fastinfoset.stax.events.Util;
+
 import communitycommons.XPath;
 
 public class PublishedService {
@@ -55,6 +62,12 @@ public class PublishedService {
 
 	private IMetaObject publishMetaEntity;
 	private ChangeManager changeManager = new ChangeManager(this);
+
+	private String deletemicroflow;
+
+	private boolean detectConflicts;
+
+	private String updatemicroflow;
 	
 	public ChangeManager getChangeManager() {
 		return changeManager;
@@ -188,7 +201,7 @@ public class PublishedService {
 		return results.size() == 0 ? null : results.get(0);
 	}
 	
-	public serveDelete(RestServiceRequest rsr, String key, String etag) {
+	public void serveDelete(RestServiceRequest rsr, String key, String etag) throws Exception {
 		//TODO: check delete api enabled?
 		
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
@@ -198,12 +211,9 @@ public class PublishedService {
 			return;
 		}
 
-		if (!verifyEtag(source, etag)) {
-			rsr.setStatusConflicted();
-			return;
-		}
+		verifyEtag(rsr.getContext(), source, etag);
 		
-		if (this.deletemicroflow)
+		if (Utils.isNotEmpty(this.deletemicroflow))
 			Core.execute(rsr.getContext(), this.deletemicroflow, source);
 		else
 			Core.delete(rsr.getContext(), source);
@@ -211,16 +221,74 @@ public class PublishedService {
 		rsr.setStatus(IMxRuntimeResponse.OK);
 	}
 	
-	private boolean verifyEtag(IContext context, IMendixObject source, String etag) {
+	public void serveUpdate(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
+		
+		if (Utils.isEmpty(key)) {
+			if (rsr.request.getMethod().equals("POST"))
+				key = UUID.randomUUID().toString();
+			else
+				throw new RuntimeException("No key provided!");
+		}
+	
+		IMendixObject target = XPath.create(rsr.getContext(), getSourceEntity()).findOrCreateNoCommit(idattribute, key);
+		
+		boolean isNew = target.getState() != ObjectState.NORMAL;
+		
+		if (isNew && rsr.request.getMethod().equals("PUT")) { //put is not allowed to create new objects
+			rsr.setStatus(IMxRuntimeResponse.NOT_FOUND);
+			return;
+		}
+		
+		if (!isNew) {
+			verifyEtag(rsr.getContext(), target, etag);
+		}
+		
+		updateObject(rsr.getContext(), target, data);
+
+		rsr.setStatus(IMxRuntimeResponse.OK);
+	}
+	
+	private void updateObject(IContext context, IMendixObject target,
+			JSONObject data) throws Exception, Exception {
+		Map<String, String> argtypes = Utils.getArgumentTypes(updatemicroflow);
+		
+		if (argtypes.size() != 2)
+			throw new RuntimeException("Expected exactly two arguments for microflow " + updatemicroflow);
+		
+		//Determine argnames
+		String viewArgName = null;
+		String targetArgName = null;
+		String viewArgType = null;
+		for(Entry<String, String> e : argtypes.entrySet()) {
+			if (e.getValue().equals(target.getType()))
+				targetArgName = e.getKey();
+			else if (Core.getMetaObject(e.getValue()) != null) {
+				viewArgName = e.getKey();
+				viewArgType = e.getValue();
+			}
+		}
+		
+		if (targetArgName == null || viewArgName == null || Core.getMetaObject(viewArgType).isPersistable())
+			throw new RuntimeException("Microflow '" + updatemicroflow + "' should have one argument of type " + target.getType() + ", and one argument typed with an persistent entity");
+		
+		IMendixObject view = Core.instantiate(context, viewArgType);
+		JsonDeserializer.readJsonObjectIntoMendixObject(context, data, view, new ObjectCache(false));
+		Core.commit(context, view);
+		
+		Core.execute(context, updatemicroflow, ImmutableMap.of(targetArgName, (Object) target, viewArgName, (Object) view));
+	}
+
+	private void verifyEtag(IContext context, IMendixObject source, String etag) throws Exception {
 		if (!this.detectConflicts)
-			return true;
+			return;
 		
 		IMendixObject view = convertSourceToView(context, source);
 		JSONObject result = JsonSerializer.convertMendixObjectToJson(context, view);
 				
 		String jsonString = result.toString(4);
 		String eTag = Utils.getMD5Hash(jsonString);
-		return eTag.equals(etag);
+		if (!eTag.equals(etag))
+			throw new RuntimeException("Update conflict detected, expected change based on version '" + eTag + "', but found '" + etag + "'");
 	}
 
 	public IMetaObject getSourceMetaEntity() {

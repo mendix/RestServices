@@ -15,11 +15,19 @@ public class ObjectCache { //TODO: make class private?
 	//TODO: just one map with objecttype#url -> mendixobject
 	private Map<String, IMendixObject> restObjects = new HashMap<String, IMendixObject>();
 	private Map<String, IMendixObject> restReferences = new HashMap<String, IMendixObject>();
+	private boolean autoDereferenceUrls;
+	
+	public ObjectCache(boolean autoDereferenceUrls) {
+		this.autoDereferenceUrls = autoDereferenceUrls;
+	}
 	
 	
 	public IMendixObject getObject(IContext context, String url,
 			String otherSideType) throws Exception {
 
+		if (!autoDereferenceUrls)
+			throw new IllegalStateException("Automatic derefencing of URLs is not supported");
+		
 		//Return as reference?
 		if (Core.isSubClassOf(RestReference.getType(), otherSideType)) {
 			IMendixObject res = restReferences.get(url);

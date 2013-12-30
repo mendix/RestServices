@@ -138,7 +138,7 @@ public class RestConsumer {
 						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
 
 					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache());
+					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache(true));
 					Core.commit(c, target);
 					Core.execute(c, onUpdateMF, target);
 				}
@@ -169,7 +169,7 @@ public class RestConsumer {
 		if (result.getLeft() != IMxRuntimeResponse.OK)
 			throw new RuntimeException("Expected status OK on " + collectionUrl);
 		
-		ObjectCache cache = new ObjectCache();
+		ObjectCache cache = new ObjectCache(true);
 		JSONArray ar = new JSONArray(result.getRight()); //TODO: stream would be faster!
 		
 		for(int i = 0; i < ar.length(); i++) {
@@ -188,7 +188,7 @@ public class RestConsumer {
 
 
 	public static GetResult getObject(IContext context, String url, IMendixObject target) throws Exception {
-		return getObject(context, url, target, new ObjectCache());
+		return getObject(context, url, target, new ObjectCache(true));
 	}
 
 
