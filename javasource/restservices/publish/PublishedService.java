@@ -152,7 +152,8 @@ public class PublishedService {
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		if (source == null) {
-			rsr.setStatus(IMxRuntimeResponse.NOT_FOUND);
+			rsr.setStatus(keyExists(key)? 401 : IMxRuntimeResponse.NOT_FOUND);
+			rsr.close();
 			return;
 		}
 		
@@ -207,7 +208,7 @@ public class PublishedService {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
 		if (source == null) {
-			rsr.setStatus(IMxRuntimeResponse.NOT_FOUND);
+			rsr.setStatus(keyExists(key) ? IMxRuntimeResponse.UNAUTHORIZED : IMxRuntimeResponse.NOT_FOUND);
 			return;
 		}
 
@@ -225,8 +226,7 @@ public class PublishedService {
 		//TODO: if enabled
 		String key = UUID.randomUUID().toString();
 		
-		IMendixObject target = Core.instantiate(rsr.getContext(), getSourceEntity());
-		target.setValue(rsr.getContext(), idattribute, key);
+		IMendixObject target = createNewObject(rsr.getContext(), key);
 		
 		updateObject(rsr.getContext(), target, data);
 		
@@ -235,22 +235,43 @@ public class PublishedService {
 		
 		rsr.close();
 	}
+
+	public IMendixObject createNewObject(IContext context, String key) {
+		IMendixObject target = Core.instantiate(context, getSourceEntity());
+		target.setValue(context, idattribute, key);
+		return target;
+	}
 	
 	public void servePut(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
-		IMendixObject target = XPath.create(rsr.getContext(), getSourceEntity()).findOrCreateNoCommit(idattribute, key);
+		IContext context = rsr.getContext();
+		IMendixObject target = getObjectByKey(context, key);
 		
-		boolean isNew = target.getState() != ObjectState.NORMAL;
-		//TODO: check create enabled / check update enabled
-		if (!isNew) {
+		if (target == null) {
+			if (keyExists(key)){
+				rsr.setStatus(400);
+				rsr.close();
+				return;
+			}
+			else {
+				target = createNewObject(context, key);
+				rsr.setStatus(201);
+			}
+			
+		}
+		else {
+			//already existing target
 			verifyEtag(rsr.getContext(), target, etag);
+			rsr.setStatus(204);
 		}
 		
 		updateObject(rsr.getContext(), target, data);
-		
-		rsr.setStatus(isNew ? 201 : 204); //created / No content
 		rsr.close();
 	}
 	
+	private boolean keyExists(String key) throws CoreException {
+		return getObjectByKey(Core.createSystemContext(), key) != null;
+	}
+
 	private void updateObject(IContext context, IMendixObject target,
 			JSONObject data) throws Exception, Exception {
 		Map<String, String> argtypes = Utils.getArgumentTypes(updatemicroflow);
