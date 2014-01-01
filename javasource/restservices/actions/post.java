@@ -9,6 +9,8 @@
 
 package restservices.actions;
 
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -34,7 +36,7 @@ public class post extends UserAction<String>
 		this.dataObject = __dataObject == null ? null : restservices.proxies.RestObject.initialize(getContext(), __dataObject);
 
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		return RestConsumer.postObject(getContext(), collectionUrl, __dataObject);
 		// END USER CODE
 	}
 

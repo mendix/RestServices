@@ -9,26 +9,29 @@
 
 package restservices.actions;
 
+import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
-public class delete extends UserAction<Boolean>
+public class delete extends UserAction<String>
 {
 	private String resourceUrl;
+	private String optEtag;
 
-	public delete(String resourceUrl)
+	public delete(String resourceUrl, String optEtag)
 	{
 		super();
 		this.resourceUrl = resourceUrl;
+		this.optEtag = optEtag;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		return RestConsumer.deleteObject(resourceUrl, optEtag).toString();
 		// END USER CODE
 	}
 

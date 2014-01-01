@@ -31,7 +31,7 @@ public class resetChangeTracking extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl).deleteAll();
+		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl, collectionUrl).deleteAll();
 		return true;
 		// END USER CODE
 	}

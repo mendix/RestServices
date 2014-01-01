@@ -9,6 +9,8 @@
 
 package restservices.actions;
 
+import restservices.consume.ChangeFeedListener;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -33,7 +35,6 @@ public class fetchChanges extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
 		// END USER CODE
 	}
 

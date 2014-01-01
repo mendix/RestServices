@@ -97,4 +97,8 @@ public class RestServiceRequest {
 		response.setStatus(status);
 	}
 
+	public String getETag() {
+		return request.getHeader(RestServices.IFNONEMATCH_HEADER);
+	}
+
 }

@@ -9,27 +9,33 @@
 
 package restservices.actions;
 
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class put extends UserAction<Boolean>
+public class put extends UserAction<String>
 {
+	private String url;
 	private IMendixObject dataObject;
+	private String optEtag;
 
-	public put(IMendixObject dataObject)
+	public put(String url, IMendixObject dataObject, String optEtag)
 	{
 		super();
+		this.url = url;
 		this.dataObject = dataObject;
+		this.optEtag = optEtag;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		return RestConsumer.putObject(getContext(), url, dataObject, optEtag).toString();
 		// END USER CODE
 	}
 

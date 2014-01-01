@@ -162,7 +162,7 @@ public class PublishedService {
 		String jsonString = result.toString(4);
 		String eTag = Utils.getMD5Hash(jsonString);
 		
-		if (eTag.equals(rsr.request.getHeader(RestServices.IFNONEMATCH_HEADER))) {
+		if (eTag.equals(rsr.getETag())) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
 			rsr.close();
 			return;
@@ -218,34 +218,37 @@ public class PublishedService {
 		else
 			Core.delete(rsr.getContext(), source);
 		
-		rsr.setStatus(IMxRuntimeResponse.OK);
+		rsr.setStatus(204); //no content
 	}
 	
-	public void serveUpdate(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
+	public void servePost(RestServiceRequest rsr, JSONObject data) throws Exception {
+		//TODO: if enabled
+		String key = UUID.randomUUID().toString();
 		
-		if (Utils.isEmpty(key)) {
-			if (rsr.request.getMethod().equals("POST"))
-				key = UUID.randomUUID().toString();
-			else
-				throw new RuntimeException("No key provided!");
-		}
+		IMendixObject target = Core.instantiate(rsr.getContext(), getSourceEntity());
+		target.setValue(rsr.getContext(), idattribute, key);
+		
+		updateObject(rsr.getContext(), target, data);
+		
+		rsr.setStatus(201); //created
+		rsr.write(getObjecturl(rsr.getContext(), target));
+		
+		rsr.close();
+	}
 	
+	public void servePut(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
 		IMendixObject target = XPath.create(rsr.getContext(), getSourceEntity()).findOrCreateNoCommit(idattribute, key);
 		
 		boolean isNew = target.getState() != ObjectState.NORMAL;
-		
-		if (isNew && rsr.request.getMethod().equals("PUT")) { //put is not allowed to create new objects
-			rsr.setStatus(IMxRuntimeResponse.NOT_FOUND);
-			return;
-		}
-		
+		//TODO: check create enabled / check update enabled
 		if (!isNew) {
 			verifyEtag(rsr.getContext(), target, etag);
 		}
 		
 		updateObject(rsr.getContext(), target, data);
-
-		rsr.setStatus(IMxRuntimeResponse.OK);
+		
+		rsr.setStatus(isNew ? 201 : 204); //created / No content
+		rsr.close();
 	}
 	
 	private void updateObject(IContext context, IMendixObject target,

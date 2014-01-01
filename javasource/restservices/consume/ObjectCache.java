@@ -50,7 +50,7 @@ public class ObjectCache { //TODO: make class private?
 		if (res.hasMember(RestServices.URL_ATTR))
 			res.setValue(context, RestServices.URL_ATTR, url);
 		restObjects.put(url, res);
-		
+		//TODO: blegh what is this shit?
 		RestConsumer.getObject(context, url, res, this);
 		return res;
 	}

@@ -3,15 +3,19 @@ package restservices.publish;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.UUID;
 
+import org.apache.commons.io.IOUtils;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
+import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.Utils;
+import scala.xml.persistent.SetStorage;
 
 import com.mendix.core.Core;
 import com.mendix.externalinterface.connector.RequestHandler;
@@ -51,11 +55,12 @@ public class RestServiceHandler extends RequestHandler{
 		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
 		Request request = (Request) req.getOriginalRequest();
 		Response response = (Response) resp.getOriginalResponse();
+		String method = request.getMethod();
 
 		response.setCharacterEncoding(RestServices.UTF8);
 		expireAlways(response);
 
-		RestServices.LOG.info("incoming request: " + request.getMethod() + " " + path);
+		RestServices.LOG.info("incoming request: " + method + " " + path);
 		
 		PublishedService service = null;
 		if (parts.length > 0) {
@@ -68,23 +73,33 @@ public class RestServiceHandler extends RequestHandler{
 		
 		RestServiceRequest rsr = new RestServiceRequest(request, response);
 
-		if ("GET".equals(request.getMethod()) && parts.length == 0) {
+		if ("GET".equals(method) && parts.length == 0) {
 			serveServiceOverview(rsr);
 		}
-		else if ("GET".equals(request.getMethod()) && parts.length == 1) {
+		else if ("GET".equals(method) && parts.length == 1) {
 			checkReadAccess(request, response);
 			//TODO: check if listing is enabled
 			service.serveListing(rsr);
 		}
-		else if ("GET".equals(request.getMethod()) && parts.length == 2) {
+		else if ("GET".equals(method) && parts.length == 2) {
 			checkReadAccess(request, response);
 			if ("changes".equals(parts[1]))
 				service.getChangeManager().serveChanges(rsr);
 			else
 				service.serveGet(rsr, parts[1]);
 		}
+		else if ("POST".equals(method) && parts.length ==  1) {
+			String body = IOUtils.toString(rsr.request.getInputStream());
+			service.servePost(rsr, new JSONObject(body));
+		}
+		else if ("PUT" .equals(method) && parts.length == 2) {
+			String body = IOUtils.toString(rsr.request.getInputStream());
+			service.servePut(rsr, parts[1], new JSONObject(body), rsr.getETag());
+		}
+		else if ("DELETE".equals(method) && parts.length == 2)
+			service.serveDelete(rsr, parts[1], rsr.getETag());
 		else
-			serve404(response);
+			rsr.setStatus(501); //TODO: constant
 		
 	}
 

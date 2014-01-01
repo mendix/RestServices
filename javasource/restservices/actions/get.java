@@ -21,19 +21,21 @@ public class get extends UserAction<String>
 {
 	private String url;
 	private IMendixObject stub;
+	private String optEtag;
 
-	public get(String url, IMendixObject stub)
+	public get(String url, IMendixObject stub, String optEtag)
 	{
 		super();
 		this.url = url;
 		this.stub = stub;
+		this.optEtag = optEtag;
 	}
 
 	@Override
 	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), url, stub).toString();
+		return RestConsumer.getObject(getContext(), url, stub, optEtag).toString();
 		// END USER CODE
 	}
 
