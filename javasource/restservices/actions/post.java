@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -20,23 +19,20 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class post extends UserAction<String>
 {
 	private String collectionUrl;
-	private IMendixObject __dataObject;
-	private restservices.proxies.RestObject dataObject;
+	private IMendixObject dataObject;
 
 	public post(String collectionUrl, IMendixObject dataObject)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
-		this.__dataObject = dataObject;
+		this.dataObject = dataObject;
 	}
 
 	@Override
 	public String executeAction() throws Exception
 	{
-		this.dataObject = __dataObject == null ? null : restservices.proxies.RestObject.initialize(getContext(), __dataObject);
-
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, __dataObject);
+		return RestConsumer.postObject(getContext(), collectionUrl, dataObject);
 		// END USER CODE
 	}
 
