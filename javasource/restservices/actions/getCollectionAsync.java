@@ -9,6 +9,8 @@
 
 package restservices.actions;
 
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
@@ -30,6 +32,8 @@ public class getCollectionAsync extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
+		RestConsumer.getCollectionAsync(collectionUrl, callbackMicroflow);
+		return true;
 		// END USER CODE
 	}
 

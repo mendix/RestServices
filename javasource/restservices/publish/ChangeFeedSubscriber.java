@@ -46,7 +46,8 @@ class ChangeFeedSubscriber {
 		//MWE: hmm... printwriter doesn't do the job!
 		//PrintWriter writer = new PrintWriter(continuation.getServletResponse().getOutputStream());
 		JSONObject instr = null;
-
+		
+		//TODO: make sure each instruction only takes one line in json! for convenience of other clients
 		while(null != (instr = pendingInstructions.poll())) 
 			continuation.getResponse().getOutputStream().write(instr.toString().getBytes(RestServices.UTF8));
 		continuation.getResponse().flushBuffer();

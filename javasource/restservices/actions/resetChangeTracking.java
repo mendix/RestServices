@@ -9,10 +9,8 @@
 
 package restservices.actions;
 
-import restservices.proxies.FollowChangesState;
-import com.mendix.core.Core;
+import restservices.consume.ChangeFeedListener;
 import com.mendix.systemwideinterfaces.core.UserAction;
-import communitycommons.XPath;
 
 /**
  * 
@@ -31,7 +29,7 @@ public class resetChangeTracking extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl, collectionUrl).deleteAll();
+		ChangeFeedListener.resetState(collectionUrl);
 		return true;
 		// END USER CODE
 	}

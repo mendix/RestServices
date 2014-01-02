@@ -12,7 +12,6 @@ package restservices.actions;
 import restservices.consume.ChangeFeedListener;
 
 import com.mendix.systemwideinterfaces.core.UserAction;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
@@ -20,10 +19,10 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class fetchChanges extends UserAction<Boolean>
 {
 	private String collectionUrl;
-	private IMendixObject updateMicroflow;
+	private String updateMicroflow;
 	private String deleteMicroflow;
 
-	public fetchChanges(String collectionUrl, IMendixObject updateMicroflow, String deleteMicroflow)
+	public fetchChanges(String collectionUrl, String updateMicroflow, String deleteMicroflow)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
@@ -35,6 +34,8 @@ public class fetchChanges extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
+		ChangeFeedListener.fetch(collectionUrl, updateMicroflow, deleteMicroflow);
+		return true;
 		// END USER CODE
 	}
 

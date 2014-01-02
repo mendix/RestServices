@@ -16,7 +16,9 @@ import restservices.RestServices;
 import restservices.proxies.FollowChangesState;
 import restservices.util.Utils;
 
+import com.google.common.base.Function;
 import com.mendix.core.Core;
+import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
@@ -35,20 +37,24 @@ public class ChangeFeedListener {
 		this.url = collectionUrl;
 		this.onUpdateMF = onUpdateMF;
 		this.onDeleteMF = onDeleteMF;
-		
-		if (activeListeners.containsKey(url))
-			throw new IllegalStateException("Already listening to " + url);
-		
-		activeListeners.put(url, this);
 		this.state = XPath.create(Core.createSystemContext(), FollowChangesState.class).findOrCreate(FollowChangesState.MemberNames.CollectionUrl, url);
+	}
+	
+	public ChangeFeedListener follow() throws HttpException, IOException {
+		synchronized (activeListeners) {
+			if (activeListeners.containsKey(url))
+				throw new IllegalStateException("Already listening to " + url);
+		
+			activeListeners.put(url, this);
+		}
 		
 		restartConnection();
+		return this;
 	}
 
 	private void restartConnection() throws IOException,
 			HttpException {
-		//TODO: build args in better way, check for ? existence already and such
-		String requestUrl = url + "/changes?feed=true&since=" + state.getRevision() + 1; //revision expresses the last *received* revision, so start +1. 
+		String requestUrl = getChangesRequestUrl(true);
 		
 		GetMethod get = new GetMethod(requestUrl);
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
@@ -71,41 +77,38 @@ public class ChangeFeedListener {
 		}).start();
 	}
 
+	public String getChangesRequestUrl(boolean useFeed) {
+		//TODO: build args in better way, check for ? existence already and such
+		
+		return url + "/changes?feed=" + (useFeed ? "true" : "false") + "&since=" + state.getRevision() + 1; //revision expresses the last *received* revision, so start +1. 
+	}
+
+	void fetch() throws IOException, Exception {
+		RestConsumer.readJsonObjectStream(getChangesRequestUrl(false), new Function<JSONObject, Boolean>() {
+
+			@Override
+			public Boolean apply(JSONObject data) {
+				try {
+					processChange(data);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				return true;
+			}
+			
+		});
+	}
+	
 	void listen()
 			throws Exception {
 		JSONTokener jt = new JSONTokener(inputStream);
 		JSONObject instr = null;
 		
-		boolean graceFullDisconnected = true;
-		
 		try {
 			while(true) {
 				instr = new JSONObject(jt);
 				
-				IContext c = Core.createSystemContext();
-				//TODO: use constants
-				//TODO: store revision
-				if (instr.getBoolean("deleted")) {
-					Core.execute(c, onDeleteMF, instr.getString("key"));
-				}
-				else {
-					IDataType type = Utils.getFirstArgumentType(onUpdateMF);
-					if (!type.isMendixObject())
-						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
-	
-					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache(true));
-					Core.commit(c, target);
-					Core.execute(c, onUpdateMF, target);
-				}
-				
-				long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
-				
-				if (revision <= state.getRevision()) 
-					RestServices.LOG.warn("Received revision (" + revision + ") is smaller as latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
-				
-				state.setRevision(revision);
-				state.commit();
+				processChange(instr);
 			}
 		}
 		catch(Exception e) {
@@ -117,6 +120,33 @@ public class ChangeFeedListener {
 		restartConnection();
 	}
 	
+	private void processChange(JSONObject instr) throws Exception {
+		IContext c = Core.createSystemContext();
+		//TODO: use constants
+		//TODO: store revision
+		if (instr.getBoolean("deleted")) {
+			Core.execute(c, onDeleteMF, instr.getString("key"));
+		}
+		else {
+			IDataType type = Utils.getFirstArgumentType(onUpdateMF);
+			if (!type.isMendixObject())
+				throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
+
+			IMendixObject target = Core.instantiate(c, type.getObjectType());
+			JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache(true));
+			Core.commit(c, target);
+			Core.execute(c, onUpdateMF, target);
+		}
+		
+		long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
+		
+		if (revision <= state.getRevision()) 
+			RestServices.LOG.warn("Received revision (" + revision + ") is smaller as latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
+		
+		state.setRevision(revision);
+		state.commit();
+	}
+	
 	private void close() throws IOException {
 		activeListeners.remove(url);
 		this.inputStream.close();
@@ -124,11 +154,21 @@ public class ChangeFeedListener {
 
 	public static synchronized ChangeFeedListener follow(String collectionUrl, String updateMicroflow,
 			String deleteMicroflow) throws Exception {
-		return new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow);		
+		return new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow).follow();		
 	}
 	
 	public static synchronized void unfollow(String collectionUrl) throws IOException {
 		if (activeListeners.containsKey(collectionUrl))
 			activeListeners.remove(collectionUrl).close();
+	}
+	
+	public static synchronized void fetch(String collectionUrl, String updateMicroflow, String deleteMicroflow) throws Exception {
+		new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow).fetch();
+	}
+
+	public static void resetState(String collectionUrl) throws CoreException {
+		if (activeListeners.containsKey(collectionUrl))
+			throw new IllegalStateException("Cannot reset state for collection '" + collectionUrl + "', there is an active listener. Please unfollow first");
+		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl, collectionUrl).deleteAll();
 	}
 }

@@ -1,5 +1,6 @@
 package restservices.consume;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -16,6 +17,7 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.lang3.tuple.Pair;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -25,7 +27,10 @@ import restservices.proxies.RestObject;
 import restservices.publish.JsonSerializer;
 import restservices.util.Utils;
 
+import com.google.common.base.Function;
+import com.google.common.base.Supplier;
 import com.mendix.core.Core;
+import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
@@ -90,7 +95,38 @@ public class RestConsumer {
 		}
 	}
 	
-	
+	public static void readJsonObjectStream(String url, Function<JSONObject, Boolean> onObject) throws Exception, IOException {
+		GetMethod request = new GetMethod(url);
+		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
+		try {
+			int status = client.executeMethod(request);
+		
+			if (status != 200)
+				throw new IllegalStateException("Expected status 200, found " + status + " on " + url);
+			
+			JSONTokener x = new JSONTokener(request.getResponseBodyAsStream());
+			//Based on: https://github.com/douglascrockford/JSON-java/blob/master/JSONArray.java
+			if (x.nextClean() != '[') 
+	            throw x.syntaxError("A JSONArray text must start with '['");
+            for (;;) {
+            	switch(x.nextClean()) {
+	            	case ',':
+	            		continue;
+	            	case ']':
+	            		return;
+	            	default:
+	                    Object next = x.nextValue();
+	                    if (next instanceof JSONObject)
+	                    	onObject.apply((JSONObject) next);
+	                    else
+	                    	throw x.syntaxError("Expected JSONObject, found  " + next.getClass().getSimpleName());
+               }
+            }
+		}
+		finally {
+			request.releaseConnection();
+		}
+	}
 	
 /*	
 	public static void getAllAsync(IContext context, String serviceurl, String microflowName) throws Exception {
@@ -180,30 +216,71 @@ public class RestConsumer {
 		client.getState().setCredentials(new AuthScope(url.getHost(), url.getPort(), AuthScope.ANY_REALM), defaultcreds);
 	}
 
-	public static void getCollection(IContext context, String collectionUrl, List<IMendixObject> resultList, IMendixObject firstResult) throws Exception
+	public static void getCollectionHelper(final IContext context, String collectionUrl, final Function<IContext, IMendixObject> objectFactory, final Function<IMendixObject, Boolean> callback) throws Exception
 	{
+		RestConsumer.readJsonObjectStream(collectionUrl, new Function<JSONObject, Boolean>() {
+
+			@Override
+			public Boolean apply(JSONObject data) {
+				IMendixObject item = objectFactory.apply(context);
+				try {
+					JsonDeserializer.readJsonObjectIntoMendixObject(context, data, item, new ObjectCache(true));
+				} catch (Exception e) {
+					throw new RuntimeException();
+				}
+				callback.apply(item);
+				return true;
+			}
+		});
+	}
+	
+	public static void getCollection(final IContext context, String collectionUrl, final List<IMendixObject> resultList, final IMendixObject firstResult) throws Exception {
 		if (resultList.size() > 0)
 			throw new RuntimeException("Expected stub collection to have size 0");
 		
-		Pair<Integer, String> result = RestConsumer.doRequest("GET", collectionUrl, null, null);
-		if (result.getLeft() != IMxRuntimeResponse.OK)
-			throw new RuntimeException("Expected status OK on " + collectionUrl);
-		
-		ObjectCache cache = new ObjectCache(true);
-		JSONArray ar = new JSONArray(result.getRight()); //TODO: stream would be faster!
-		
-		for(int i = 0; i < ar.length(); i++) {
-			IMendixObject item;
+		getCollectionHelper(context, collectionUrl, new Function<IContext, IMendixObject>() {
 			
-			if (i == 0)
-				item = firstResult;
-			else
-				item = Core.instantiate(context, firstResult.getType());
-			
-			JsonDeserializer.readJsonObjectIntoMendixObject(context, ar.getJSONObject(i), item, cache);
-			resultList.add(item);
-		}
+			@Override
+			public IMendixObject apply(IContext arg0) {
+				if (resultList.size() == 0)
+					return firstResult;
+				return Core.instantiate(context, firstResult.getType());
+			}
+		}, new Function<IMendixObject, Boolean>() {
+
+			@Override
+			public Boolean apply(IMendixObject obj) {
+				resultList.add(obj);
+				return true;
+			}
+		
+		});
 	}
+	
+	public static void getCollectionAsync(String collectionUrl, final String callbackMicroflow) throws Exception {
+		//TODO: check if only one argument and is of type object
+		final String argType = Utils.getFirstArgumentType(callbackMicroflow).getObjectType();
+		final IContext context = Core.createSystemContext();
+		
+		getCollectionHelper(context, collectionUrl, new Function<IContext, IMendixObject>() {
+			@Override
+			public IMendixObject apply(IContext arg0) {
+				return Core.instantiate(arg0, argType);
+			}
+		}, new Function<IMendixObject, Boolean>() {
+
+			@Override
+			public Boolean apply(IMendixObject item) {
+				try {
+					Core.execute(context, callbackMicroflow, item);
+				} catch (CoreException e) {
+					throw new RuntimeException(e);
+				}
+				return true;
+			}
+		});
+	}
+	
 
 	public static RequestResult getObject(IContext context, String url, IMendixObject target) throws Exception {
 		return getObject(context, url, target, new ObjectCache(true));
