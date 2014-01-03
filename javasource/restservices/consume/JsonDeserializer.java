@@ -11,9 +11,7 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.Primitive;
-import restservices.proxies.RestObject;
 import restservices.proxies.RestPrimitiveType;
-import restservices.proxies.RestReference;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;
@@ -26,7 +24,14 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
 public class JsonDeserializer {
 
-	public static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, ObjectCache cache) throws JSONException, Exception {
+
+	public static void readJsonDataIntoMendixObject(IContext context,
+			Object data, IMendixObject target, boolean autoResolveReferences) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, boolean autoResolve) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
 		while(it.hasNext()) {
 			String attr = it.next();
@@ -156,5 +161,6 @@ public class JsonDeserializer {
 			throw new Exception("Unsupported attribute type '" + type + "' in attribute '" + attr + "'");
 		}	
 	}
+
 
 }

@@ -17,7 +17,7 @@ import com.mendix.systemwideinterfaces.core.UserAction;
 /**
  * 
  */
-public class get extends UserAction<String>
+public class get extends UserAction<IMendixObject>
 {
 	private String url;
 	private IMendixObject stub;
@@ -32,7 +32,7 @@ public class get extends UserAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return RestConsumer.getObject(getContext(), url, stub, optEtag).toString();

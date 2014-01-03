@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
@@ -22,12 +23,13 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
+import restservices.proxies.GetResult;
 import restservices.proxies.RequestResult;
-import restservices.proxies.RestObject;
 import restservices.publish.JsonSerializer;
 import restservices.util.Utils;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -95,7 +97,7 @@ public class RestConsumer {
 		}
 	}
 	
-	public static void readJsonObjectStream(String url, Function<JSONObject, Boolean> onObject) throws Exception, IOException {
+	public static void readJsonObjectStream(String url, Predicate<Object> onObject) throws Exception, IOException {
 		GetMethod request = new GetMethod(url);
 		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		try {
@@ -115,11 +117,7 @@ public class RestConsumer {
 	            	case ']':
 	            		return;
 	            	default:
-	                    Object next = x.nextValue();
-	                    if (next instanceof JSONObject)
-	                    	onObject.apply((JSONObject) next);
-	                    else
-	                    	throw x.syntaxError("Expected JSONObject, found  " + next.getClass().getSimpleName());
+	                    onObject.apply(x.nextValue());
                }
             }
 		}
@@ -128,47 +126,7 @@ public class RestConsumer {
 		}
 	}
 	
-/*	
-	public static void getAllAsync(IContext context, String serviceurl, String microflowName) throws Exception {
-		Map<String, IDataType> params = Core.getInputParameters(microflowName);
-		if (params == null)
-			throw new Exception("Unknown microflow: " + microflowName);
-		if (params.size() != 1)
-			throw new Exception("Microflow '" + microflowName + "' should have exactly one argument");
-		
-		String entityType = params.entrySet().iterator().next().getValue().getObjectType();
-		String paramName = params.entrySet().iterator().next().getKey();
-		
-		if (entityType == null || Core.getMetaObject(entityType).isPersistable())
-			throw new Exception("First argument of microflow '" + microflowName + "' should be a transient entity");
-		
-		JSONArray ids = new JSONArray(retrieveJsonUrl(serviceurl)); 
-		for(int i = 0; i < ids.length(); i++) {
-			IMendixObject view = getObject(context, ids.getString(i), entityType, null); //No object storing between requests, we expect many objects!
-			Core.execute(context, microflowName, ImmutableMap.of(paramName, (Object) view));
-			context.getSession().release(view.getId());
-		}
-	}
-*/
-	/*
-	public static void getObject(IContext context, String url, IMendixObject target) throws JSONException, Exception {
-		JSONObject object = new JSONObject(retrieveJsonUrl(url));
-		ObjectCache cache = new ObjectCache();
-		cache.putObject(url, target);
-		readJsonIntoMendixObject(context, object, target, cache);
-	}
-	*/
-	
-	/*
-	public static IMendixObject getObject(IContext context, String url, String targetType, ObjectCache cache) throws JSONException, Exception {
-		JSONObject object = new JSONObject(retrieveJsonUrl(url));
-		IMendixObject target = Core.instantiate(context, targetType);
-		cache.putObject(url, target);
-		readJsonIntoMendixObject(context, object, target, cache);
-		return target;
-	}
-	*/
-	
+
 	static void syncCollection(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
 		GetMethod get = new GetMethod(collectionUrl);
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
@@ -216,7 +174,7 @@ public class RestConsumer {
 		client.getState().setCredentials(new AuthScope(url.getHost(), url.getPort(), AuthScope.ANY_REALM), defaultcreds);
 	}
 
-	public static void getCollectionHelper(final IContext context, String collectionUrl, final Function<IContext, IMendixObject> objectFactory, final Function<IMendixObject, Boolean> callback) throws Exception
+	private static void getCollectionHelper(final IContext context, String collectionUrl, final Function<IContext, IMendixObject> objectFactory, final Function<IMendixObject, Boolean> callback) throws Exception
 	{
 		RestConsumer.readJsonObjectStream(collectionUrl, new Function<JSONObject, Boolean>() {
 
@@ -258,14 +216,21 @@ public class RestConsumer {
 	}
 	
 	public static void getCollectionAsync(String collectionUrl, final String callbackMicroflow) throws Exception {
-		//TODO: check if only one argument and is of type object
-		final String argType = Utils.getFirstArgumentType(callbackMicroflow).getObjectType();
+		//args check
+		Map<String, String> argTypes = Utils.getArgumentTypes(callbackMicroflow);
+		if (argTypes.size() != 1)
+			throw new IllegalArgumentException("Microflow '" + callbackMicroflow + "' should have exactly one argument");
+		final String entityType = argTypes.values().iterator().next();
+
+		if (Core.getMetaObject(entityType) == null)
+			throw new IllegalArgumentException("Microflow '" + callbackMicroflow + "' should expect an entity as argument");
+		
 		final IContext context = Core.createSystemContext();
 		
 		getCollectionHelper(context, collectionUrl, new Function<IContext, IMendixObject>() {
 			@Override
 			public IMendixObject apply(IContext arg0) {
-				return Core.instantiate(arg0, argType);
+				return Core.instantiate(arg0, entityType);
 			}
 		}, new Function<IMendixObject, Boolean>() {
 
@@ -281,12 +246,7 @@ public class RestConsumer {
 		});
 	}
 	
-
-	public static RequestResult getObject(IContext context, String url, IMendixObject target) throws Exception {
-		return getObject(context, url, target, new ObjectCache(true));
-	}
-
-	public static RequestResult getObject(IContext context, String url, IMendixObject target, ObjectCache cache) throws Exception {
+	public static RequestResult getObject(IContext context, String url, String eTag, IMendixObject target) throws Exception {
 		//pre
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
@@ -296,30 +256,26 @@ public class RestConsumer {
 		if (!Utils.isUrl(url))
 			throw new IllegalArgumentException("Target should have a valid URL attribute");
 		
-		String etag = null;
-		//analyze input
-		if (Core.isSubClassOf(RestObject.entityName, target.getType())) {
-			String key = Utils.getKeyFromUrl(url);
-			target.setValue(context, RestServices.ID_ATTR, key);
-			etag = target.getValue(context, RestServices.ETAG_ATTR);
-		}
-	
-		//fetch
-		Pair<Integer, String> result = RestConsumer.doRequest("GET", url, etag, null);
+		GetResult gr = new GetResult(context);
 		
-		if (result.getLeft() == IMxRuntimeResponse.NOT_MODIFIED)
-			return RequestResult.NotModified;
-		else if (result.getLeft() == IMxRuntimeResponse.NOT_FOUND)
-			return RequestResult.NotFound;
+		//fetch
+		Pair<Integer, String> result = RestConsumer.doRequest("GET", url, eTag, null);
+		
+		if (result.getLeft() == IMxRuntimeResponse.NOT_MODIFIED) {
+			gr.setETag(eTag);
+			gr.setResult(RequestResult.NotModified);
+		}
+		else if (result.getLeft() != IMxRuntimeResponse.OK) 
+			throw new Exception("Failed to fetch '" + url + "', status: " + result.getLeft() + "\n\n" + result.getRight());
 		
 		//parse
-		cache.putObject(url, target);
-		JsonDeserializer.readJsonObjectIntoMendixObject(context, new JSONObject(result.getRight()), target, cache);
+		JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(result.getRight()).nextValue(), target, true);
 	
-		return RequestResult.OK;
+		return gr;
 	}
 	
 	public static RequestResult deleteObject(String url, String etag) throws Exception {
+		//TODO: make not-found result in not-modified, since that is conceptually the same result
 		return parseResponseCode(doRequest("DELETE", url, etag, null).getLeft());
 	}
 	

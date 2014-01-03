@@ -122,8 +122,12 @@ public class Utils {
 	}
 
 	public static Map<String, String> getArgumentTypes(String mf) {
+		Map<String, IDataType> knownArgs = Core.getInputParameters(mf);
+		if (knownArgs == null)
+			throw new IllegalArgumentException("Unknown microflow");
+		
 		Map<String, String> args = new HashMap<String, String>();
-		for(Entry<String, IDataType> e : Core.getInputParameters(mf).entrySet()) {
+		for(Entry<String, IDataType> e : knownArgs.entrySet()) {
 			args.put(e.getKey(), 
 					e.getValue().isMendixObject() 
 					? e.getValue().getObjectType() 

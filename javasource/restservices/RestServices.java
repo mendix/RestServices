@@ -60,13 +60,9 @@ public class RestServices {
 
 	public static final String IFNONEMATCH_HEADER = "If-None-Match";
 
-	public static final String ID_ATTR = "_id"; //TODO: is _id really needed?
-
 	public final static String HANDLERPATH = "rest/";
 
 	public static final String ETAG_HEADER = "ETag";
-
-	public static final String ETAG_ATTR = "_etag";
 
 	public static final String CONTENTTYPE_PARAM = "contenttype";
 
