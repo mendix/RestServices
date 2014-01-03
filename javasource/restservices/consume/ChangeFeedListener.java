@@ -14,9 +14,10 @@ import org.json.JSONTokener;
 
 import restservices.RestServices;
 import restservices.proxies.FollowChangesState;
+import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
 
-import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -84,12 +85,14 @@ public class ChangeFeedListener {
 	}
 
 	void fetch() throws IOException, Exception {
-		RestConsumer.readJsonObjectStream(getChangesRequestUrl(false), new Function<JSONObject, Boolean>() {
+		RestConsumer.readJsonObjectStream(getChangesRequestUrl(false), new Predicate<Object>() {
 
 			@Override
-			public Boolean apply(JSONObject data) {
+			public boolean apply(Object data) {
+				if (!(data instanceof JSONObject))
+					throw new RuntimeException("Changefeed expected JSONObject, found " + data.getClass().getSimpleName());
 				try {
-					processChange(data);
+					processChange((JSONObject) data);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -133,7 +136,7 @@ public class ChangeFeedListener {
 				throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
 
 			IMendixObject target = Core.instantiate(c, type.getObjectType());
-			JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache(true));
+			JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
 			Core.commit(c, target);
 			Core.execute(c, onUpdateMF, target);
 		}

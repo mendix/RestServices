@@ -3,7 +3,6 @@ package restservices.publish;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.codehaus.jackson.JsonParseException;
@@ -15,7 +14,6 @@ import org.json.JSONObject;
 import restservices.RestServices;
 import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.Utils;
-import scala.xml.persistent.SetStorage;
 
 import com.mendix.core.Core;
 import com.mendix.externalinterface.connector.RequestHandler;

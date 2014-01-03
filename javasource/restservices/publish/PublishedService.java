@@ -3,17 +3,15 @@ package restservices.publish;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
-
+import java.util.UUID;
 
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.consume.JsonDeserializer;
-import restservices.consume.ObjectCache;
+import restservices.util.JsonDeserializer;
+import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 
 import com.google.common.collect.ImmutableMap;
@@ -25,13 +23,10 @@ import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.So
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-import com.mendix.systemwideinterfaces.core.IMendixObject.ObjectState;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
-import com.sun.xml.internal.fastinfoset.stax.events.Util;
-
 import communitycommons.XPath;
 
 public class PublishedService {
@@ -170,8 +165,6 @@ public class PublishedService {
 		}
 		rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
 		
-		result.put(RestServices.ETAG_ATTR, eTag);
-		
 		switch(rsr.getContentType()) {
 		case JSON:
 			rsr.write(jsonString);
@@ -296,7 +289,7 @@ public class PublishedService {
 			throw new RuntimeException("Microflow '" + updatemicroflow + "' should have one argument of type " + target.getType() + ", and one argument typed with an persistent entity");
 		
 		IMendixObject view = Core.instantiate(context, viewArgType);
-		JsonDeserializer.readJsonObjectIntoMendixObject(context, data, view, new ObjectCache(false));
+		JsonDeserializer.readJsonDataIntoMendixObject(context, data, view, false);
 		Core.commit(context, view);
 		
 		Core.execute(context, updatemicroflow, ImmutableMap.of(targetArgName, (Object) target, viewArgName, (Object) view));

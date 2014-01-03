@@ -1,4 +1,4 @@
-package restservices.publish;
+package restservices.util;
 
 import java.util.Date;
 import java.util.List;
@@ -8,7 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.util.Utils;
+import restservices.publish.PublishedService;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;

@@ -1,4 +1,4 @@
-package restservices.consume;
+package restservices.util;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumer;
 import restservices.proxies.Primitive;
 import restservices.proxies.RestPrimitiveType;
 
@@ -24,19 +25,58 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
 public class JsonDeserializer {
 
-
+	public static IMendixIdentifier readJsonDataIntoMendixObject(IContext context,
+			Object jsonValue, String targetType, boolean autoResolveReferences) throws Exception {
+		IMendixObject target = Core.instantiate(context, targetType);
+		readJsonDataIntoMendixObject(context, jsonValue, target, autoResolveReferences);
+		return target.getId();
+	}
+	
 	public static void readJsonDataIntoMendixObject(IContext context,
-			Object data, IMendixObject target, boolean autoResolveReferences) {
-		// TODO Auto-generated method stub
+			Object jsonValue, IMendixObject target, boolean autoResolveReferences) throws Exception {
+		String targetType = target.getType();
 		
+		//primitive
+		if (Core.isSubClassOf(Primitive.entityName, targetType)) {
+			Primitive prim = Primitive.initialize(context, target);
+			prim.setStringValue(String.valueOf(jsonValue));
+			if (jsonValue == null || jsonValue == JSONObject.NULL)
+				prim.setPrimitiveType(RestPrimitiveType._NULL);
+			if (jsonValue instanceof String) 
+				prim.setPrimitiveType(RestPrimitiveType.String);
+			else if (jsonValue instanceof Boolean) {
+				prim.setBooleanValue((Boolean) jsonValue);
+				prim.setPrimitiveType(RestPrimitiveType._Boolean);
+			}
+			else if (jsonValue instanceof Long || jsonValue instanceof Double || jsonValue instanceof Integer || jsonValue instanceof Float) {
+				prim.setPrimitiveType(RestPrimitiveType.Number);
+				prim.setNumberValue(Double.parseDouble(jsonValue.toString()));
+			}
+			else
+				throw new RuntimeException("Unable to convert value of type '" + jsonValue.getClass().getName()+ "' to rest primitive: " + jsonValue.toString());
+		}
+		
+		//string; autoresolve
+		else if (jsonValue instanceof String) {
+			if (!autoResolveReferences)
+				throw new RuntimeException("Unable to read url '" + jsonValue + "' into '" + targetType + "'; since references will not be resolved automatically for incoming data");
+			RestConsumer.getObject(context, (String) jsonValue, null, target);
+		}
+		
+		else if (jsonValue instanceof JSONObject) {
+			readJsonObjectIntoMendixObject(context, (JSONObject) jsonValue, target, autoResolveReferences);
+		}
+		
+		else
+			throw new RuntimeException("Unable to parse '" + jsonValue.toString() + "' into '" + targetType + "'");
 	}
 	
 	private static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, boolean autoResolve) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
+
 		while(it.hasNext()) {
 			String attr = it.next();
 			String targetattr =  null;
-			//String assocName = target.getMetaObject().getModuleName() + "." + attr;
 			
 			if (target.hasMember(attr)) 
 				targetattr = attr;
@@ -62,7 +102,7 @@ public class JsonDeserializer {
 			else if (member instanceof MendixObjectReference) {
 				String otherSideType = target.getMetaObject().getMetaAssociationParent(targetattr).getChild().getName();
 				if (!object.isNull(attr)) 
-					((MendixObjectReference)member).setValue(context, readJsonValueIntoMendixObject(context, object.get(attr), otherSideType, cache));
+					((MendixObjectReference)member).setValue(context, readJsonDataIntoMendixObject(context, object.get(attr), otherSideType, autoResolve));
 			}
 			
 			//ReferenceSet
@@ -72,7 +112,7 @@ public class JsonDeserializer {
 				List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
 				
 				for(int i = 0; i < children.length(); i++) {
-					IMendixIdentifier child = readJsonValueIntoMendixObject(context, children.get(i), otherSideType, cache);
+					IMendixIdentifier child = readJsonDataIntoMendixObject(context, children.get(i), otherSideType, autoResolve);
 					if (child != null)
 						ids.add(child);
 				}
@@ -88,52 +128,6 @@ public class JsonDeserializer {
 			}
 		}
 		Core.commit(context, target);
-	}
-
-	private static IMendixIdentifier readJsonValueIntoMendixObject(IContext context,
-			Object jsonValue, String targetType, ObjectCache cache) throws JSONException, Exception {
-		//TODO: use cache
-		IMendixObject res = Core.instantiate(context, targetType);
-		
-		//Primitive
-		if (Core.isSubClassOf(Primitive.entityName, targetType)) {
-			Primitive prim = Primitive.initialize(context, res);
-			if (jsonValue instanceof String) {
-				prim.setStringValue((String) jsonValue);
-				prim.setPrimitiveType(RestPrimitiveType.String);
-			}
-			else if (jsonValue instanceof Boolean) {
-				prim.setBooleanValue((Boolean) jsonValue);
-				prim.setPrimitiveType(RestPrimitiveType._Boolean);
-			}
-			else if (jsonValue instanceof Long || jsonValue instanceof Double || jsonValue instanceof Integer || jsonValue instanceof Float) {
-				prim.setPrimitiveType(RestPrimitiveType.Number);
-				prim.setNumberValue(Double.parseDouble(jsonValue.toString()));
-			}
-			else
-				throw new RuntimeException("Unable to convert value of type '" + jsonValue.getClass().getName()+ "' to rest primitive: " + jsonValue.toString());
-		}
-		
-		//Reference
-		else if (Core.isSubClassOf(RestReference.entityName, targetType)) {
-			if (!(jsonValue instanceof String))
-				throw new RuntimeException("Expected json string value to create reference to '" + targetType + "'");
-			res.setValue(context, RestServices.URL_ATTR, jsonValue);
-		}
-		
-		else if (Core.isSubClassOf(RestObject.entityName, targetType)) {
-			if (!(jsonValue instanceof String))
-				throw new RuntimeException("Expected json string value to create reference to '" + targetType + "'");
-			res = cache.getObject(context, (String) jsonValue, targetType);
-		}
-		else {
-			if (!(jsonValue instanceof JSONObject))
-				throw new RuntimeException("Expected json object value to create reference to '" + targetType + "'");
-			readJsonObjectIntoMendixObject(context, (JSONObject) jsonValue, res, cache);
-		}
-		Core.commit(context, res);
-		return res.getId();
-	
 	}
 
 	private static Object jsonAttributeToPrimitive(PrimitiveType type,	JSONObject object, String attr) throws Exception {
@@ -157,10 +151,8 @@ public class JsonDeserializer {
 			return object.getLong(attr);
 		case Binary:
 		default:
-			//TODO: use RestException everywhere
 			throw new Exception("Unsupported attribute type '" + type + "' in attribute '" + attr + "'");
 		}	
 	}
-
 
 }

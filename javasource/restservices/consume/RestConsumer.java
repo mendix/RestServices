@@ -10,27 +10,26 @@ import java.util.Map;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.lang3.tuple.Pair;
-import org.json.JSONArray;
-import org.json.JSONException;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
 import restservices.proxies.GetResult;
 import restservices.proxies.RequestResult;
-import restservices.publish.JsonSerializer;
+import restservices.util.JsonDeserializer;
+import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -46,10 +45,71 @@ public class RestConsumer {
 	
 	static HttpClient client = new HttpClient();
 	
+	
+	//TODO: use this class in exception handling as well
+	public static class HttpResponseData{
+		private int status;
+		private String body;
+		private String eTag;
+		private String url;
+		private String method;
+
+		HttpResponseData(String method, String url, int status, String body, String eTag) {
+			this.url = url;
+			this.status = status;
+			this.body = body;
+			this.eTag = eTag;
+			this.method = method;
+		}
+		
+		public boolean isOk() {
+			switch(status) {
+				case 200:
+				case 201:
+				case 204:
+				case 304:
+					return true;
+				default:
+					return false;
+			}
+		}
+		
+		public RequestResult asRequestResult() {
+			switch (status) {
+				case IMxRuntimeResponse.NOT_MODIFIED: return RequestResult.NotModified; 
+				case 201: //created
+				case 204: //no content
+				case IMxRuntimeResponse.OK: 
+					return RequestResult.OK;
+				default: throw new IllegalArgumentException("Unexpected response code in " + this.toString());
+			}
+		}
+		
+		@Override public String toString() {
+			return String.format("[HTTP Request: %s '%s' --> Response status: %d %s, ETag: %s, body: '%s']", 
+					method, url, 
+					status, HttpStatus.getStatusText(status), 
+					eTag, 
+					RestServices.LOG.isDebugEnabled() || status != 200  ? body : "(omitted)");
+		}
+
+		public String getETag() {
+			return eTag;
+		}
+
+		public int getStatus() {
+			return status;
+		}
+
+		public String getBody() {
+			return body;
+		}
+	}
+	
 	/**
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
 	 */
-	public static Pair<Integer, String> doRequest(String method, String url, String etag, String body) throws Exception {
+	public static HttpResponseData doRequest(String method, String url, String etag, String body) throws Exception {
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug("Fetching '" + url + "' etag: " + etag + "..");
 		
@@ -61,36 +121,29 @@ public class RestConsumer {
 			request = new DeleteMethod(url);
 		else if ("POST".equals(method)) {
 			request = new PostMethod(url);
-			((PostMethod)request).setRequestBody(body);
+			((PostMethod)request).setRequestEntity(new StringRequestEntity(body, RestServices.TEXTJSON, RestServices.UTF8));
 		}
 		else if ("PUT".equals(method)) {
 			request = new PutMethod(url);
-			((PostMethod)request).setRequestBody(body);
+			((PutMethod)request).setRequestEntity(new StringRequestEntity(body, RestServices.TEXTJSON, RestServices.UTF8));
 		}
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
 		
-		
 		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
-		
 		if (etag != null && !etag.isEmpty())
 			request.setRequestHeader(RestServices.IFNONEMATCH_HEADER, etag);
 		
 		try {
 			int status = client.executeMethod(request);
-			String respbody = request.getResponseBodyAsString();
 		
-			if (RestServices.LOG.isDebugEnabled())
-				RestServices.LOG.debug("Fetched '" + url + "'. Status: " + status + "\n\n" + respbody);
+			HttpResponseData response = new HttpResponseData(method, url, status, 
+					request.getResponseBodyAsString(),
+					request.getResponseHeader(RestServices.ETAG_HEADER).getValue());
 			
-			if (status == IMxRuntimeResponse.NOT_MODIFIED)
-				return Pair.of(status, null);
-			if (status == IMxRuntimeResponse.NOT_FOUND)
-				return Pair.of(status, null);
-			if (status != IMxRuntimeResponse.OK)
-				throw new Exception("Request didn't respond with status 200 OK: " + status + "\n\n" + body);
+			RestServices.LOG.info(response);
 			
-			return Pair.of(status, respbody);
+			return response;
 		}
 		finally {
 			request.releaseConnection();
@@ -128,6 +181,10 @@ public class RestConsumer {
 	
 
 	static void syncCollection(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
+		IDataType type = Utils.getFirstArgumentType(onUpdateMF);
+		if (!type.isMendixObject())
+			throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
+
 		GetMethod get = new GetMethod(collectionUrl);
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
@@ -149,13 +206,8 @@ public class RestConsumer {
 					Core.execute(c, onDeleteMF, instr.getString("key"));
 				}
 				else {
-					IDataType type = Utils.getFirstArgumentType(onUpdateMF);
-					if (!type.isMendixObject())
-						throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
-
 					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					JsonDeserializer.readJsonObjectIntoMendixObject(c, instr.getJSONObject("data"), target, new ObjectCache(true));
-					Core.commit(c, target);
+					JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
 					Core.execute(c, onUpdateMF, target);
 				}
 			}
@@ -176,13 +228,13 @@ public class RestConsumer {
 
 	private static void getCollectionHelper(final IContext context, String collectionUrl, final Function<IContext, IMendixObject> objectFactory, final Function<IMendixObject, Boolean> callback) throws Exception
 	{
-		RestConsumer.readJsonObjectStream(collectionUrl, new Function<JSONObject, Boolean>() {
+		RestConsumer.readJsonObjectStream(collectionUrl, new Predicate<Object>() {
 
 			@Override
-			public Boolean apply(JSONObject data) {
+			public boolean apply(Object data) {
 				IMendixObject item = objectFactory.apply(context);
 				try {
-					JsonDeserializer.readJsonObjectIntoMendixObject(context, data, item, new ObjectCache(true));
+					JsonDeserializer.readJsonDataIntoMendixObject(context, data, item, true);
 				} catch (Exception e) {
 					throw new RuntimeException();
 				}
@@ -246,7 +298,7 @@ public class RestConsumer {
 		});
 	}
 	
-	public static RequestResult getObject(IContext context, String url, String eTag, IMendixObject target) throws Exception {
+	public static GetResult getObject(IContext context, String url, String eTag, IMendixObject target) throws Exception {
 		//pre
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
@@ -259,52 +311,52 @@ public class RestConsumer {
 		GetResult gr = new GetResult(context);
 		
 		//fetch
-		Pair<Integer, String> result = RestConsumer.doRequest("GET", url, eTag, null);
+		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag, null);
 		
-		if (result.getLeft() == IMxRuntimeResponse.NOT_MODIFIED) {
-			gr.setETag(eTag);
-			gr.setResult(RequestResult.NotModified);
-		}
-		else if (result.getLeft() != IMxRuntimeResponse.OK) 
-			throw new Exception("Failed to fetch '" + url + "', status: " + result.getLeft() + "\n\n" + result.getRight());
+		if (!response.isOk())
+			throw new Exception("Request didn't respond with status 200 or 304: " + response);
+
+		gr.setETag(response.getETag());
+		gr.setResult(response.asRequestResult());
 		
-		//parse
-		JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(result.getRight()).nextValue(), target, true);
+		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED) 
+		JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
 	
 		return gr;
 	}
 	
 	public static RequestResult deleteObject(String url, String etag) throws Exception {
-		//TODO: make not-found result in not-modified, since that is conceptually the same result
-		return parseResponseCode(doRequest("DELETE", url, etag, null).getLeft());
+		HttpResponseData response = doRequest("DELETE", url, etag, null);
+		
+		if (response.getStatus() == HttpStatus.SC_NOT_FOUND)
+			return RequestResult.NotModified; //not found means that delete didn't modify anything
+		
+		if (!response.isOk())
+			throw new Exception("Request didn't respond with status 2** or 304: " + response);
+		
+		return response.asRequestResult();
 	}
 	
 	public static String postObject(IContext context, String url, IMendixObject source) throws Exception {
 		JSONObject data = JsonSerializer.convertMendixObjectToJson(context, source);
 		
-		Pair<Integer, String> result = doRequest("POST", url, null, data.toString(4));
-		if (parseResponseCode(result.getLeft()) == RequestResult.OK)
-			return result.getRight();
-		throw new RuntimeException("Unexpected response code " + result.getLeft() + " on " + url);
+		HttpResponseData response = doRequest("POST", url, null, data.toString(4));
+		
+		if (!response.isOk())
+			throw new Exception("Request didn't respond with status 2** or 304: " + response);
+
+		return response.getBody();
 	}
 	
 	public static RequestResult putObject(IContext context, String url, IMendixObject source, String etag) throws Exception{
 		JSONObject data = JsonSerializer.convertMendixObjectToJson(context, source);
 		
-		Pair<Integer, String> result = doRequest("PUT", url, etag, data.toString(4));
-		return parseResponseCode(result.getLeft());
-	}
+		HttpResponseData response = doRequest("PUT", url, etag, data.toString(4));
 
-	public static RequestResult parseResponseCode(int respCode) {
-		switch (respCode) {
-		case IMxRuntimeResponse.NOT_MODIFIED: return RequestResult.NotModified; 
-		case IMxRuntimeResponse.NOT_FOUND: return RequestResult.NotFound; 
-		case 201: //created
-		case 204: //no content
-		case IMxRuntimeResponse.OK: 
-			return RequestResult.OK;
-		default: throw new IllegalArgumentException("Non default response: " + respCode);
-		}
+		if (!response.isOk())
+			throw new Exception("Request didn't respond with status 2** or 304: " + response);
+
+		return response.asRequestResult();
 	}
 	
 }

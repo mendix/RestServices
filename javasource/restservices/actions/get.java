@@ -35,7 +35,7 @@ public class get extends UserAction<IMendixObject>
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), url, stub, optEtag).toString();
+		return RestConsumer.getObject(getContext(), url, optEtag, stub).getMendixObject();
 		// END USER CODE
 	}
 

@@ -23,6 +23,7 @@ import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceState;
 import restservices.publish.RestServiceRequest.ContentType;
+import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 
 public class ChangeManager {
