@@ -153,7 +153,7 @@ public class PublishedService {
 		}
 		
 		IMendixObject view = convertSourceToView(rsr.getContext(), source);
-		JSONObject result = JsonSerializer.convertMendixObjectToJson(rsr.getContext(), view);
+		JSONObject result = JsonSerializer.writeMendixObjectToJson(rsr.getContext(), view);
 				
 		String jsonString = result.toString(4);
 		String eTag = Utils.getMD5Hash(jsonString);
@@ -245,10 +245,8 @@ public class PublishedService {
 				rsr.close();
 				return;
 			}
-			else {
-				target = createNewObject(context, key);
-				rsr.setStatus(201);
-			}
+			target = createNewObject(context, key);
+			rsr.setStatus(201);
 			
 		}
 		else {
@@ -300,7 +298,7 @@ public class PublishedService {
 			return;
 		
 		IMendixObject view = convertSourceToView(context, source);
-		JSONObject result = JsonSerializer.convertMendixObjectToJson(context, view);
+		JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
 				
 		String jsonString = result.toString(4);
 		String eTag = Utils.getMD5Hash(jsonString);

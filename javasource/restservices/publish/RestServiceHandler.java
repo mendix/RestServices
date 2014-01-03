@@ -46,6 +46,7 @@ public class RestServiceHandler extends RequestHandler{
 		}
 	}
 	
+	@SuppressWarnings("null")
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String path) throws Exception {
@@ -74,7 +75,7 @@ public class RestServiceHandler extends RequestHandler{
 		if ("GET".equals(method) && parts.length == 0) {
 			serveServiceOverview(rsr);
 		}
-		else if ("GET".equals(method) && parts.length == 1) {
+		else if ("GET".equals(method) && parts.length == 1 ) {
 			checkReadAccess(request, response);
 			//TODO: check if listing is enabled
 			service.serveListing(rsr);

@@ -338,7 +338,7 @@ public class RestConsumer {
 	}
 	
 	public static String postObject(IContext context, String url, IMendixObject source) throws Exception {
-		JSONObject data = JsonSerializer.convertMendixObjectToJson(context, source);
+		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		HttpResponseData response = doRequest("POST", url, null, data.toString(4));
 		
@@ -349,7 +349,7 @@ public class RestConsumer {
 	}
 	
 	public static RequestResult putObject(IContext context, String url, IMendixObject source, String etag) throws Exception{
-		JSONObject data = JsonSerializer.convertMendixObjectToJson(context, source);
+		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		HttpResponseData response = doRequest("PUT", url, etag, data.toString(4));
 

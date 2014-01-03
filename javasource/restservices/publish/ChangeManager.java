@@ -1,7 +1,6 @@
 package restservices.publish;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +36,7 @@ public class ChangeManager {
 	}
 
 	//TODO: move to other class
-	private JSONObject writeObjectStateToJson(ObjectState state){
+	JSONObject writeObjectStateToJson(ObjectState state){
 		JSONObject res = new JSONObject();
 		res
 			.put("key", state.getkey()) //TODO: use constants
@@ -144,7 +143,7 @@ public class ChangeManager {
 		}
 	}
 
-	private void publishUpdate(ObjectState objectState) throws UnsupportedEncodingException {
+	private void publishUpdate(ObjectState objectState) {
 		// TODO async, parallel, separate thread etc etc. Or is continuation.resume async and isn't that needed at all?
 		JSONObject json = writeObjectStateToJson(objectState);
 		
@@ -160,11 +159,11 @@ public class ChangeManager {
 	
 		IContext context = Core.createSystemContext();
 	
-		ServiceState serviceState = getServiceState(context);
+		ServiceState sState = getServiceState(context);
 		
 		ObjectState objectState = XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.key, key)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceState, serviceState)
+				.eq(ObjectState.MemberNames.ObjectState_ServiceState, sState)
 				.first();
 		
 		//not yet published
@@ -174,11 +173,11 @@ public class ChangeManager {
 			
 			objectState = new ObjectState(context);
 			objectState.setkey(key);
-			objectState.setObjectState_ServiceState(serviceState);
+			objectState.setObjectState_ServiceState(sState);
 			storeUpdate(context, objectState, eTag, jsonString, deleted);
 		}
 		
-		else if (objectState != null && objectState.getetag().equals(eTag) && objectState.getdeleted() != deleted) 
+		else if (objectState.getetag().equals(eTag) && objectState.getdeleted() != deleted) 
 			return; //nothing changed
 	
 		else
@@ -247,7 +246,7 @@ public class ChangeManager {
 		}
 	}
 
-	public static void publishUpdate(IContext context, IMendixObject source) throws Exception {
+	public static void publishUpdate(IContext context, IMendixObject source) {
 		publishUpdate(context, source, true);
 	}
 
@@ -269,7 +268,7 @@ public class ChangeManager {
 			}
 				
 			IMendixObject view = service.convertSourceToView(context, source);
-			JSONObject result = JsonSerializer.convertMendixObjectToJson(context, view);
+			JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
 					
 			String jsonString = result.toString(4);
 			String eTag = Utils.getMD5Hash(jsonString);

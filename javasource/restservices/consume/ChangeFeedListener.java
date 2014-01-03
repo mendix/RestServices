@@ -123,7 +123,7 @@ public class ChangeFeedListener {
 		restartConnection();
 	}
 	
-	private void processChange(JSONObject instr) throws Exception {
+	void processChange(JSONObject instr) throws Exception {
 		IContext c = Core.createSystemContext();
 		//TODO: use constants
 		//TODO: store revision

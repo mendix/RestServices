@@ -51,20 +51,20 @@ public class JsonSerializer {
 			}
 			return null;
 		}
-		
-		/* transient object, export */
-		else {
-			IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
-			if (obj == null) {
-				RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
-				return null;
-			}
-			return convertMendixObjectToJson(context, obj);
+		IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
+		if (obj == null) {
+			RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
+			return null;
 		}
+		return writeMendixObjectToJson(context, obj);
 	}
 
-	//TODO: move to separate class?
-	public static JSONObject convertMendixObjectToJson(IContext context, IMendixObject view) throws Exception {
+	public static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view) throws Exception {
+		if (view == null)
+			throw new IllegalArgumentException("Mendix to JSON conversion expects an object");
+		
+		if (view.getMetaObject().isPersistable())
+			throw new IllegalArgumentException("Mendix to JSON conversion expects a transient object as source object");
 		JSONObject res = new JSONObject();
 		
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
@@ -74,7 +74,7 @@ public class JsonSerializer {
 		return res;
 	}
 
-	public static void serializeMember(IContext context, JSONObject target,
+	private static void serializeMember(IContext context, JSONObject target,
 			IMendixObjectMember<?> member, IMetaObject viewType) throws Exception {
 		if (context == null)
 			throw new IllegalStateException("Context is null");
@@ -102,13 +102,14 @@ public class JsonSerializer {
 			case String:
 				if (value == null)
 					target.put(memberName, JSONObject.NULL);
-				target.put(memberName, value);
+				else
+					target.put(memberName, value);
 				break;
 			case DateTime:
 				if (value == null)
 					target.put(memberName, JSONObject.NULL);
-					
-				target.put(memberName, (long)(((Date)value).getTime()));
+				else	
+					target.put(memberName, (((Date)value).getTime()));
 				break;
 			case Binary:
 			default: 

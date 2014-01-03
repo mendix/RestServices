@@ -42,7 +42,7 @@ public class JsonDeserializer {
 			prim.setStringValue(String.valueOf(jsonValue));
 			if (jsonValue == null || jsonValue == JSONObject.NULL)
 				prim.setPrimitiveType(RestPrimitiveType._NULL);
-			if (jsonValue instanceof String) 
+			else if (jsonValue instanceof String) 
 				prim.setPrimitiveType(RestPrimitiveType.String);
 			else if (jsonValue instanceof Boolean) {
 				prim.setBooleanValue((Boolean) jsonValue);
