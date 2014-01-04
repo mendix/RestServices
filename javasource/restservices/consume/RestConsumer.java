@@ -12,6 +12,7 @@ import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
@@ -42,11 +43,10 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 public class RestConsumer {
 	
-	/*TODO: MultiThreadedHttpConnectionManager connectionManager = 
-      		new MultiThreadedHttpConnectionManager();
-      	HttpClient client = new HttpClient(connectionManager);*/
-	
-	static HttpClient client = new HttpClient();
+	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
+    static	HttpClient client = new HttpClient(connectionManager);
+    
+	//TODO: connectionpool
 	
 	
 	//TODO: use this class in exception handling as well
@@ -200,35 +200,39 @@ public class RestConsumer {
 
 		GetMethod get = new GetMethod(collectionUrl);
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
-		
-		int status = client.executeMethod(get);
-		if (status != IMxRuntimeResponse.OK)
-			throw new RuntimeException("Failed to setup stream to " + collectionUrl +  ", status: " + status);
-		
-		InputStream in = get.getResponseBodyAsStream();
-		try {
-			JSONTokener jt = new JSONTokener(in);
-			JSONObject instr;
-			while(true) {
-				instr = new JSONObject(jt);
-				IContext c = Core.createSystemContext();
-				
-				//TODO: store revision
 
-				if (instr.getBoolean("deleted")) {
-					Core.execute(c, onDeleteMF, instr.getString("key"));
+		try {
+			int status = client.executeMethod(get);
+			if (status != IMxRuntimeResponse.OK)
+				throw new RuntimeException("Failed to setup stream to " + collectionUrl +  ", status: " + status);
+			
+			InputStream in = get.getResponseBodyAsStream();
+			try {
+				JSONTokener jt = new JSONTokener(in);
+				JSONObject instr;
+				while(true) {
+					instr = new JSONObject(jt);
+					IContext c = Core.createSystemContext();
+					
+					//TODO: store revision
+	
+					if (instr.getBoolean("deleted")) {
+						Core.execute(c, onDeleteMF, instr.getString("key"));
+					}
+					else {
+						IMendixObject target = Core.instantiate(c, type.getObjectType());
+						JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
+						Core.execute(c, onUpdateMF, target);
+					}
 				}
-				else {
-					IMendixObject target = Core.instantiate(c, type.getObjectType());
-					JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
-					Core.execute(c, onUpdateMF, target);
-				}
+			}
+			finally {
+				in.close();
 			}
 		}
 		finally {
-			in.close();
+			get.releaseConnection();
 		}
-		
 	}
 
 	public static void registerCredentials(String urlBasePath, String username, String password) throws MalformedURLException

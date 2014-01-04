@@ -18,6 +18,7 @@ import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -32,6 +33,7 @@ public class ChangeFeedListener {
 	private String onUpdateMF;
 	private String onDeleteMF;
 	private FollowChangesState state;
+	private GetMethod currentRequest;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
 
 	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
@@ -58,6 +60,7 @@ public class ChangeFeedListener {
 		String requestUrl = getChangesRequestUrl(true);
 		
 		GetMethod get = new GetMethod(requestUrl);
+		this.currentRequest = get;
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
 		int status = RestConsumer.client.executeMethod(get);
@@ -81,7 +84,7 @@ public class ChangeFeedListener {
 	public String getChangesRequestUrl(boolean useFeed) {
 		//TODO: build args in better way, check for ? existence already and such
 		
-		return url + "/changes?feed=" + (useFeed ? "true" : "false") + "&since=" + state.getRevision() + 1; //revision expresses the last *received* revision, so start +1. 
+		return url + "/changes?feed=" + (useFeed ? "true" : "false") + "&since=" + (state.getRevision() + 1); //revision expresses the last *received* revision, so start +1. 
 	}
 
 	void fetch() throws IOException, Exception {
@@ -119,6 +122,9 @@ public class ChangeFeedListener {
 			if (!(jt.end() && e instanceof JSONException))
 				throw new RuntimeException(e);
 		}
+		finally {
+			this.currentRequest.releaseConnection();
+		}
 		
 		restartConnection();
 	}
@@ -128,7 +134,10 @@ public class ChangeFeedListener {
 		//TODO: use constants
 		//TODO: store revision
 		if (instr.getBoolean("deleted")) {
-			Core.execute(c, onDeleteMF, instr.getString("key"));
+			Map<String, String> args = Utils.getArgumentTypes(onDeleteMF);
+			if (args.size() != 1 || !"String".equals(args.values().iterator().next()))
+				throw new RuntimeException(onDeleteMF + " should have one argument of type string");
+			Core.execute(c, onDeleteMF, ImmutableMap.of(args.keySet().iterator().next(), (Object) instr.getString("key")));
 		}
 		else {
 			IDataType type = Utils.getFirstArgumentType(onUpdateMF);
@@ -138,7 +147,7 @@ public class ChangeFeedListener {
 			IMendixObject target = Core.instantiate(c, type.getObjectType());
 			JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
 			Core.commit(c, target);
-			Core.execute(c, onUpdateMF, target);
+			Core.execute(c, onUpdateMF, ImmutableMap.of(Utils.getArgumentTypes(onUpdateMF).keySet().iterator().next(), (Object) target));
 		}
 		
 		long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
@@ -150,9 +159,9 @@ public class ChangeFeedListener {
 		state.commit();
 	}
 	
-	private void close() throws IOException {
+	private void close() {
 		activeListeners.remove(url);
-		this.inputStream.close();
+		this.currentRequest.abort();
 	}
 
 	public static synchronized ChangeFeedListener follow(String collectionUrl, String updateMicroflow,
@@ -160,7 +169,7 @@ public class ChangeFeedListener {
 		return new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow).follow();		
 	}
 	
-	public static synchronized void unfollow(String collectionUrl) throws IOException {
+	public static synchronized void unfollow(String collectionUrl) {
 		if (activeListeners.containsKey(collectionUrl))
 			activeListeners.remove(collectionUrl).close();
 	}

@@ -35,7 +35,6 @@ public class ChangeManager {
 		this.service = service;
 	}
 
-	//TODO: move to other class
 	JSONObject writeObjectStateToJson(ObjectState state){
 		JSONObject res = new JSONObject();
 		res
@@ -43,8 +42,10 @@ public class ChangeManager {
 			.put("url", service.getServiceUrl() + state.getkey())
 			.put("rev", state.getrevision())
 			.put("etag", state.getetag())
-			.put("deleted", state.getdeleted())
-			.put("data", new JSONObject(state.getjson()));
+			.put("deleted", state.getdeleted());
+		
+		if (!state.getdeleted())
+			res.put("data", new JSONObject(state.getjson()));
 		return res;
 	}
 
@@ -52,7 +53,7 @@ public class ChangeManager {
 			long since) throws CoreException {
 		XPath.create(c, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceState, this.getServiceState(c))
-			.compare(ObjectState.MemberNames.revision, ">", since)
+			.compare(ObjectState.MemberNames.revision, ">=", since)
 			.addSortingAsc(ObjectState.MemberNames.revision)
 			.batch((int) RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
 	
