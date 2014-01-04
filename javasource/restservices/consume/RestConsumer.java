@@ -25,6 +25,7 @@ import org.json.JSONTokener;
 
 import restservices.RestServices;
 import restservices.proxies.GetResult;
+import restservices.proxies.ReferableObject;
 import restservices.proxies.RequestResult;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
@@ -331,11 +332,13 @@ public class RestConsumer {
 		gr.setETag(response.getETag());
 		gr.setResult(response.asRequestResult());
 		
-		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED) 
-		JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
+		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED)  
+			JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
 	
-		//TODO: store etag if possible, to optimize
-		//TODO: store URL if possible, to optimize
+		if (Core.isSubClassOf(ReferableObject.entityName, target.getType())) {
+			target.setValue(context, ReferableObject.MemberNames.URL.toString(), url);
+			target.setValue(context, ReferableObject.MemberNames.ETag.toString(), response.getETag());
+		}
 		
 		return gr;
 	}
