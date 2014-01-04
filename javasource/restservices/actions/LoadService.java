@@ -11,22 +11,29 @@ package restservices.actions;
 
 import restservices.publish.RestServiceHandler;
 import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class StartPublishesServicesJava extends UserAction<Boolean>
+public class LoadService extends UserAction<Boolean>
 {
-	public StartPublishesServicesJava()
+	private IMendixObject __def;
+	private restservices.proxies.ServiceDefinition def;
+
+	public LoadService(IMendixObject def)
 	{
 		super();
+		this.__def = def;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
+		this.def = __def == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __def);
+
 		// BEGIN USER CODE
-		RestServiceHandler.start(getContext());
+		RestServiceHandler.loadConfig(def);
 		return true;
 		// END USER CODE
 	}
@@ -37,7 +44,7 @@ public class StartPublishesServicesJava extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartPublishesServicesJava";
+		return "LoadService";
 	}
 
 	// BEGIN EXTRA CODE

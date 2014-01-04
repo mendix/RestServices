@@ -10,9 +10,7 @@
 package restservices.actions;
 
 import org.json.JSONObject;
-
 import restservices.util.JsonDeserializer;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 

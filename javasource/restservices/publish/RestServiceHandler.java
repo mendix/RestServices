@@ -1,51 +1,56 @@
 package restservices.publish;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestServiceRequest.ContentType;
-import restservices.util.Utils;
 
 import com.mendix.core.Core;
+import com.mendix.core.CoreException;
 import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
+import com.mendix.systemwideinterfaces.core.IContext;
+
+import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
 
 	private static RestServiceHandler instance = null;
+	private static boolean started = false;
 	
-	public static void start() throws Exception {
+	public static void start(IContext context) throws Exception {
 		if (instance == null) {
 			instance = new RestServiceHandler();
-			instance.loadConfig();
 			Core.addRequestHandler(RestServices.HANDLERPATH, instance);
+			started = true;
+			loadConfig(context);
 		}
 	}
 
-	private void loadConfig() throws JsonParseException, JsonMappingException, IOException {
-		//Read definitions of publish services
-		for(File configfile : new File(Utils.getResourceFilePath() + "Published").listFiles(new FilenameFilter() {
-			 public boolean accept(File dir, String name) {
-			        return name.toLowerCase().endsWith(".json");
-			    }	
-		})) {
-			//TODO: might not work with cloud security since jackson uses reflection
-			PublishedService def = Utils.getJsonMapper().readValue(configfile, PublishedService.class);
-			def.consistencyCheck();
-			RestServices.registerService(def.getName(), def);
-		}
+	private static void loadConfig(IContext context) throws CoreException {
+		for (ServiceDefinition def : XPath.create(context, ServiceDefinition.class).all())
+			loadConfig(def);
 	}
 	
+	public static void loadConfig(ServiceDefinition def) {
+		if (!started)
+			return;
+		
+		String errors = ConsistencyChecker.check(def);
+		if (errors != null)
+			RestServices.LOG.error("Failed to load service '" + def.getName() + "'");
+		else {
+			PublishedService service = new PublishedService(def);
+			RestServices.registerService(service.getName(), service);
+		}
+	}
+
 	@SuppressWarnings("null")
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,

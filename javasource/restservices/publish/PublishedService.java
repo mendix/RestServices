@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.codehaus.jackson.annotate.JsonProperty;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.proxies.ServiceDefinition;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
@@ -23,71 +23,54 @@ import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.So
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
-import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
-import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import communitycommons.XPath;
 
 public class PublishedService {
 
-	@JsonProperty
-	private String servicename;
-	
-	@JsonProperty
-	private String sourceentity;
-	
-	@JsonProperty
-	private String constraint;
-	
+	private ServiceDefinition def;
+
+	public PublishedService(ServiceDefinition def) {
+		this.def = def;
+	}
+
 	public String getConstraint() {
-		return constraint == null ? "" : constraint;
+		return def.getConstraint() == null ? "" : def.getConstraint();
 	}
 	
-	@JsonProperty
-	private String idattribute;
-	
-	@JsonProperty
-	private String publishentity;
-	
-	@JsonProperty
-	private String publishmicroflow;
-
 	private IMetaObject sourceMetaEntity;
 
-	private IMetaObject publishMetaEntity;
 	private ChangeManager changeManager = new ChangeManager(this);
 
+	//TODO: from config
 	private String deletemicroflow;
 
+	//TODO: from config
 	private boolean detectConflicts;
 
+	//TODO: from config
 	private String updatemicroflow;
 	
 	public ChangeManager getChangeManager() {
 		return changeManager;
 	}
-	
-	public void consistencyCheck() {
-		// source exists and persistent
-		// keyattr exists
-		// constraint is valid
-		// name is a valid identifier
-		// reserved attributes: _key, _etag
-	}
 
 	public String getName() {
-		return servicename;
+		return def.getName();
 	}
 
 	public String getSourceEntity() {
-		return sourceentity;
+		return def.getSourceEntity();
+	}
+	
+	public String getKeyAttribute() {
+		return def.getKeyAttribute();
 	}
 
 	public void serveListing(RestServiceRequest rsr) throws CoreException {
 		IRetrievalSchema schema = Core.createRetrievalSchema();
-		schema.addSortExpression(this.idattribute, SortDirection.ASC);
-		schema.addMetaPrimitiveName(this.idattribute);
+		schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
+		schema.addMetaPrimitiveName(getKeyAttribute());
 		schema.setAmount(RestServices.BATCHSIZE);
 
 		switch(rsr.getContentType()) {
@@ -109,10 +92,10 @@ public class PublishedService {
 		rsr.datawriter.array();
 		do {
 			schema.setOffset(offset);
-			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + this.sourceentity + this.getConstraint(), schema, false);
+			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + getSourceEntity() + getConstraint(), schema, false);
 		
 			for(IMendixObject item : result) {
-				String key = item.getMember(rsr.getContext(), idattribute).parseValueToString(rsr.getContext());
+				String key = item.getMember(rsr.getContext(), getKeyAttribute()).parseValueToString(rsr.getContext());
 				if (!Utils.isValidKey(key))
 					continue;
 
@@ -141,7 +124,7 @@ public class PublishedService {
 	}
 
 	public String getServiceUrl() {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + this.servicename + "/";
+		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + getName() + "/";
 	}
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
@@ -171,15 +154,15 @@ public class PublishedService {
 			break;
 		case HTML:
 			rsr.startHTMLDoc();
-			rsr.write("<h1>").write(servicename).write("/").write(key).write("</h1>");
+			rsr.write("<h1>").write(getName()).write("/").write(key).write("</h1>");
 			rsr.datawriter.value(result);
 			rsr.endHTMLDoc();
 			break;
 		case XML:
-			rsr.startXMLDoc(); //TODO: doesnt JSON.org provide a toXML?
-			rsr.write("<" + this.servicename + ">");
+			rsr.startXMLDoc(); 
+			rsr.write("<" + getName() + ">");
 			rsr.datawriter.value(result);
-			rsr.write("</" + this.servicename + ">");
+			rsr.write("</" + getName() + ">");
 			break;
 		}
 		
@@ -189,7 +172,7 @@ public class PublishedService {
 
 	private IMendixObject getObjectByKey(IContext context,
 			String key) throws CoreException {
-		String xpath = XPath.create(context, this.sourceentity).eq(this.idattribute, key).getXPath() + this.getConstraint();
+		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint();
 		
 		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
 		return results.size() == 0 ? null : results.get(0);
@@ -219,6 +202,7 @@ public class PublishedService {
 		//TODO: if enabled
 		String key = UUID.randomUUID().toString();
 		
+		//TODO: if key is autonr attribute, determine id áfter creating the target
 		IMendixObject target = createNewObject(rsr.getContext(), key);
 		
 		updateObject(rsr.getContext(), target, data);
@@ -231,7 +215,7 @@ public class PublishedService {
 
 	public IMendixObject createNewObject(IContext context, String key) {
 		IMendixObject target = Core.instantiate(context, getSourceEntity());
-		target.setValue(context, idattribute, key);
+		target.setValue(context, getKeyAttribute(), key);
 		return target;
 	}
 	
@@ -308,24 +292,18 @@ public class PublishedService {
 
 	public IMetaObject getSourceMetaEntity() {
 		if (this.sourceMetaEntity == null)
-			this.sourceMetaEntity = Core.getMetaObject(this.sourceentity);
+			this.sourceMetaEntity = Core.getMetaObject(getSourceEntity());
 		return this.sourceMetaEntity;
 	}
 	
-	private IMetaObject getPublishMetaEntity() {//TODO: or not use property but reflect on convert microflow?
-		if (this.publishMetaEntity == null)
-			this.publishMetaEntity = Core.getMetaObject(this.publishentity);
-		return this.publishMetaEntity;
-	}
-
 	public IMendixObject convertSourceToView(IContext context, IMendixObject source) throws CoreException {
-		return (IMendixObject) Core.execute(context, this.publishmicroflow, source);
+		return (IMendixObject) Core.execute(context, def.getPublishMicroflow(), source);
 	}
 
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
 		if (this.getConstraint().isEmpty())
 			return true;
-		return Core.retrieveXPathQueryAggregate(c, "count(//" + this.sourceentity + "[id='" + id.toLong() + "']" + this.getConstraint()) == 1;
+		return Core.retrieveXPathQueryAggregate(c, "count(//" + getSourceEntity() + "[id='" + id.toLong() + "']" + this.getConstraint()) == 1;
 	}
 
 	public String getObjecturl(IContext c, IMendixObject obj) {
@@ -337,13 +315,15 @@ public class PublishedService {
 	}
 
 	public String getKey(IContext c, IMendixObject obj) {
-		return obj.getMember(c, idattribute).parseValueToString(c);
+		return obj.getMember(c, getKeyAttribute()).parseValueToString(c);
 	}
 
 	//TODO: replace with something recursive
 	public Map<String, String> getPublishedMembers() {
 		Map<String, String> res = new HashMap<String, String>();
-		for(IMetaPrimitive prim : this.getPublishMetaEntity().getMetaPrimitives())
+/* TODO: determine published meta entity
+ 		for(IMetaPrimitive prim : this.getPublishMetaEntity().getMetaPrimitives())
+ 
 			res.put(prim.getName(), prim.getType().toString());
 		for(IMetaAssociation assoc : this.getPublishMetaEntity().getMetaAssociationsParent()) {
 			PublishedService service = RestServices.getServiceForEntity(assoc.getChild().getName());
@@ -353,13 +333,14 @@ public class PublishedService {
 			String type = assoc.getType() == AssociationType.REFERENCESET ? "[" + service.getServiceUrl() + "]" : service.getServiceUrl();
 			res.put(name,  type);
 		}
+*/
 		return res;
 	}
 	
 	public void serveServiceDescription(RestServiceRequest rsr) {
 		rsr.datawriter.object()
-			.key("name").value(this.servicename)
-			.key("url").value(this.getServiceUrl())
+			.key("name").value(getName())
+			.key("url").value(getServiceUrl())
 			.key("attributes").object();
 		
 		for(Entry<String, String> e : getPublishedMembers().entrySet()) 

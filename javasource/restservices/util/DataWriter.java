@@ -115,7 +115,7 @@ public class DataWriter {
 	}
 	
 	public DataWriter value(Object value) {
-		if (value == null)
+		if (value == null || value == JSONObject.NULL)
 			writeString(null);
 		else if (value instanceof String)
 			writeString((String) value);

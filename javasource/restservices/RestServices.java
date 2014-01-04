@@ -70,8 +70,8 @@ public class RestServices {
 
 	public static void registerService(String name, PublishedService def) {
 		services.put(name,  def);
-		if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))
-			throw new RuntimeException(String.format("Invalid service definition in '%s': Another services for entity '%s' is already defined", name, def.getSourceEntity()));
+//		if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))
+//			throw new RuntimeException(String.format("Invalid service definition in '%s': Another services for entity '%s' is already defined", name, def.getSourceEntity()));
 		RestServices.servicesByEntity.put(def.getSourceEntity(), def);
 	}
 

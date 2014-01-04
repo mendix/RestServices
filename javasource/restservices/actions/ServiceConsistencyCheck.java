@@ -9,25 +9,31 @@
 
 package restservices.actions;
 
-import restservices.publish.RestServiceHandler;
+import restservices.publish.ConsistencyChecker;
 import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class StartPublishesServicesJava extends UserAction<Boolean>
+public class ServiceConsistencyCheck extends UserAction<String>
 {
-	public StartPublishesServicesJava()
+	private IMendixObject __def;
+	private restservices.proxies.ServiceDefinition def;
+
+	public ServiceConsistencyCheck(IMendixObject def)
 	{
 		super();
+		this.__def = def;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
+		this.def = __def == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __def);
+
 		// BEGIN USER CODE
-		RestServiceHandler.start(getContext());
-		return true;
+		return ConsistencyChecker.check(def);
 		// END USER CODE
 	}
 
@@ -37,7 +43,7 @@ public class StartPublishesServicesJava extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartPublishesServicesJava";
+		return "ServiceConsistencyCheck";
 	}
 
 	// BEGIN EXTRA CODE
