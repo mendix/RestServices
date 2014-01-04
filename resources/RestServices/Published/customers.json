@@ -1,8 +1,0 @@
-{
-	"servicename": "customers",
-	"sourceentity": "Test.Customer",
-	"constraint": "",
-	"idattribute": "Nr",
-	"publishentity": "Test.CustomerView", 
-	"publishmicroflow": "Test.CustomerToView"
-}
