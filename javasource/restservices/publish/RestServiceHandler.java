@@ -44,7 +44,7 @@ public class RestServiceHandler extends RequestHandler{
 		
 		String errors = ConsistencyChecker.check(def);
 		if (errors != null)
-			RestServices.LOG.error("Failed to load service '" + def.getName() + "'");
+			RestServices.LOG.error("Failed to load service '" + def.getName() + "': \n" + errors);
 		else {
 			PublishedService service = new PublishedService(def);
 			RestServices.registerService(service.getName(), service);

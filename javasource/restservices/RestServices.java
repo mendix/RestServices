@@ -68,6 +68,8 @@ public class RestServices {
 
 	public static final String ACCEPT_HEADER = "Accept";
 
+	public static final String CURRENTUSER_TOKEN = "'[%CurrentUser%]'"; 
+	
 	public static void registerService(String name, PublishedService def) {
 		services.put(name,  def);
 //		if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))

@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.UUID;
 
 import org.json.JSONObject;
 
@@ -35,7 +34,7 @@ public class PublishedService {
 	}
 
 	public String getConstraint() {
-		return def.getConstraint() == null ? "" : def.getConstraint();
+		return def.getSourceConstraint() == null ? "" : def.getSourceConstraint();
 	}
 	
 	private IMetaObject sourceMetaEntity;
@@ -64,7 +63,7 @@ public class PublishedService {
 	}
 	
 	public String getKeyAttribute() {
-		return def.getKeyAttribute();
+		return def.getSourceKeyAttribute();
 	}
 
 	public void serveListing(RestServiceRequest rsr) throws CoreException {
@@ -198,36 +197,35 @@ public class PublishedService {
 	
 	public void servePost(RestServiceRequest rsr, JSONObject data) throws Exception {
 		//TODO: if enabled
-		String key = UUID.randomUUID().toString();
-		
-		//TODO: if key is autonr attribute, determine id áfter creating the target
-		IMendixObject target = createNewObject(rsr.getContext(), key);
+		IMendixObject target = Core.instantiate(rsr.getContext(), getSourceEntity());
 		
 		updateObject(rsr.getContext(), target, data);
 		
+		String key = (String) target.getValue(rsr.getContext(), getKeyAttribute());
+		if (!Utils.isValidKey(key))
+			throw new RuntimeException("Failed to serve POST request: microflow '" + def.getOnPublishMicroflow() + "' should have created a new key");
+			
 		rsr.setStatus(201); //created
 		rsr.write(getObjecturl(rsr.getContext(), target));
 		
 		rsr.close();
 	}
 
-	public IMendixObject createNewObject(IContext context, String key) {
-		IMendixObject target = Core.instantiate(context, getSourceEntity());
-		target.setValue(context, getKeyAttribute(), key);
-		return target;
-	}
-	
 	public void servePut(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
 		IContext context = rsr.getContext();
 		IMendixObject target = getObjectByKey(context, key);
 		
-		if (target == null) {
+		if (!Utils.isValidKey(key))
+			rsr.setStatus(404);
+		else if (target == null) {
 			if (keyExists(key)){
 				rsr.setStatus(400);
 				rsr.close();
 				return;
 			}
-			target = createNewObject(context, key);
+			
+			target = Core.instantiate(context, getSourceEntity());
+			target.setValue(context, getKeyAttribute(), key);
 			rsr.setStatus(201);
 			
 		}
@@ -295,7 +293,7 @@ public class PublishedService {
 	}
 	
 	public IMendixObject convertSourceToView(IContext context, IMendixObject source) throws CoreException {
-		return (IMendixObject) Core.execute(context, def.getPublishMicroflow(), source);
+		return (IMendixObject) Core.execute(context, def.getOnPublishMicroflow(), source);
 	}
 
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
