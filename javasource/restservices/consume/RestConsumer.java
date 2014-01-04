@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.httpclient.Credentials;
+import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
@@ -136,10 +137,11 @@ public class RestConsumer {
 		
 		try {
 			int status = client.executeMethod(request);
-		
+			Header responseEtag = request.getResponseHeader(RestServices.ETAG_HEADER);
+			
 			HttpResponseData response = new HttpResponseData(method, url, status, 
 					request.getResponseBodyAsString(),
-					request.getResponseHeader(RestServices.ETAG_HEADER).getValue());
+					responseEtag == null ? null : responseEtag.getValue());
 			
 			RestServices.LOG.info(response);
 			
@@ -158,7 +160,7 @@ public class RestConsumer {
 		
 			if (status != 200)
 				throw new IllegalStateException("Expected status 200, found " + status + " on " + url);
-			
+
 			JSONTokener x = new JSONTokener(request.getResponseBodyAsStream());
 			//Based on: https://github.com/douglascrockford/JSON-java/blob/master/JSONArray.java
 			if (x.nextClean() != '[') 
@@ -169,6 +171,12 @@ public class RestConsumer {
 	            		continue;
 	            	case ']':
 	            		return;
+	            	case '{':
+	            		x.back();
+	            		onObject.apply(new JSONObject(x));
+	            		break;
+	            	case '[':
+	            		throw new RuntimeException("Nested arrays are not supported");
 	            	default:
 	                    onObject.apply(x.nextValue());
                }
