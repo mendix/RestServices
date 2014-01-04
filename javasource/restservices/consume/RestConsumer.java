@@ -19,6 +19,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -168,7 +169,7 @@ public class RestConsumer {
             for (;;) {
             	switch(x.nextClean()) {
 	            	case ',':
-	            		continue;
+	            		break;
 	            	case ']':
 	            		return;
 	            	case '{':
@@ -176,8 +177,11 @@ public class RestConsumer {
 	            		onObject.apply(new JSONObject(x));
 	            		break;
 	            	case '[':
-	            		throw new RuntimeException("Nested arrays are not supported");
+	            		x.back();
+	            		onObject.apply(new JSONArray(x));
+	            		break;
 	            	default:
+	            		x.back();
 	                    onObject.apply(x.nextValue());
                }
             }
