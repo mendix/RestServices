@@ -248,7 +248,7 @@ public class RestConsumer {
 				try {
 					JsonDeserializer.readJsonDataIntoMendixObject(context, data, item, true);
 				} catch (Exception e) {
-					throw new RuntimeException();
+					throw new RuntimeException(e);
 				}
 				callback.apply(item);
 				return true;
@@ -334,6 +334,9 @@ public class RestConsumer {
 		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED) 
 		JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
 	
+		//TODO: store etag if possible, to optimize
+		//TODO: store URL if possible, to optimize
+		
 		return gr;
 	}
 	

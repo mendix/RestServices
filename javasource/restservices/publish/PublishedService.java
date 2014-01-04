@@ -82,7 +82,6 @@ public class PublishedService {
 			rsr.write("<items>");
 			break;
 		case JSON:
-			rsr.datawriter.array();
 			break;
 		}
 		
@@ -116,7 +115,6 @@ public class PublishedService {
 			rsr.write("</items>");
 			break;
 		case JSON:
-			rsr.datawriter.endArray();
 			break;
 		}
 		
