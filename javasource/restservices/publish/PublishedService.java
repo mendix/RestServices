@@ -129,7 +129,7 @@ public class PublishedService {
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		if (source == null) {
-			rsr.setStatus(keyExists(key)? 401 : IMxRuntimeResponse.NOT_FOUND);
+			rsr.setStatus(keyExists(rsr.getContext(), key)? 401 : IMxRuntimeResponse.NOT_FOUND);
 			rsr.close();
 			return;
 		}
@@ -183,7 +183,7 @@ public class PublishedService {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
 		if (source == null) {
-			rsr.setStatus(keyExists(key) ? IMxRuntimeResponse.UNAUTHORIZED : IMxRuntimeResponse.NOT_FOUND);
+			rsr.setStatus(keyExists(rsr.getContext(), key) ? IMxRuntimeResponse.UNAUTHORIZED : IMxRuntimeResponse.NOT_FOUND);
 			return;
 		}
 
@@ -221,7 +221,7 @@ public class PublishedService {
 		if (!Utils.isValidKey(key))
 			rsr.setStatus(404);
 		else if (target == null) {
-			if (keyExists(key)){
+			if (keyExists(rsr.getContext(), key)){
 				rsr.setStatus(400);
 				rsr.close();
 				return;
@@ -242,8 +242,8 @@ public class PublishedService {
 		rsr.close();
 	}
 	
-	private boolean keyExists(String key) throws CoreException {
-		return getObjectByKey(Core.createSystemContext(), key) != null;
+	private boolean keyExists(IContext context, String key) throws CoreException {
+		return getObjectByKey(context, key) != null; //context is sudo, so that should work fine
 	}
 
 	private void updateObject(IContext context, IMendixObject target,
@@ -304,7 +304,7 @@ public class PublishedService {
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
 		if (this.getConstraint(c).isEmpty())
 			return true;
-		return Core.retrieveXPathQueryAggregate(c, "count(//" + getSourceEntity() + "[id='" + id.toLong() + "']" + this.getConstraint()) == 1;
+		return Core.retrieveXPathQueryAggregate(c, "count(//" + getSourceEntity() + "[id='" + id.toLong() + "']" + this.getConstraint(c)) == 1;
 	}
 
 	public String getObjecturl(IContext c, IMendixObject obj) {
@@ -358,6 +358,14 @@ public class PublishedService {
 
 	public boolean isGetObjectEnabled() {
 		return def.getEnableGet();
+	}
+
+	public boolean isWorldReadable() {
+		return "*".equals(def.getAccessRole().trim());
+	}
+
+	public String getRequiredRole() {
+		return def.getAccessRole().trim();
 	}
 
 }

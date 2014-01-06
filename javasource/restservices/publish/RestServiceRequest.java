@@ -13,6 +13,7 @@ import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
+import communitycommons.StringUtils;
 
 public class RestServiceRequest {
 	public static enum ContentType { JSON, XML, HTML }
@@ -25,7 +26,7 @@ public class RestServiceRequest {
 	private boolean autoLogout;
 	private ISession activeSession;
 
-	public RestServiceRequest(Request request, Response response, ISession existingSession) {
+	public RestServiceRequest(Request request, Response response) {
 		this.request = request;
 		this.response = response;
 		
@@ -37,39 +38,44 @@ public class RestServiceRequest {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-
-		if (!this.setupContext(existingSession)) {
-			this.setStatus(401);
-			this.write("Invalid credentials");
-		}
-		
 	}
 
-	private boolean setupContext(ISession existingSession) {
+	boolean authenticateService(PublishedService service, ISession existingSession) {
+		if (service.isWorldReadable()) {
+			this.context = Core.createSystemContext();
+			return true;
+		}
+
+		//TODO: constants
+		String authHeader = request.getHeader("Authorization");
 		String username = null;
 		String password = null;
 		ISession session = null;
 		
-		if (Request.BASIC_AUTH.equals(request.getAuthType())) {
-			Authentication auth = request.getAuthentication();
-			asdf
+		if (authHeader != null && authHeader.trim().startsWith("Basic")) {
+			String base64 = StringUtils.base64Decode(authHeader.trim().substring("basic".length()).trim());
+			String[] parts = base64.split(":");
+			username = parts[0];
+			password = parts[1];
 		}
 		
 		try {
 			//Check credentials provided by request
 			if (username != null) {
 				session = Core.login(username, password);
-				if (session == null)
+				if (session == null) {
+					setStatus(401);
+					write("Invalid credentials");
 					return false;
+				}
 				
 				//same user as the one in the current session? recylcle the session
-				if (existingSession != null && !session.getId().equals(existingSession.getId()) && !existingSession.getUser().getName().equals(session.getUser().getName())) {
+				if (existingSession != null && session.getId().equals(existingSession.getId()) && existingSession.getUser().getName().equals(session.getUser().getName())) {
 					Core.logout(session);
 					session = existingSession;
 				}
 				else
 					this.autoLogout = true;
-				
 			}
 			
 			//check session from cookies
@@ -77,18 +83,21 @@ public class RestServiceRequest {
 				session = existingSession;
 				
 			//session found?
-			if (session != null) {
+			if (session != null && session.getUser() != null && session.getUser().getUserRoleNames().contains(service.getRequiredRole())) {
 				this.context = session.createContext().getSudoContext();
 				this.activeSession = session;
+				return true;
 			}
-			
-			return true;
+
 		}
 		catch(Exception e) {
 			RestServices.LOG.warn("Failed to authenticate '" + username + "'" + e.getMessage(), e);
-			return false;
 		}
 		
+		setStatus(401);
+		response.setHeader("WWW-Authenticate", "Basic realm=\"" + service.getName() + "\"");
+		write("Unauthorized");
+		return false;
 	}
 
 	public static ContentType determineContentType(Request request) {
@@ -162,21 +171,7 @@ public class RestServiceRequest {
 			Core.logout(this.activeSession);		
 	}
 	
-	public boolean hasUser() {
-		return this.activeSession != null;
-	}
-	
 	public IUser getCurrentUser() {
 		return activeSession.getUser();
-	}
-
-	public boolean hasRole(String role) {
-		if ("*".equals(role)) //TODO: make constant
-			return true;
-		if (!hasUser())
-			return false;
-		if (getCurrentUser().getUserRoleNames().contains(role))
-			return true;
-		return false;
 	}
 }

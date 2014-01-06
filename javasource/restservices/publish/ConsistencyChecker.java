@@ -93,7 +93,7 @@ public class ConsistencyChecker {
 				if (def.getSourceConstraint().contains(RestServices.CURRENTUSER_TOKEN)) {
 					if (def.getEnableChangeTracking())
 						errors.add("The source constrained is not allowed to refer to the current user if change tracking is enabled");
-					if ("*".equals(def.getReadAccess()) || "*".equals(def.getWriteAccess()))
+					if ("*".equals(def.getAccessRole()))
 						errors.add("The source constrained is not allowed to refer to the current user if the service is world-readable or world-writable");
 				}
 				

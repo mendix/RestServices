@@ -16,6 +16,7 @@ import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.ISession;
 
 import communitycommons.XPath;
 
@@ -75,8 +76,11 @@ public class RestServiceHandler extends RequestHandler{
 			}
 		}
 
-		RestServiceRequest rsr = new RestServiceRequest(request, response, (ISession) getSessionFromRequest(req)); //TODO: what is the bool arg about?
+		RestServiceRequest rsr = new RestServiceRequest(request, response); //TODO: what is the bool arg about?
 
+		if (service != null && !rsr.authenticateService(service, (ISession) getSessionFromRequest(req)))
+			return;
+		
 		try {
 			if ("GET".equals(method) && parts.length == 0) {
 				serveServiceOverview(rsr);
