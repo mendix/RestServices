@@ -37,10 +37,13 @@ public class ConsistencyChecker {
 		if (def.getEnableCreate() || def.getEnableUpdate())
 			checkOnUpdateMF(def, errors);
 		
-		if (def.getEnableDelete())
+		if (def.getEnableDelete() && Utils.isNotEmpty(def.getOnDeleteMicroflow())) //Delete microflow is optional
 			checkOnDeleteMF(def, errors);
 		
+		//TODO: should only one service that defines 'GET object', which will be the default
+		
 		//TODO: check on delete / onupdate microflows
+		//(copy from Publishedservice.updateObject)
 		//TODO: check security
 		
 		return errors.size() == 0 ? null : "* " + StringUtils.join(errors, "\n* ");

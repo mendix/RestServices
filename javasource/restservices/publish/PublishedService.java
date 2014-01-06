@@ -35,20 +35,12 @@ public class PublishedService {
 
 	public String getConstraint() {
 		return def.getSourceConstraint() == null ? "" : def.getSourceConstraint();
+		//TODO: replace current user
 	}
 	
 	private IMetaObject sourceMetaEntity;
 
 	private ChangeManager changeManager = new ChangeManager(this);
-
-	//TODO: from config
-	private String deletemicroflow;
-
-	//TODO: from config
-	private boolean detectConflicts;
-
-	//TODO: from config
-	private String updatemicroflow;
 	
 	public ChangeManager getChangeManager() {
 		return changeManager;
@@ -66,6 +58,7 @@ public class PublishedService {
 		return def.getSourceKeyAttribute();
 	}
 
+	//TODO: add include data parameter
 	public void serveListing(RestServiceRequest rsr) throws CoreException {
 		IRetrievalSchema schema = Core.createRetrievalSchema();
 		schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
@@ -84,6 +77,7 @@ public class PublishedService {
 			break;
 		}
 		
+		//TODO: optimize if change tracking is enabled
 		long offset = 0;
 		List<IMendixObject> result;
 		
@@ -132,6 +126,7 @@ public class PublishedService {
 			return;
 		}
 		
+		//TODO: optimize if change tracking is enabled
 		IMendixObject view = convertSourceToView(rsr.getContext(), source);
 		JSONObject result = JsonSerializer.writeMendixObjectToJson(rsr.getContext(), view);
 				
@@ -170,7 +165,6 @@ public class PublishedService {
 	private IMendixObject getObjectByKey(IContext context,
 			String key) throws CoreException {
 		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint();
-		
 		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
 		return results.size() == 0 ? null : results.get(0);
 	}
@@ -187,8 +181,8 @@ public class PublishedService {
 
 		verifyEtag(rsr.getContext(), source, etag);
 		
-		if (Utils.isNotEmpty(this.deletemicroflow))
-			Core.execute(rsr.getContext(), this.deletemicroflow, source);
+		if (Utils.isNotEmpty(def.getOnDeleteMicroflow()))
+			Core.execute(rsr.getContext(), def.getOnDeleteMicroflow(), source);
 		else
 			Core.delete(rsr.getContext(), source);
 		
@@ -245,10 +239,10 @@ public class PublishedService {
 
 	private void updateObject(IContext context, IMendixObject target,
 			JSONObject data) throws Exception, Exception {
-		Map<String, String> argtypes = Utils.getArgumentTypes(updatemicroflow);
+		Map<String, String> argtypes = Utils.getArgumentTypes(def.getOnUpdateMicroflow());
 		
 		if (argtypes.size() != 2)
-			throw new RuntimeException("Expected exactly two arguments for microflow " + updatemicroflow);
+			throw new RuntimeException("Expected exactly two arguments for microflow " + def.getOnUpdateMicroflow());
 		
 		//Determine argnames
 		String viewArgName = null;
@@ -264,18 +258,20 @@ public class PublishedService {
 		}
 		
 		if (targetArgName == null || viewArgName == null || Core.getMetaObject(viewArgType).isPersistable())
-			throw new RuntimeException("Microflow '" + updatemicroflow + "' should have one argument of type " + target.getType() + ", and one argument typed with an persistent entity");
+			throw new RuntimeException("Microflow '" + def.getOnUpdateMicroflow() + "' should have one argument of type " + target.getType() + ", and one argument typed with an persistent entity");
 		
 		IMendixObject view = Core.instantiate(context, viewArgType);
 		JsonDeserializer.readJsonDataIntoMendixObject(context, data, view, false);
 		Core.commit(context, view);
 		
-		Core.execute(context, updatemicroflow, ImmutableMap.of(targetArgName, (Object) target, viewArgName, (Object) view));
+		Core.execute(context, def.getOnUpdateMicroflow(), ImmutableMap.of(targetArgName, (Object) target, viewArgName, (Object) view));
 	}
 
 	private void verifyEtag(IContext context, IMendixObject source, String etag) throws Exception {
-		if (!this.detectConflicts)
+		if (!this.def.getUseStrictVersioning())
 			return;
+		
+		//TODO: optimize if change tracking enabled
 		
 		IMendixObject view = convertSourceToView(context, source);
 		JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
@@ -337,6 +333,7 @@ public class PublishedService {
 		rsr.datawriter.object()
 			.key("name").value(getName())
 			.key("url").value(getServiceUrl())
+			//TODO: export description
 			.key("attributes").object();
 		
 		for(Entry<String, String> e : getPublishedMembers().entrySet()) 
@@ -348,6 +345,10 @@ public class PublishedService {
 	void debug(String msg) {
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug(msg);
+	}
+
+	public boolean isGetObjectEnabled() {
+		return def.getEnableGet();
 	}
 
 }

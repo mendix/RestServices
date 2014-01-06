@@ -19,6 +19,7 @@ class ChangeFeedSubscriber {
 	
 	final private AsyncContext continuation;
 	
+	//TODO: make status available in the UI
 	public ChangeFeedSubscriber(AsyncContext asyncContext) {
 		this.continuation = asyncContext;
 	}

@@ -348,6 +348,7 @@ public class RestConsumer {
 	}
 	
 	public static RequestResult deleteObject(String url, String etag) throws Exception {
+		//TODO: should return same format as GET
 		HttpResponseData response = doRequest("DELETE", url, etag, null);
 		
 		if (response.getStatus() == HttpStatus.SC_NOT_FOUND)
@@ -360,6 +361,7 @@ public class RestConsumer {
 	}
 	
 	public static String postObject(IContext context, String url, IMendixObject source) throws Exception {
+		//TODO: should return same format as GET
 		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		HttpResponseData response = doRequest("POST", url, null, data.toString(4));
@@ -371,6 +373,7 @@ public class RestConsumer {
 	}
 	
 	public static RequestResult putObject(IContext context, String url, IMendixObject source, String etag) throws Exception{
+		//TODO: should return same format as GET
 		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		HttpResponseData response = doRequest("PUT", url, etag, data.toString(4));

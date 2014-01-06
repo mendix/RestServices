@@ -35,7 +35,9 @@ public class ChangeFeedListener {
 	private FollowChangesState state;
 	private GetMethod currentRequest;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
-
+	private volatile boolean cancelled = false;
+	
+	//TODO: make status enabled in the UI
 	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
 		this.url = collectionUrl;
 		this.onUpdateMF = onUpdateMF;
@@ -119,7 +121,7 @@ public class ChangeFeedListener {
 		}
 		catch(Exception e) {
 			//Not graceful disconnected?
-			if (!(jt.end() && e instanceof JSONException))
+			if (!cancelled && !(jt.end() && e instanceof JSONException))
 				throw new RuntimeException(e);
 		}
 		finally {
@@ -161,6 +163,7 @@ public class ChangeFeedListener {
 	
 	private void close() {
 		activeListeners.remove(url);
+		cancelled = true;
 		this.currentRequest.abort();
 	}
 

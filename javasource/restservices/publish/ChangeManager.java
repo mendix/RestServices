@@ -259,8 +259,10 @@ public class ChangeManager {
 		
 		try {
 			//Check if publishable
-			if (checkConstraint && !service.identifierInConstraint(context, source.getId()))
+			if (checkConstraint && !service.identifierInConstraint(context, source.getId())) {
+				publishDelete(context, source); //maybe the object was visible but not anymore
 				return; 
+			}
 			
 			String key = service.getKey(context, source);
 			if (!Utils.isValidKey(key)) {
