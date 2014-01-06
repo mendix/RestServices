@@ -2,6 +2,7 @@ package restservices.publish;
 
 import java.io.IOException;
 
+import org.eclipse.jetty.server.Authentication;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 
@@ -10,6 +11,8 @@ import restservices.util.DataWriter;
 
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.ISession;
+import com.mendix.systemwideinterfaces.core.IUser;
 
 public class RestServiceRequest {
 	public static enum ContentType { JSON, XML, HTML }
@@ -19,11 +22,12 @@ public class RestServiceRequest {
 	private ContentType contentType = ContentType.JSON;
 	private IContext context;
 	protected DataWriter datawriter;
+	private boolean autoLogout;
+	private ISession activeSession;
 
-	public RestServiceRequest(Request request, Response response) {
+	public RestServiceRequest(Request request, Response response, ISession existingSession) {
 		this.request = request;
 		this.response = response;
-		this.context = Core.createSystemContext(); //TODO: should be based on user credentials if access was required?
 		
 		this.contentType = determineContentType(request);
 		setResponseContentType(response, contentType);
@@ -33,6 +37,58 @@ public class RestServiceRequest {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+
+		if (!this.setupContext(existingSession)) {
+			this.setStatus(401);
+			this.write("Invalid credentials");
+		}
+		
+	}
+
+	private boolean setupContext(ISession existingSession) {
+		String username = null;
+		String password = null;
+		ISession session = null;
+		
+		if (Request.BASIC_AUTH.equals(request.getAuthType())) {
+			Authentication auth = request.getAuthentication();
+			asdf
+		}
+		
+		try {
+			//Check credentials provided by request
+			if (username != null) {
+				session = Core.login(username, password);
+				if (session == null)
+					return false;
+				
+				//same user as the one in the current session? recylcle the session
+				if (existingSession != null && !session.getId().equals(existingSession.getId()) && !existingSession.getUser().getName().equals(session.getUser().getName())) {
+					Core.logout(session);
+					session = existingSession;
+				}
+				else
+					this.autoLogout = true;
+				
+			}
+			
+			//check session from cookies
+			else if (existingSession != null)
+				session = existingSession;
+				
+			//session found?
+			if (session != null) {
+				this.context = session.createContext().getSudoContext();
+				this.activeSession = session;
+			}
+			
+			return true;
+		}
+		catch(Exception e) {
+			RestServices.LOG.warn("Failed to authenticate '" + username + "'" + e.getMessage(), e);
+			return false;
+		}
+		
 	}
 
 	public static ContentType determineContentType(Request request) {
@@ -101,4 +157,26 @@ public class RestServiceRequest {
 		return request.getHeader(RestServices.IFNONEMATCH_HEADER);
 	}
 
+	public void dispose() {
+		if (autoLogout)
+			Core.logout(this.activeSession);		
+	}
+	
+	public boolean hasUser() {
+		return this.activeSession != null;
+	}
+	
+	public IUser getCurrentUser() {
+		return activeSession.getUser();
+	}
+
+	public boolean hasRole(String role) {
+		if ("*".equals(role)) //TODO: make constant
+			return true;
+		if (!hasUser())
+			return false;
+		if (getCurrentUser().getUserRoleNames().contains(role))
+			return true;
+		return false;
+	}
 }

@@ -41,14 +41,14 @@ public class JsonSerializer {
 				return null;
 			}
 		
-			if (service.identifierInConstraint(context, id)) {
-				IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
-				if (obj == null) {
-					RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
-					return null;
-				}
-				return service.getObjecturl(context, obj);
+			IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
+			if (obj == null) {
+				RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
+				return null;
 			}
+			if (Utils.isValidKey(service.getKey(context, obj)))
+				return service.getObjecturl(context, obj);
+		}
 			return null;
 		}
 		IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?

@@ -74,37 +74,41 @@ public class RestServiceHandler extends RequestHandler{
 				return;
 			}
 		}
-		
-		RestServiceRequest rsr = new RestServiceRequest(request, response);
 
-		if ("GET".equals(method) && parts.length == 0) {
-			serveServiceOverview(rsr);
-		}
-		else if ("GET".equals(method) && parts.length == 1 ) {
-			checkReadAccess(request, response);
-			//TODO: check if listing is enabled
-			service.serveListing(rsr, "true".equals(request.getParameter("data")));
-		}
-		else if ("GET".equals(method) && parts.length == 2) {
-			checkReadAccess(request, response);
-			if ("changes".equals(parts[1]))
-				service.getChangeManager().serveChanges(rsr);
+		RestServiceRequest rsr = new RestServiceRequest(request, response, (ISession) getSessionFromRequest(req)); //TODO: what is the bool arg about?
+
+		try {
+			if ("GET".equals(method) && parts.length == 0) {
+				serveServiceOverview(rsr);
+			}
+			else if ("GET".equals(method) && parts.length == 1 ) {
+				checkReadAccess(request, response);
+				//TODO: check if listing is enabled
+				service.serveListing(rsr, "true".equals(request.getParameter("data")));
+			}
+			else if ("GET".equals(method) && parts.length == 2) {
+				checkReadAccess(request, response);
+				if ("changes".equals(parts[1]))
+					service.getChangeManager().serveChanges(rsr);
+				else
+					service.serveGet(rsr, parts[1]);
+			}
+			else if ("POST".equals(method) && parts.length ==  1) {
+				String body = IOUtils.toString(rsr.request.getInputStream());
+				service.servePost(rsr, new JSONObject(body));
+			}
+			else if ("PUT" .equals(method) && parts.length == 2) {
+				String body = IOUtils.toString(rsr.request.getInputStream());
+				service.servePut(rsr, parts[1], new JSONObject(body), rsr.getETag());
+			}
+			else if ("DELETE".equals(method) && parts.length == 2)
+				service.serveDelete(rsr, parts[1], rsr.getETag());
 			else
-				service.serveGet(rsr, parts[1]);
+				rsr.setStatus(501); //TODO: constant
 		}
-		else if ("POST".equals(method) && parts.length ==  1) {
-			String body = IOUtils.toString(rsr.request.getInputStream());
-			service.servePost(rsr, new JSONObject(body));
+		finally {
+			rsr.dispose(); 
 		}
-		else if ("PUT" .equals(method) && parts.length == 2) {
-			String body = IOUtils.toString(rsr.request.getInputStream());
-			service.servePut(rsr, parts[1], new JSONObject(body), rsr.getETag());
-		}
-		else if ("DELETE".equals(method) && parts.length == 2)
-			service.serveDelete(rsr, parts[1], rsr.getETag());
-		else
-			rsr.setStatus(501); //TODO: constant
-		
 	}
 
 	private void expireAlways(Response response) {

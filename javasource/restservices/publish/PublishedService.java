@@ -33,9 +33,13 @@ public class PublishedService {
 		this.def = def;
 	}
 
-	public String getConstraint() {
-		return def.getSourceConstraint() == null ? "" : def.getSourceConstraint();
-		//TODO: replace current user
+	public String getConstraint(IContext context) {
+		String constraint = def.getSourceConstraint() == null ? "" : def.getSourceConstraint();
+		
+		if (constraint.contains(RestServices.CURRENTUSER_TOKEN))
+			constraint.replace(RestServices.CURRENTUSER_TOKEN, "'" + context.getSession().getUser().getMendixObject().getId() + "'");
+
+		return constraint;
 	}
 	
 	private IMetaObject sourceMetaEntity;
@@ -84,16 +88,14 @@ public class PublishedService {
 		rsr.datawriter.array();
 		do {
 			schema.setOffset(offset);
-			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + getSourceEntity() + getConstraint(), schema, false);
+			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + getSourceEntity() + getConstraint(rsr.getContext()), schema, false);
 		
 			for(IMendixObject item : result) {
 				if (!includeData) {
-					String key = item.getMember(rsr.getContext(), getKeyAttribute()).parseValueToString(rsr.getContext());
-					if (!Utils.isValidKey(key))
+					if (!Utils.isValidKey(getKey(rsr.getContext(), item)))
 						continue;
 		
-					String url = this.getServiceUrl() + key; //TODO: url param encode key?
-					rsr.datawriter.value(url);
+					rsr.datawriter.value(getObjecturl(rsr.getContext(), item));
 				}
 				else {
 					IMendixObject view = convertSourceToView(rsr.getContext(), item);
@@ -170,7 +172,7 @@ public class PublishedService {
 
 	private IMendixObject getObjectByKey(IContext context,
 			String key) throws CoreException {
-		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint();
+		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint(context);
 		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
 		return results.size() == 0 ? null : results.get(0);
 	}
@@ -212,6 +214,7 @@ public class PublishedService {
 	}
 
 	public void servePut(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
+		//TODO: start transaction for put/ post / delete?
 		IContext context = rsr.getContext();
 		IMendixObject target = getObjectByKey(context, key);
 		
@@ -299,7 +302,7 @@ public class PublishedService {
 	}
 
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
-		if (this.getConstraint().isEmpty())
+		if (this.getConstraint(c).isEmpty())
 			return true;
 		return Core.retrieveXPathQueryAggregate(c, "count(//" + getSourceEntity() + "[id='" + id.toLong() + "']" + this.getConstraint()) == 1;
 	}
