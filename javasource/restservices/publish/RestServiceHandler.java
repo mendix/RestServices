@@ -83,7 +83,7 @@ public class RestServiceHandler extends RequestHandler{
 		else if ("GET".equals(method) && parts.length == 1 ) {
 			checkReadAccess(request, response);
 			//TODO: check if listing is enabled
-			service.serveListing(rsr);
+			service.serveListing(rsr, "true".equals(request.getParameter("data")));
 		}
 		else if ("GET".equals(method) && parts.length == 2) {
 			checkReadAccess(request, response);

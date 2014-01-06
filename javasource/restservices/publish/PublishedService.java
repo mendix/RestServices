@@ -59,7 +59,7 @@ public class PublishedService {
 	}
 
 	//TODO: add include data parameter
-	public void serveListing(RestServiceRequest rsr) throws CoreException {
+	public void serveListing(RestServiceRequest rsr, boolean includeData) throws Exception {
 		IRetrievalSchema schema = Core.createRetrievalSchema();
 		schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
 		schema.addMetaPrimitiveName(getKeyAttribute());
@@ -87,12 +87,18 @@ public class PublishedService {
 			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + getSourceEntity() + getConstraint(), schema, false);
 		
 			for(IMendixObject item : result) {
-				String key = item.getMember(rsr.getContext(), getKeyAttribute()).parseValueToString(rsr.getContext());
-				if (!Utils.isValidKey(key))
-					continue;
-
-				String url = this.getServiceUrl() + key; //TODO: url param encode key?
-				rsr.datawriter.value(url);
+				if (!includeData) {
+					String key = item.getMember(rsr.getContext(), getKeyAttribute()).parseValueToString(rsr.getContext());
+					if (!Utils.isValidKey(key))
+						continue;
+		
+					String url = this.getServiceUrl() + key; //TODO: url param encode key?
+					rsr.datawriter.value(url);
+				}
+				else {
+					IMendixObject view = convertSourceToView(rsr.getContext(), item);
+					rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), view));
+				}
 			}
 			
 			offset += RestServices.BATCHSIZE;
