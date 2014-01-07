@@ -203,13 +203,16 @@ public class PublishedService {
 		
 		updateObject(rsr.getContext(), target, data);
 		
-		String key = (String) target.getValue(rsr.getContext(), getKeyAttribute());
+		Object keyValue = target.getValue(rsr.getContext(), getKeyAttribute());
+		String key = keyValue == null ? null : String.valueOf(keyValue);
+		
 		if (!Utils.isValidKey(key))
 			throw new RuntimeException("Failed to serve POST request: microflow '" + def.getOnPublishMicroflow() + "' should have created a new key");
 			
 		rsr.setStatus(201); //created
-		rsr.write(getObjecturl(rsr.getContext(), target));
-		
+		//TODO: write url, or write key?
+		//rsr.write(getObjecturl(rsr.getContext(), target));
+		rsr.write(key);
 		rsr.close();
 	}
 
