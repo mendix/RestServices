@@ -83,12 +83,15 @@ public class PublishedService {
 		
 		//TODO: optimize if change tracking is enabled
 		long offset = 0;
+		String xpath = "//" + getSourceEntity() + getConstraint(rsr.getContext());
 		List<IMendixObject> result;
 		
 		rsr.datawriter.array();
 		do {
 			schema.setOffset(offset);
-			result = Core.retrieveXPathSchema(rsr.getContext(), "//" + getSourceEntity() + getConstraint(rsr.getContext()), schema, false);
+			result = includeData
+					? Core.retrieveXPathQuery(rsr.getContext(), xpath, (int) RestServices.BATCHSIZE, (int) offset, ImmutableMap.of(getKeyAttribute(), "ASC")) 
+					: Core.retrieveXPathSchema(rsr.getContext(), xpath , schema, false);
 		
 			for(IMendixObject item : result) {
 				if (!includeData) {

@@ -2,9 +2,8 @@ package restservices.publish;
 
 import java.io.IOException;
 
-import org.eclipse.jetty.server.Authentication;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Response;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import restservices.RestServices;
 import restservices.util.DataWriter;
@@ -18,15 +17,15 @@ import communitycommons.StringUtils;
 public class RestServiceRequest {
 	public static enum ContentType { JSON, XML, HTML }
 
-	Request request;
-	Response response;
+	HttpServletRequest request;
+	HttpServletResponse response;
 	private ContentType contentType = ContentType.JSON;
 	private IContext context;
 	protected DataWriter datawriter;
 	private boolean autoLogout;
 	private ISession activeSession;
 
-	public RestServiceRequest(Request request, Response response) {
+	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response) {
 		this.request = request;
 		this.response = response;
 		
@@ -100,7 +99,7 @@ public class RestServiceRequest {
 		return false;
 	}
 
-	public static ContentType determineContentType(Request request) {
+	public static ContentType determineContentType(HttpServletRequest request) {
 		if (request.getParameter(RestServices.CONTENTTYPE_PARAM) != null)
 			return ContentType.valueOf(request.getParameter(RestServices.CONTENTTYPE_PARAM).toUpperCase());
 		String ct = request.getHeader(RestServices.ACCEPT_HEADER);
@@ -115,7 +114,7 @@ public class RestServiceRequest {
 		return ContentType.JSON; //by default
 	}
 	
-	public static void setResponseContentType(Response response, ContentType contentType) {
+	public static void setResponseContentType(HttpServletResponse response, ContentType contentType) {
 		response.setContentType("text/" + contentType.toString().toLowerCase()+ "; charset=UTF-8");
 	}
 	

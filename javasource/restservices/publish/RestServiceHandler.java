@@ -1,9 +1,10 @@
 package restservices.publish;
 
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Response;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -58,8 +59,8 @@ public class RestServiceHandler extends RequestHandler{
 			String path) throws Exception {
 		
 		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
-		Request request = (Request) req.getOriginalRequest();
-		Response response = (Response) resp.getOriginalResponse();
+		HttpServletRequest request = (HttpServletRequest) req.getOriginalRequest();
+		HttpServletResponse response = (HttpServletResponse) resp.getOriginalResponse();
 		String method = request.getMethod();
 
 		response.setCharacterEncoding(RestServices.UTF8);
@@ -115,15 +116,15 @@ public class RestServiceHandler extends RequestHandler{
 		}
 	}
 
-	private void expireAlways(Response response) {
+	private void expireAlways(HttpServletResponse response) {
 		response.setHeader("Expires", "-1");
 	}
 
-	private void checkReadAccess(Request request, Response response) {
+	private void checkReadAccess(HttpServletRequest request, HttpServletResponse response) {
 		//TODO:
 	}
 
-	private void serve404(Response response) { //TODO: require reason message
+	private void serve404(HttpServletResponse response) { //TODO: require reason message
 		response.setStatus(IMxRuntimeResponse.NOT_FOUND);
 	}
 

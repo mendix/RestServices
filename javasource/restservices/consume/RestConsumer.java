@@ -2,6 +2,8 @@ package restservices.consume;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -13,12 +15,14 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -108,11 +112,36 @@ public class RestConsumer {
 			return body;
 		}
 	}
+
+	public static HttpResponseData doRequest(final String method, String url, String etag) throws Exception {
+		return doRequest(method, url, etag, (Predicate<HttpMethodBase>) null);
+	}
 	
+	public static HttpResponseData doRequest(final String method, String url, String etag, final String body) throws Exception {
+		return doRequest(method, url, etag, new Predicate<HttpMethodBase>() {
+
+			@Override
+			public boolean apply(HttpMethodBase request) {
+				StringRequestEntity re;
+				try {
+					re = new StringRequestEntity(body, RestServices.TEXTJSON, RestServices.UTF8);
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				}
+				if ("POST".equals(method))
+					((PostMethod)request).setRequestEntity(re);
+				else if ("PUT".equals(method))
+					((PutMethod)request).setRequestEntity(re);
+				return true;
+			}
+			
+		});
+	}
+
 	/**
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
 	 */
-	public static HttpResponseData doRequest(String method, String url, String etag, String body) throws Exception {
+	public static HttpResponseData doRequest(String method, String url, String etag, Predicate<HttpMethodBase> beforeSubmitHandler) throws Exception {
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug("Fetching '" + url + "' etag: " + etag + "..");
 		
@@ -122,16 +151,15 @@ public class RestConsumer {
 			request = new GetMethod(url);
 		else if ("DELETE".equals(method))
 			request = new DeleteMethod(url);
-		else if ("POST".equals(method)) {
+		else if ("POST".equals(method)) 
 			request = new PostMethod(url);
-			((PostMethod)request).setRequestEntity(new StringRequestEntity(body, RestServices.TEXTJSON, RestServices.UTF8));
-		}
-		else if ("PUT".equals(method)) {
+		else if ("PUT".equals(method)) 
 			request = new PutMethod(url);
-			((PutMethod)request).setRequestEntity(new StringRequestEntity(body, RestServices.TEXTJSON, RestServices.UTF8));
-		}
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
+		
+		if (beforeSubmitHandler != null)
+			beforeSubmitHandler.apply(request);
 		
 		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		if (etag != null && !etag.isEmpty())
@@ -328,7 +356,7 @@ public class RestConsumer {
 		GetResult gr = new GetResult(context);
 		
 		//fetch
-		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag, null);
+		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag);
 		
 		if (!response.isOk())
 			throw new Exception("Request didn't respond with status 200 or 304: " + response);
@@ -349,7 +377,7 @@ public class RestConsumer {
 	
 	public static RequestResult deleteObject(String url, String etag) throws Exception {
 		//TODO: should return same format as GET
-		HttpResponseData response = doRequest("DELETE", url, etag, null);
+		HttpResponseData response = doRequest("DELETE", url, etag);
 		
 		if (response.getStatus() == HttpStatus.SC_NOT_FOUND)
 			return RequestResult.NotModified; //not found means that delete didn't modify anything
@@ -360,11 +388,25 @@ public class RestConsumer {
 		return response.asRequestResult();
 	}
 	
-	public static String postObject(IContext context, String url, IMendixObject source) throws Exception {
+	public static String postObject(IContext context, String url, IMendixObject source, boolean asFormData) throws Exception {
 		//TODO: should return same format as GET
-		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
+		final JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
-		HttpResponseData response = doRequest("POST", url, null, data.toString(4));
+		HttpResponseData response = !asFormData 
+				? doRequest("POST", url, null, data.toString(4))
+				: doRequest("POST", url, null, new Predicate<HttpMethodBase>() {
+
+					@Override
+					public boolean apply(HttpMethodBase request) {
+						request.setRequestHeader("ContentType", "www/formencoded"); //TODO: fix
+						for(String key : JSONObject.getNames(data)) {
+							Object value = data.get(key);
+							if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
+								((PostMethod)request).addParameter(key, String.valueOf(value));
+						}
+						return true;
+					}
+				});
 		
 		if (!response.isOk())
 			throw new Exception("Request didn't respond with status 2** or 304: " + response);
