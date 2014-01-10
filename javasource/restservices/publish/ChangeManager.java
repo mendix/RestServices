@@ -28,7 +28,7 @@ public class ChangeManager {
 	
 	private PublishedService service;
 	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
-	private IMendixObject serviceState;
+	private ServiceState serviceState;
 
 	public ChangeManager(PublishedService service) {
 		this.service = service;
@@ -208,29 +208,9 @@ public class ChangeManager {
 		
 		if (this.serviceState == null)
 			this.serviceState = XPath.create(context, ServiceState.class)
-				.findOrCreateNoCommit(ServiceState.MemberNames.Name, service.getName()).getMendixObject();
-		
-		if (this.serviceState.isNew()) {
-			Core.commit(context, serviceState); 
-			
-			RestServices.LOG.info(service.getName() + ": Initializing change log. This might take a while...");
-			XPath.create(context, service.getSourceEntity())
-				//.raw(this.constraint) //TODO:!
-				.batch((int) RestServices.BATCHSIZE, new IBatchProcessor<IMendixObject>() {
-	
-					@Override
-					public void onItem(IMendixObject item, long offset,
-							long total) throws Exception {
-						if (offset % 100 == 0)
-							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
-						publishUpdate(context, item, true); //TODO: can be false if the constraint is applied raw above!
-					}
-				});
-			
-			RestServices.LOG.info(service.getName() + ": Initializing change log. DONE");
-		}
-		
-		return ServiceState.initialize(context, serviceState);
+				.findOrCreate(ServiceState.MemberNames.Name, service.getName());
+				
+		return this.serviceState;
 	}
 
 	private synchronized long getNextRevisionId(IContext context) {
