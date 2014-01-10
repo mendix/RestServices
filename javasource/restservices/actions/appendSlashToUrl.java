@@ -9,30 +9,28 @@
 
 package restservices.actions;
 
-import restservices.consume.RestConsumer;
+import restservices.util.Utils;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
- * 
+ * makes sure the input url ends with '/' if this is not already the case
  */
-public class post extends UserAction<IMendixObject>
+public class appendSlashToUrl extends UserAction<String>
 {
-	private String collectionUrl;
-	private IMendixObject dataObject;
+	private String url;
 
-	public post(String collectionUrl, IMendixObject dataObject)
+	public appendSlashToUrl(String url)
 	{
 		super();
-		this.collectionUrl = collectionUrl;
-		this.dataObject = dataObject;
+		this.url = url;
 	}
 
 	@Override
-	public IMendixObject executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, false).getMendixObject();
+		return Utils.appendSlashToUrl(url);
 		// END USER CODE
 	}
 
@@ -42,7 +40,7 @@ public class post extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "post";
+		return "appendSlashToUrl";
 	}
 
 	// BEGIN EXTRA CODE

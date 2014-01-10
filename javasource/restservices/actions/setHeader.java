@@ -10,29 +10,30 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
- * 
+ * Sets a header that will be used in the next request being made by the modele
  */
-public class post extends UserAction<IMendixObject>
+public class setHeader extends UserAction<Boolean>
 {
-	private String collectionUrl;
-	private IMendixObject dataObject;
+	private String header;
+	private String value;
 
-	public post(String collectionUrl, IMendixObject dataObject)
+	public setHeader(String header, String value)
 	{
 		super();
-		this.collectionUrl = collectionUrl;
-		this.dataObject = dataObject;
+		this.header = header;
+		this.value = value;
 	}
 
 	@Override
-	public IMendixObject executeAction() throws Exception
+	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, false).getMendixObject();
+		RestConsumer.addHeaderToNextRequest(header, value);
+		return true;
 		// END USER CODE
 	}
 
@@ -42,7 +43,7 @@ public class post extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "post";
+		return "setHeader";
 	}
 
 	// BEGIN EXTRA CODE

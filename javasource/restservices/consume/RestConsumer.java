@@ -2,12 +2,13 @@ package restservices.consume;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
@@ -15,23 +16,21 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
-import restservices.proxies.GetResult;
 import restservices.proxies.ReferableObject;
 import restservices.proxies.RequestResult;
+import restservices.proxies.ResponseCode;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
@@ -81,14 +80,24 @@ public class RestConsumer {
 			}
 		}
 		
-		public RequestResult asRequestResult() {
+		public RequestResult asRequestResult(IContext context) {
+			RequestResult rr = new RequestResult(context);
+			rr.setETag(getETag());
+			rr.setRawResponseCode(status);
+			rr.setResponseBody(getBody());
+			rr.setResponseCode(asResponseCode());
+			return rr;
+		}
+		
+		public ResponseCode asResponseCode() {
 			switch (status) {
-				case IMxRuntimeResponse.NOT_MODIFIED: return RequestResult.NotModified; 
+				case IMxRuntimeResponse.NOT_MODIFIED: return ResponseCode.NotModified; 
 				case 201: //created
 				case 204: //no content
 				case IMxRuntimeResponse.OK: 
-					return RequestResult.OK;
-				default: throw new IllegalArgumentException("Unexpected response code in " + this.toString());
+					return ResponseCode.OK;
+				default: 
+					throw new IllegalArgumentException("Unexpected response code in " + this.toString());
 			}
 		}
 		
@@ -110,6 +119,28 @@ public class RestConsumer {
 
 		public String getBody() {
 			return body;
+		}
+	}
+	
+	private static ThreadLocal<Map<String, String>> nextHeaders = new ThreadLocal<Map<String, String>>();
+	
+	public static void addHeaderToNextRequest(String header, String value) {
+		Map<String, String> headers = nextHeaders.get();
+		
+		if (headers == null) {
+			headers = new HashMap<String, String>();
+			nextHeaders.set(headers);
+		}
+		
+		headers.put(header, value);
+	}
+	
+	private static void includeHeaders(HttpMethodBase request) {
+		Map<String, String> headers = nextHeaders.get();
+		if (headers != null) {
+			for(Entry<String,String> e : headers.entrySet())
+				request.addRequestHeader(e.getKey(), e.getValue());
+			headers.clear();
 		}
 	}
 
@@ -158,12 +189,15 @@ public class RestConsumer {
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
 		
-		if (beforeSubmitHandler != null)
-			beforeSubmitHandler.apply(request);
 		
 		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		if (etag != null && !etag.isEmpty())
 			request.setRequestHeader(RestServices.IFNONEMATCH_HEADER, etag);
+
+		includeHeaders(request);
+		
+		if (beforeSubmitHandler != null)
+			beforeSubmitHandler.apply(request);
 		
 		try {
 			int status = client.executeMethod(request);
@@ -185,6 +219,9 @@ public class RestConsumer {
 	public static void readJsonObjectStream(String url, Predicate<Object> onObject) throws Exception, IOException {
 		GetMethod request = new GetMethod(url);
 		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
+		
+		includeHeaders(request);
+		
 		try {
 			int status = client.executeMethod(request);
 		
@@ -343,7 +380,7 @@ public class RestConsumer {
 		});
 	}
 	
-	public static GetResult getObject(IContext context, String url, String eTag, IMendixObject target) throws Exception {
+	public static RequestResult getObject(IContext context, String url, String eTag, IMendixObject target) throws Exception {
 		//pre
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
@@ -353,17 +390,12 @@ public class RestConsumer {
 		if (!Utils.isUrl(url))
 			throw new IllegalArgumentException("Target should have a valid URL attribute");
 		
-		GetResult gr = new GetResult(context);
-		
 		//fetch
 		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag);
 		
 		if (!response.isOk())
 			throw new Exception("Request didn't respond with status 200 or 304: " + response);
 
-		gr.setETag(response.getETag());
-		gr.setResult(response.asRequestResult());
-		
 		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED)  
 			JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
 	
@@ -372,24 +404,24 @@ public class RestConsumer {
 			target.setValue(context, ReferableObject.MemberNames.ETag.toString(), response.getETag());
 		}
 		
-		return gr;
+		return response.asRequestResult(context);
 	}
 	
-	public static RequestResult deleteObject(String url, String etag) throws Exception {
-		//TODO: should return same format as GET
+	public static RequestResult deleteObject(IContext context, String url, String etag) throws Exception {
 		HttpResponseData response = doRequest("DELETE", url, etag);
 		
-		if (response.getStatus() == HttpStatus.SC_NOT_FOUND)
-			return RequestResult.NotModified; //not found means that delete didn't modify anything
 		
-		if (!response.isOk())
+		if (!response.isOk() && response.getStatus() != HttpStatus.SC_NOT_FOUND)
 			throw new Exception("Request didn't respond with status 2** or 304: " + response);
 		
-		return response.asRequestResult();
+		RequestResult rr = response.asRequestResult(context);
+		if (response.getStatus() == HttpStatus.SC_NOT_FOUND)
+			rr.setResponseCode(ResponseCode.NotModified); //not found means that delete didn't modify anything
+		
+		return rr;
 	}
 	
-	public static String postObject(IContext context, String url, IMendixObject source, boolean asFormData) throws Exception {
-		//TODO: should return same format as GET
+	public static RequestResult postObject(IContext context, String url, IMendixObject source, boolean asFormData) throws Exception {
 		final JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		HttpResponseData response = !asFormData 
@@ -411,11 +443,10 @@ public class RestConsumer {
 		if (!response.isOk())
 			throw new Exception("Request didn't respond with status 2** or 304: " + response);
 
-		return response.getBody();
+		return response.asRequestResult(context);
 	}
 	
 	public static RequestResult putObject(IContext context, String url, IMendixObject source, String etag) throws Exception{
-		//TODO: should return same format as GET
 		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		HttpResponseData response = doRequest("PUT", url, etag, data.toString(4));
@@ -423,7 +454,7 @@ public class RestConsumer {
 		if (!response.isOk())
 			throw new Exception("Request didn't respond with status 2** or 304: " + response);
 
-		return response.asRequestResult();
+		return response.asRequestResult(context);
 	}
 	
 }

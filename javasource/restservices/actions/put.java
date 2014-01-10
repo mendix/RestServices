@@ -16,7 +16,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 /**
  * 
  */
-public class put extends UserAction<String>
+public class put extends UserAction<IMendixObject>
 {
 	private String url;
 	private IMendixObject dataObject;
@@ -31,10 +31,10 @@ public class put extends UserAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.putObject(getContext(), url, dataObject, optEtag).toString();
+		return RestConsumer.putObject(getContext(), url, dataObject, optEtag).getMendixObject();
 		// END USER CODE
 	}
 

@@ -9,30 +9,28 @@
 
 package restservices.actions;
 
-import restservices.consume.RestConsumer;
+import restservices.util.Utils;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
- * 
+ * applies URL encoding to a value
  */
-public class post extends UserAction<IMendixObject>
+public class urlEncode extends UserAction<String>
 {
-	private String collectionUrl;
-	private IMendixObject dataObject;
+	private String value;
 
-	public post(String collectionUrl, IMendixObject dataObject)
+	public urlEncode(String value)
 	{
 		super();
-		this.collectionUrl = collectionUrl;
-		this.dataObject = dataObject;
+		this.value = value;
 	}
 
 	@Override
-	public IMendixObject executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, false).getMendixObject();
+		return Utils.urlEncode(value);
 		// END USER CODE
 	}
 
@@ -42,7 +40,7 @@ public class post extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "post";
+		return "urlEncode";
 	}
 
 	// BEGIN EXTRA CODE

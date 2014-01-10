@@ -11,11 +11,12 @@ package restservices.actions;
 
 import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class delete extends UserAction<String>
+public class delete extends UserAction<IMendixObject>
 {
 	private String resourceUrl;
 	private String optEtag;
@@ -28,10 +29,10 @@ public class delete extends UserAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.deleteObject(resourceUrl, optEtag).toString();
+		return RestConsumer.deleteObject(getContext(), resourceUrl, optEtag).getMendixObject();
 		// END USER CODE
 	}
 

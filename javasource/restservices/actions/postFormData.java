@@ -10,14 +10,13 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class postFormData extends UserAction<String>
+public class postFormData extends UserAction<IMendixObject>
 {
 	private String targetUrl;
 	private IMendixObject dataObject;
@@ -30,10 +29,10 @@ public class postFormData extends UserAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), targetUrl, dataObject, true);
+		return RestConsumer.postObject(getContext(), targetUrl, dataObject, true).getMendixObject();
 		// END USER CODE
 	}
 

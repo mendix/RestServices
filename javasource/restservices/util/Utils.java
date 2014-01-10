@@ -1,12 +1,16 @@
 package restservices.util;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.http.client.utils.URLEncodedUtils;
 
 import restservices.RestServices;
 
@@ -16,6 +20,7 @@ import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
+import communitycommons.StringUtils;
 
 public class Utils {
 
@@ -110,6 +115,23 @@ public class Utils {
 			);
 		}
 		return args;
+	}
+
+	public static String urlEncode(String value) {
+		try {
+			return URLEncoder.encode(value, RestServices.UTF8);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static String appendParamToUrl(String url, String paramName,
+			String paramValue) {
+		return url + (url.contains("?") ? "&" : "?") + urlEncode(paramName) + "=" + urlEncode(paramValue);
+	}
+
+	public static String appendSlashToUrl(String url) {
+		return url.endsWith("/") ? url : url + "/";
 	}
 
 }
