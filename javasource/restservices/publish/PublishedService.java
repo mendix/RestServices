@@ -27,7 +27,7 @@ import communitycommons.XPath;
 
 public class PublishedService {
 
-	private ServiceDefinition def;
+	ServiceDefinition def;
 
 	public PublishedService(ServiceDefinition def) {
 		this.def = def;

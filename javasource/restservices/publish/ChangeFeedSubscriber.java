@@ -39,12 +39,12 @@ class ChangeFeedSubscriber {
 			writePendingChanges();
 	}
 
-	public boolean isEmpty()
+	private boolean isEmpty()
 	{
 		return pendingInstructions.isEmpty();
 	}
 
-	public void writePendingChanges() {
+	private void writePendingChanges() {
 		//MWE: hmm... printwriter doesn't do the job!
 		//PrintWriter writer = new PrintWriter(continuation.getServletResponse().getOutputStream());
 		JSONObject instr = null;
@@ -62,14 +62,14 @@ class ChangeFeedSubscriber {
 	}
 
 
-	public void markInSync() {
+	void markInSync() {
 		this.inSync  = true;
 		
 		if (!this.isEmpty())
 			this.writePendingChanges();
 	}
 
-	public void complete() {
+	void complete() {
 		try {
 			this.continuation.complete(); 
 		}

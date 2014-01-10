@@ -21,12 +21,13 @@ import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceState;
 import restservices.util.JsonSerializer;
+import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
 
 public class ChangeManager {
 	
 	private PublishedService service;
-	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); //TODO: vector is synchornized, right?
+	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
 	private IMendixObject serviceState;
 
 	public ChangeManager(PublishedService service) {
@@ -66,7 +67,7 @@ public class ChangeManager {
 		publishUpdate(objectState);
 	}
 
-	public void writeChanges(final RestServiceRequest rsr, IContext c,
+	private void writeChanges(final RestServiceRequest rsr, IContext c,
 			long since) throws CoreException {
 		
 		XPath.create(c, ObjectState.class)
@@ -134,7 +135,9 @@ public class ChangeManager {
 	}
 
 	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException {
-		//TODO: check if changes enabled
+		if (!service.def.getEnableChangeTracking())
+			throw new NotFoundException("Change tracking is not enabled for this service");
+		
 		rsr.response.setStatus(IMxRuntimeResponse.OK);
 		rsr.response.flushBuffer();
 		long since = 0;
@@ -171,7 +174,7 @@ public class ChangeManager {
 		}
 	}
 
-	synchronized void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
+	private synchronized void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
 		IContext context = Core.createSystemContext();
 	
 		ServiceState sState = getServiceState(context);
@@ -199,7 +202,7 @@ public class ChangeManager {
 			storeUpdate(context, objectState, eTag, jsonString, deleted);
 	}
 
-	public synchronized ServiceState getServiceState(final IContext context) throws CoreException {
+	private synchronized ServiceState getServiceState(final IContext context) throws CoreException {
 		if (context.isInTransaction())
 			throw new IllegalStateException("Context for getServiceState should not be in transaction!");
 		
@@ -208,9 +211,7 @@ public class ChangeManager {
 				.findOrCreateNoCommit(ServiceState.MemberNames.Name, service.getName()).getMendixObject();
 		
 		if (this.serviceState.isNew()) {
-			//TODO: ..and change tracking enabled
-			
-			Core.commit(context, serviceState); //TODO: will break if initializing breaks halfway...
+			Core.commit(context, serviceState); 
 			
 			RestServices.LOG.info(service.getName() + ": Initializing change log. This might take a while...");
 			XPath.create(context, service.getSourceEntity())
@@ -232,20 +233,31 @@ public class ChangeManager {
 		return ServiceState.initialize(context, serviceState);
 	}
 
-	private synchronized long getNextRevisionId(IContext context) throws CoreException {
-		ServiceState state = getServiceState(context);
-		long rev = state.getRevision() + 1;
-		state.setRevision(rev);
-		state.commit();
-		return rev;
+	private synchronized long getNextRevisionId(IContext context) {
+		ServiceState state;
+		try {
+			state = getServiceState(context);
+			long rev = state.getRevision() + 1;
+			state.setRevision(rev);
+			state.commit();
+			return rev;
+		} catch (CoreException e) {
+			throw new RestServiceRuntimeException(e);
+		}
 	}
 
 	public static void publishDelete(IContext context, IMendixObject source) {
 		if (source == null)
 			return;
-		//publishDelete has no checksontraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
+		
+		//publishDelete has no checksonraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
 		PublishedService service = RestServices.getServiceForEntity(source.getType());
-		//TODO: check if enabled
+		
+		if (!service.def.getEnableChangeTracking()) {
+			RestServices.LOG.warn("Skipped publishing delete, changetracking is not enabled for service " + service.getName());
+			return;
+		}
+		
 		try {
 	
 			String key = service.getKey(context, source);
@@ -270,7 +282,11 @@ public class ChangeManager {
 			return;
 		
 		PublishedService service = RestServices.getServiceForEntity(source.getType());
-		//TODO: check if trackign eanbled
+		
+		if (!service.def.getEnableChangeTracking()) {
+			RestServices.LOG.warn("Skipped publishing update, changetracking is not enabled for service " + service.getName());
+			return;
+		}	
 		try {
 			//Check if publishable
 			if (checkConstraint && !service.identifierInConstraint(context, source.getId())) {
