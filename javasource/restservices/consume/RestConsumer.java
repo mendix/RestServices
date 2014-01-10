@@ -430,7 +430,7 @@ public class RestConsumer {
 
 					@Override
 					public boolean apply(HttpMethodBase request) {
-						request.setRequestHeader("ContentType", "www/formencoded"); //TODO: fix
+						request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"); //TODO: fix
 						for(String key : JSONObject.getNames(data)) {
 							Object value = data.get(key);
 							if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))

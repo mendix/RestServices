@@ -68,10 +68,22 @@ public class RestServices {
 
 	public static final String ACCEPT_HEADER = "Accept";
 
-	public static final String CURRENTUSER_TOKEN = "'[%CurrentUser%]'"; 
+	public static final String CURRENTUSER_TOKEN = "'[%CurrentUser%]'";
+
+	public static final String END_OF_HTTPHEADER = "\r\n\r\n";
+
+	public static final String PARAM_SINCE = "since";
+
+	public static final String PARAM_FEED = "feed";
+
+	public static final String PARAM_TIMEOUT = "timeout"; 
 	
 	public static void registerService(String name, PublishedService def) {
-		services.put(name,  def);
+		PublishedService current = services.put(name,  def);
+		
+		if (current == null)
+			current.dispose();
+		
 //		if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))
 //			throw new RuntimeException(String.format("Invalid service definition in '%s': Another services for entity '%s' is already defined", name, def.getSourceEntity()));
 		if (def.isGetObjectEnabled())

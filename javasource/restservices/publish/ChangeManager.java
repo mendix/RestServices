@@ -1,10 +1,8 @@
 package restservices.publish;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
+import java.util.List;
+import java.util.Vector;
 import javax.servlet.AsyncContext;
 
 import org.json.JSONObject;
@@ -14,6 +12,7 @@ import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.sun.xml.fastinfoset.stax.events.Util;
 
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
@@ -21,14 +20,13 @@ import communitycommons.XPath.IBatchProcessor;
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceState;
-import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 
 public class ChangeManager {
 	
 	private PublishedService service;
-	final private Set<ChangeFeedSubscriber> longPollSessions = Collections.newSetFromMap(new ConcurrentHashMap<ChangeFeedSubscriber, Boolean>());
+	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); //TODO: vector is synchornized, right?
 	private IMendixObject serviceState;
 
 	public ChangeManager(PublishedService service) {
@@ -38,7 +36,7 @@ public class ChangeManager {
 	JSONObject writeObjectStateToJson(ObjectState state){
 		JSONObject res = new JSONObject();
 		res
-			.put("key", state.getkey()) //TODO: use constants
+			.put("key", state.getkey())
 			.put("url", service.getServiceUrl() + state.getkey())
 			.put("rev", state.getrevision())
 			.put("etag", state.getetag())
@@ -46,11 +44,31 @@ public class ChangeManager {
 		
 		if (!state.getdeleted())
 			res.put("data", new JSONObject(state.getjson()));
+		
 		return res;
+	}
+
+	private void storeUpdate(IContext context,  ObjectState objectState,
+			String eTag, String jsonString, boolean deleted) throws Exception {
+		
+		/* store the update*/
+		long rev = getNextRevisionId(context);
+		
+		if (RestServices.LOG.isDebugEnabled())
+			RestServices.LOG.debug("Updated: " + objectState.getkey() + " to revision " + rev);
+		
+		objectState.setetag(eTag);
+		objectState.setdeleted(deleted);
+		objectState.setjson(deleted ? "" : jsonString);
+		objectState.setrevision(rev);
+		objectState.commit();
+		
+		publishUpdate(objectState);
 	}
 
 	public void writeChanges(final RestServiceRequest rsr, IContext c,
 			long since) throws CoreException {
+		
 		XPath.create(c, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceState, this.getServiceState(c))
 			.compare(ObjectState.MemberNames.revision, ">=", since)
@@ -65,24 +83,9 @@ public class ChangeManager {
 			});
 	}
 
-	private void storeUpdate(IContext context,  ObjectState objectState,
-			String eTag, String jsonString, boolean deleted) throws Exception {
-		
-		/* store the update*/
-		long rev = getNextRevisionId(context);
-		
-		objectState.setetag(eTag);
-		objectState.setdeleted(deleted);
-		objectState.setjson(deleted ? "" : jsonString);
-		objectState.setrevision(rev);
-		objectState.commit();
-		
-		publishUpdate(objectState);
-	}
-
+	
 	private void serveChangesList(final RestServiceRequest rsr, long since) throws CoreException {
 		IContext c = Core.createSystemContext();
-		
 		
 		rsr.datawriter.array();
 		writeChanges(rsr, c, since);
@@ -91,7 +94,15 @@ public class ChangeManager {
 		rsr.close();
 	}
 
-	private void serveChangesFeed(RestServiceRequest rsr, long since) throws IOException, CoreException {
+	/**
+	 * 
+	 * @param rsr
+	 * @param since
+	 * @param maxDurationSeconds. Zero for never, positive for fixed timeout, negative for fixed timeout or first update that needs publishing 
+	 * @throws IOException
+	 * @throws CoreException
+	 */
+	private void serveChangesFeed(RestServiceRequest rsr, long since, long maxDurationSeconds) throws IOException, CoreException {
 			//Continuation continuation = ContinuationSupport.getContinuation(rsr.request);
 				
 			if (rsr.request.getAttribute("lpsession") == null) {	
@@ -99,65 +110,68 @@ public class ChangeManager {
 				service.debug("New continuation on " + rsr.request.getPathInfo());
 	
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
-				rsr.response.getOutputStream().write("\r\n\r\n".getBytes(RestServices.UTF8)); //TODO: extract constant
-				writeChanges(rsr, Core.createSystemContext(), since); //TODO: write changes or add to queue?
+				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
+				writeChanges(rsr, Core.createSystemContext(), since); 
 				rsr.response.flushBuffer();
-				if (!rsr.response.isCommitted())
-					throw new IllegalStateException("Not committing");
 				
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
-				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext);
+				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0);
 				longPollSessions.add(lpsession);
 				rsr.request.setAttribute("lpsession", lpsession);
 				
 				lpsession.markInSync();
 	
-				asyncContext.setTimeout(RestServices.LONGPOLL_MAXDURATION * 1000); //TODO: use parameter
+				if (maxDurationSeconds != 0L)
+					asyncContext.setTimeout(Math.abs(maxDurationSeconds) * 1000); 
 			}
-			else { //expired
+			
+			else { //expired or completed
 				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
 				longPollSessions.remove(lpsession);
+				rsr.endDoc();
 			}
 	}
 
 	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException {
+		//TODO: check if changes enabled
 		rsr.response.setStatus(IMxRuntimeResponse.OK);
 		rsr.response.flushBuffer();
 		long since = 0;
 	
-		if (rsr.getContentType() == ContentType.HTML) //TODO: make separate block for this in rsr!
-			rsr.startHTMLDoc();
-		else if (rsr.getContentType() == ContentType.XML)
-			rsr.startXMLDoc();
-	
-		if (rsr.request.getParameter("since") != null) //TODO: extract since constant
-			since = Long.parseLong(rsr.request.getParameter("since"));
+		rsr.startDoc();
 		
-		if ("true".equals(rsr.request.getParameter("feed"))) 
-			serveChangesFeed(rsr, since);
+		if (rsr.request.getParameter(RestServices.PARAM_SINCE) != null) 
+			since = Long.parseLong(rsr.request.getParameter(RestServices.PARAM_SINCE));
+		
+		if ("true".equals(rsr.request.getParameter(RestServices.PARAM_FEED))) {
+			String longPollMaxDuration = rsr.request.getParameter(RestServices.PARAM_TIMEOUT);
+			serveChangesFeed(rsr, since, Util.isEmptyString(longPollMaxDuration) ? RestServices.LONGPOLL_MAXDURATION : Long.valueOf(longPollMaxDuration));
+		}
+
 		else {
 			serveChangesList(rsr, since);
 			
-			if (rsr.getContentType() == ContentType.HTML) //TODO: make separate block for this in rsr!
-				rsr.endHTMLDoc();
+			rsr.endDoc(); //Changes Feed doc ends async
 		}
 	}
 
 	private void publishUpdate(ObjectState objectState) {
-		// TODO async, parallel, separate thread etc etc. Or is continuation.resume async and isn't that needed at all?
 		JSONObject json = writeObjectStateToJson(objectState);
 		
-		for(ChangeFeedSubscriber s: longPollSessions)
+		for(int i = longPollSessions.size() - 1; i >= 0; i--) {
+			ChangeFeedSubscriber s = longPollSessions.get(i);
 			try {
 				s.addInstruction(json);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				RestServices.LOG.warn("Failed to publish update to some client: " + json);
+				longPollSessions.remove(s);
+				s.complete();
 			}
+		}
 	}
 
 	synchronized void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
-	
 		IContext context = Core.createSystemContext();
 	
 		ServiceState sState = getServiceState(context);
@@ -231,7 +245,7 @@ public class ChangeManager {
 			return;
 		//publishDelete has no checksontraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
 		PublishedService service = RestServices.getServiceForEntity(source.getType());
-		
+		//TODO: check if enabled
 		try {
 	
 			String key = service.getKey(context, source);
@@ -256,7 +270,7 @@ public class ChangeManager {
 			return;
 		
 		PublishedService service = RestServices.getServiceForEntity(source.getType());
-		
+		//TODO: check if trackign eanbled
 		try {
 			//Check if publishable
 			if (checkConstraint && !service.identifierInConstraint(context, source.getId())) {
@@ -280,6 +294,13 @@ public class ChangeManager {
 		}
 		catch(Exception e) {
 			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
+		}
+	}
+
+	public void dispose() {
+		while(!longPollSessions.isEmpty()) {
+			ChangeFeedSubscriber s = longPollSessions.remove(0);
+			s.complete();
 		}
 	}
 }

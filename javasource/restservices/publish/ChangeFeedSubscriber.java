@@ -8,6 +8,7 @@ import javax.servlet.AsyncContext;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.util.RestServiceRuntimeException;
 
 class ChangeFeedSubscriber {
 	
@@ -18,20 +19,20 @@ class ChangeFeedSubscriber {
 	final private LinkedBlockingQueue<JSONObject> pendingInstructions = new LinkedBlockingQueue<JSONObject>(RestServices.MAXPOLLQUEUE_LENGTH);
 	
 	final private AsyncContext continuation;
+	private boolean completeAfterFirst;
 	
-	//TODO: make status available in the UI
-	public ChangeFeedSubscriber(AsyncContext asyncContext) {
+	public ChangeFeedSubscriber(AsyncContext asyncContext, boolean completeAfterFirst) {
 		this.continuation = asyncContext;
+		this.completeAfterFirst = completeAfterFirst;
 	}
 
-
-	public void addInstruction(JSONObject json) throws IOException 
+	public void addInstruction(JSONObject json) 
 	{
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug(this.id + " received instruction " + json.toString());
 		
 		if (!pendingInstructions.offer(json))
-			throw new IllegalStateException(this.id + " dropped message; maximum queue size exceeded");
+			throw new RestServiceRuntimeException(this.id + " dropped message; maximum queue size exceeded");
 			
 		//schedule continuations async so we might serve multiple instructions at the same time
 		if (inSync)
@@ -43,28 +44,38 @@ class ChangeFeedSubscriber {
 		return pendingInstructions.isEmpty();
 	}
 
-	public void writePendingChanges() throws IOException {
+	public void writePendingChanges() {
 		//MWE: hmm... printwriter doesn't do the job!
 		//PrintWriter writer = new PrintWriter(continuation.getServletResponse().getOutputStream());
 		JSONObject instr = null;
 		
-		//TODO: make sure each instruction only takes one line in json! for convenience of other clients
-		while(null != (instr = pendingInstructions.poll())) 
-			continuation.getResponse().getOutputStream().write(instr.toString().getBytes(RestServices.UTF8));
-		continuation.getResponse().flushBuffer();
+		try {
+			while(null != (instr = pendingInstructions.poll())) 
+				continuation.getResponse().getOutputStream().write(instr.toString().getBytes(RestServices.UTF8));
+			continuation.getResponse().flushBuffer();
+			
+			if (completeAfterFirst) //return ASAP
+				this.complete();
+		} catch (IOException e) {
+			throw new RestServiceRuntimeException("Failed to write changes to" + id, e);
+		}
 	}
 
 
-	public void markInSync() throws IOException {
+	public void markInSync() {
 		this.inSync  = true;
 		
 		if (!this.isEmpty())
 			this.writePendingChanges();
 	}
 
-
 	public void complete() {
-		this.continuation.complete(); //TODO: or, endless loop?		
+		try {
+			this.continuation.complete(); 
+		}
+		catch (Throwable e) {
+			RestServices.LOG.warn("Failed to complete " + id + ": " + e.getMessage(), e);
+		}
 	}
 }
 

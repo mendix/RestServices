@@ -173,4 +173,16 @@ public class RestServiceRequest {
 	public IUser getCurrentUser() {
 		return activeSession.getUser();
 	}
+
+	public void startDoc() {
+		if (getContentType() == ContentType.HTML) 
+			startHTMLDoc();
+		else if (getContentType() == ContentType.XML)
+			startXMLDoc();
+	}
+
+	public void endDoc() {
+		if (getContentType() == ContentType.HTML) 
+			endHTMLDoc();
+	}
 }

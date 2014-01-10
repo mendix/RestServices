@@ -374,5 +374,9 @@ public class PublishedService {
 		return def.getAccessRole().trim();
 	}
 
+	public void dispose() {
+		this.changeManager.dispose();
+	}
+
 }
 
