@@ -239,7 +239,7 @@ public class XPath<T>
 			throw new IllegalArgumentException("Expected an even number of xpath path parts");
 	}
 	
-	private XPath<T> append(String s) {
+	public XPath<T> append(String s) {
 		builder.append(s);
 		return this;
 	}

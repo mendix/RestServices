@@ -3,6 +3,8 @@ package restservices.publish;
 import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
+
 import javax.servlet.AsyncContext;
 
 import org.json.JSONObject;
@@ -19,7 +21,7 @@ import communitycommons.XPath.IBatchProcessor;
 
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
-import restservices.proxies.ServiceState;
+import restservices.proxies.ServiceObjectIndex;
 import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
@@ -28,7 +30,7 @@ public class ChangeManager {
 	
 	private PublishedService service;
 	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
-	private ServiceState serviceState;
+	private ServiceObjectIndex serviceObjectIndex;
 
 	public ChangeManager(PublishedService service) {
 		this.service = service;
@@ -49,7 +51,7 @@ public class ChangeManager {
 		return res;
 	}
 
-	private void storeUpdate(IContext context,  ObjectState objectState,
+	void storeUpdate(IContext context,  ObjectState objectState,
 			String eTag, String jsonString, boolean deleted) throws Exception {
 		
 		/* store the update*/
@@ -62,6 +64,7 @@ public class ChangeManager {
 		objectState.setdeleted(deleted);
 		objectState.setjson(deleted ? "" : jsonString);
 		objectState.setrevision(rev);
+		objectState.set_dirty(false);
 		objectState.commit();
 		
 		publishUpdate(objectState);
@@ -71,7 +74,7 @@ public class ChangeManager {
 			long since) throws CoreException {
 		
 		XPath.create(c, ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceState, this.getServiceState(c))
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex(c))
 			.compare(ObjectState.MemberNames.revision, ">=", since)
 			.addSortingAsc(ObjectState.MemberNames.revision)
 			.batch((int) RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
@@ -177,11 +180,11 @@ public class ChangeManager {
 	private synchronized void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
 		IContext context = Core.createSystemContext();
 	
-		ServiceState sState = getServiceState(context);
+		ServiceObjectIndex sState = getServiceObjectIndex(context);
 		
 		ObjectState objectState = XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.key, key)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceState, sState)
+				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, sState)
 				.first();
 		
 		//not yet published
@@ -191,7 +194,7 @@ public class ChangeManager {
 			
 			objectState = new ObjectState(context);
 			objectState.setkey(key);
-			objectState.setObjectState_ServiceState(sState);
+			objectState.setObjectState_ServiceObjectIndex(sState);
 			storeUpdate(context, objectState, eTag, jsonString, deleted);
 		}
 		
@@ -202,21 +205,29 @@ public class ChangeManager {
 			storeUpdate(context, objectState, eTag, jsonString, deleted);
 	}
 
-	private synchronized ServiceState getServiceState(final IContext context) throws CoreException {
+	private synchronized ServiceObjectIndex getServiceObjectIndex(final IContext context) throws CoreException {
 		if (context.isInTransaction())
 			throw new IllegalStateException("Context for getServiceState should not be in transaction!");
 		
-		if (this.serviceState == null)
-			this.serviceState = XPath.create(context, ServiceState.class)
-				.findOrCreate(ServiceState.MemberNames.Name, service.getName());
+		if (this.serviceObjectIndex == null) {
+			this.serviceObjectIndex = XPath.create(context, ServiceObjectIndex.class)
+				.findOrCreate(ServiceObjectIndex.MemberNames.Name, service.getName());
+		
+			if (this.serviceObjectIndex.getRevision() < 1)
+				try {
+					rebuildIndex();
+				} catch (Exception e) {
+					RestServices.LOG.warn("Failed to rebuild index: " + e.getMessage(), e);
+				}
+		}
 				
-		return this.serviceState;
+		return this.serviceObjectIndex;
 	}
 
 	private synchronized long getNextRevisionId(IContext context) {
-		ServiceState state;
+		ServiceObjectIndex state;
 		try {
-			state = getServiceState(context);
+			state = getServiceObjectIndex(context);
 			long rev = state.getRevision() + 1;
 			state.setRevision(rev);
 			state.commit();
@@ -291,6 +302,67 @@ public class ChangeManager {
 		catch(Exception e) {
 			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
 		}
+	}
+	
+	public synchronized void rebuildIndex() throws CoreException, InterruptedException, ExecutionException {
+		if (service.def.getEnableChangeTracking() == false) {
+			RestServices.LOG.warn("SKIP rebuilding index, change tracking is not enabled. ");
+			return;
+		}
+		
+		final IContext context = Core.createSystemContext();
+		RestServices.LOG.info(service.getName() + ": Initializing change log. This might take a while...");
+		RestServices.LOG.info(service.getName() + ": Initializing change log. Marking old index dirty...");
+		
+		int NR_OF_BATCHES = 8;
+		
+		XPath.create(context, ObjectState.class)
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex(context))
+			.batch((int)RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
+
+				@Override
+				public void onItem(ObjectState item, long offset, long total)
+						throws Exception {
+					item.set_dirty(true);
+					item.commit();
+				}
+			});
+		
+		RestServices.LOG.info(service.getName() + ": Initializing change log. Marking old index dirty... DONE. Rebuilding index for existing objects...");
+		
+		XPath.create(context, service.getSourceEntity())
+			//DO NOT append constraint, the constraint might have changed and then the old ones should be marked as 'deleted'
+			.batch((int) RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<IMendixObject>() {
+
+				@Override
+				public void onItem(IMendixObject item, long offset,
+						long total) throws Exception {
+					if (offset % 100 == 0)
+						RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
+					publishUpdate(context, item, true); 
+				}
+			});
+		
+		RestServices.LOG.info(service.getName() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
+		
+		XPath.create(context, ObjectState.class)
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex(context))
+			.eq(ObjectState.MemberNames._dirty, true)
+			.batch((int)RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
+
+				@Override
+				public void onItem(ObjectState item, long offset, long total)
+						throws Exception {
+					if (item.getdeleted() == true) {
+						item.set_dirty(false);
+						item.commit();
+					}
+					else
+						storeUpdate(item.getContext(), item, null, null, true);
+				}
+		});
+		
+		RestServices.LOG.info(service.getName() + ": Initializing change log. DONE");
 	}
 
 	public void dispose() {
