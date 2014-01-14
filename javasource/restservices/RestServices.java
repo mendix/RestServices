@@ -81,7 +81,7 @@ public class RestServices {
 	public static void registerService(String name, PublishedService def) {
 		PublishedService current = services.put(name,  def);
 		
-		if (current == null)
+		if (current != null)
 			current.dispose();
 		
 //		if (RestServices.servicesByEntity.containsKey(def.getSourceEntity()))

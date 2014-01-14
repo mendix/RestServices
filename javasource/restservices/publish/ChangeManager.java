@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.AsyncContext;
 
@@ -70,21 +71,25 @@ public class ChangeManager {
 		publishUpdate(objectState);
 	}
 
-	private void writeChanges(final RestServiceRequest rsr, IContext c,
+	private boolean writeChanges(final RestServiceRequest rsr, IContext c,
 			long since) throws CoreException {
+		final AtomicBoolean something = new AtomicBoolean(false);
 		
 		XPath.create(c, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex(c))
 			.compare(ObjectState.MemberNames.revision, ">=", since)
 			.addSortingAsc(ObjectState.MemberNames.revision)
-			.batch((int) RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
+			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
 	
 				@Override
 				public void onItem(ObjectState item, long offset, long total)
 						throws Exception {
 					rsr.datawriter.value(writeObjectStateToJson(item));
+					something.set(true);
 				}
 			});
+		
+		return something.get();
 	}
 
 	
@@ -115,7 +120,15 @@ public class ChangeManager {
 	
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
-				writeChanges(rsr, Core.createSystemContext(), since); 
+				
+				if (writeChanges(rsr, Core.createSystemContext(), since)) {
+					//special case, if there where pending changes and the timeout is negative, e.g., return ASAP, finish the request now. 
+					if (since < 0) {
+						rsr.endDoc();
+						return;
+					}
+				}
+				
 				rsr.response.flushBuffer();
 				
 				AsyncContext asyncContext = rsr.request.startAsync();
@@ -318,7 +331,7 @@ public class ChangeManager {
 		
 		XPath.create(context, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex(context))
-			.batch((int)RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
+			.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
 
 				@Override
 				public void onItem(ObjectState item, long offset, long total)
@@ -332,7 +345,7 @@ public class ChangeManager {
 		
 		XPath.create(context, service.getSourceEntity())
 			//DO NOT append constraint, the constraint might have changed and then the old ones should be marked as 'deleted'
-			.batch((int) RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<IMendixObject>() {
+			.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<IMendixObject>() {
 
 				@Override
 				public void onItem(IMendixObject item, long offset,
@@ -348,7 +361,7 @@ public class ChangeManager {
 		XPath.create(context, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex(context))
 			.eq(ObjectState.MemberNames._dirty, true)
-			.batch((int)RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
+			.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
 
 				@Override
 				public void onItem(ObjectState item, long offset, long total)
