@@ -7,8 +7,8 @@ public class RestServiceRuntimeException extends RuntimeException {
 	 */
 	private static final long serialVersionUID = 3403872096764946199L;
 
-	public RestServiceRuntimeException(String msg) {
-		super(msg);
+	public RestServiceRuntimeException(String url) {
+		super(url);
 	}
 
 	public RestServiceRuntimeException(Throwable throwable) {

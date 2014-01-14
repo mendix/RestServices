@@ -134,4 +134,8 @@ public class Utils {
 		return url.endsWith("/") ? url : url + "/";
 	}
 
+	public static String nullToEmpty(String statusText) {
+		return statusText == null ? "" : statusText;
+	}
+
 }

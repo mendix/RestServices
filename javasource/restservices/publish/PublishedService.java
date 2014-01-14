@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -140,11 +141,10 @@ public class PublishedService {
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
-		if (source == null) {
-			rsr.setStatus(keyExists(rsr.getContext(), key)? 401 : IMxRuntimeResponse.NOT_FOUND);
-			rsr.close();
-			return;
-		}
+		if (source == null) 
+			throw new RestRequestException(
+					keyExists(rsr.getContext(), key)? HttpStatus.SC_UNAUTHORIZED : HttpStatus.SC_NOT_FOUND,
+					getName() + "/" + key);
 		
 		//TODO: optimize if change tracking is enabled
 		IMendixObject view = convertSourceToView(rsr.getContext(), source);
