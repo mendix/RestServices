@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceDefinition;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
@@ -24,6 +25,7 @@ import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import communitycommons.XPath;
+import communitycommons.XPath.IBatchProcessor;
 
 public class PublishedService {
 
@@ -62,35 +64,60 @@ public class PublishedService {
 		return def.getSourceKeyAttribute();
 	}
 
-	//TODO: add include data parameter
+	public String getServiceUrl() {
+		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + getName() + "/";
+	}
+	
 	public void serveListing(RestServiceRequest rsr, boolean includeData) throws Exception {
-		IRetrievalSchema schema = Core.createRetrievalSchema();
-		schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
-		schema.addMetaPrimitiveName(getKeyAttribute());
-		schema.setAmount(RestServices.BATCHSIZE);
+		rsr.startDoc();
+		rsr.datawriter.array();
 
-		switch(rsr.getContentType()) {
-		case HTML:
-			rsr.startHTMLDoc();
-			break;
-		case XML:
-			rsr.startXMLDoc();
-			rsr.write("<items>");
-			break;
-		case JSON:
-			break;
+		if (def.getEnableChangeTracking())
+			serveListingFromIndex(rsr, includeData);
+		else
+			serveListingFromDB(rsr, includeData);
+
+		rsr.datawriter.endArray();
+		rsr.endDoc();
+	}
+	
+	private void serveListingFromIndex(final RestServiceRequest rsr,
+			final boolean includeData) throws CoreException {
+		XPath.create(rsr.getContext(), ObjectState.class)
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
+			.eq(ObjectState.MemberNames.deleted, false)
+			.addSortingAsc(ObjectState.MemberNames.key)
+			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
+
+				@Override
+				public void onItem(ObjectState item, long offset, long total)
+						throws Exception {
+					if (includeData)
+						rsr.datawriter.value(new JSONObject(item.getjson()));
+					else
+						rsr.datawriter.value(getServiceUrl() + item.getkey());
+				}
+			});
+	}
+
+	private void serveListingFromDB(RestServiceRequest rsr, boolean includeData) throws Exception {
+		IRetrievalSchema schema = Core.createRetrievalSchema(); 
+		
+		if (!includeData) {
+			schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
+			schema.addMetaPrimitiveName(getKeyAttribute());
+			schema.setAmount(RestServices.BATCHSIZE);
 		}
 		
-		//TODO: optimize if change tracking is enabled
 		long offset = 0;
 		String xpath = "//" + getSourceEntity() + getConstraint(rsr.getContext());
-		List<IMendixObject> result;
+		List<IMendixObject> result = null;
 		
-		rsr.datawriter.array();
 		do {
 			schema.setOffset(offset);
-			result = includeData
-					? Core.retrieveXPathQuery(rsr.getContext(), xpath, (int) RestServices.BATCHSIZE, (int) offset, ImmutableMap.of(getKeyAttribute(), "ASC")) 
+			
+			result = !includeData
+					? Core.retrieveXPathQuery(rsr.getContext(), xpath, RestServices.BATCHSIZE, (int) offset, ImmutableMap.of(getKeyAttribute(), "ASC")) 
 					: Core.retrieveXPathSchema(rsr.getContext(), xpath , schema, false);
 		
 			for(IMendixObject item : result) {
@@ -109,24 +136,6 @@ public class PublishedService {
 			offset += RestServices.BATCHSIZE;
 		}
 		while(!result.isEmpty());
-		rsr.datawriter.endArray();
-		
-		switch(rsr.getContentType()) {
-		case HTML:
-			rsr.endHTMLDoc();
-			break;
-		case XML:
-			rsr.write("</items>");
-			break;
-		case JSON:
-			break;
-		}
-		
-		rsr.close();
-	}
-
-	public String getServiceUrl() {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + getName() + "/";
 	}
 
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {

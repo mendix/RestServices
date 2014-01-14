@@ -52,11 +52,11 @@ public class ChangeManager {
 		return res;
 	}
 
-	void storeUpdate(IContext context,  ObjectState objectState,
+	void storeUpdate(ObjectState objectState,
 			String eTag, String jsonString, boolean deleted) throws Exception {
 		
 		/* store the update*/
-		long rev = getNextRevisionId(context);
+		long rev = getNextRevisionId();
 		
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug("Updated: " + objectState.getkey() + " to revision " + rev);
@@ -76,7 +76,7 @@ public class ChangeManager {
 		final AtomicBoolean something = new AtomicBoolean(false);
 		
 		XPath.create(c, ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex(c))
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex())
 			.compare(ObjectState.MemberNames.revision, ">=", since)
 			.addSortingAsc(ObjectState.MemberNames.revision)
 			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
@@ -193,7 +193,7 @@ public class ChangeManager {
 	private synchronized void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
 		IContext context = Core.createSystemContext();
 	
-		ServiceObjectIndex sState = getServiceObjectIndex(context);
+		ServiceObjectIndex sState = getServiceObjectIndex();
 		
 		ObjectState objectState = XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.key, key)
@@ -208,23 +208,22 @@ public class ChangeManager {
 			objectState = new ObjectState(context);
 			objectState.setkey(key);
 			objectState.setObjectState_ServiceObjectIndex(sState);
-			storeUpdate(context, objectState, eTag, jsonString, deleted);
+			storeUpdate(objectState, eTag, jsonString, deleted);
 		}
 		
 		else if (objectState.getetag().equals(eTag) && objectState.getdeleted() != deleted) 
 			return; //nothing changed
 	
 		else
-			storeUpdate(context, objectState, eTag, jsonString, deleted);
+			storeUpdate(objectState, eTag, jsonString, deleted);
 	}
 
-	private synchronized ServiceObjectIndex getServiceObjectIndex(final IContext context) throws CoreException {
-		if (context.isInTransaction())
-			throw new IllegalStateException("Context for getServiceState should not be in transaction!");
+	synchronized ServiceObjectIndex getServiceObjectIndex() throws CoreException {
+		final IContext context = Core.createSystemContext();
 		
 		if (this.serviceObjectIndex == null) {
 			this.serviceObjectIndex = XPath.create(context, ServiceObjectIndex.class)
-				.findOrCreate(ServiceObjectIndex.MemberNames.Name, service.getName());
+				.findOrCreate(ServiceObjectIndex.MemberNames.ServiceObjectIndex_ServiceDefinition, service.def);
 		
 			if (this.serviceObjectIndex.getRevision() < 1)
 				try {
@@ -237,10 +236,10 @@ public class ChangeManager {
 		return this.serviceObjectIndex;
 	}
 
-	private synchronized long getNextRevisionId(IContext context) {
+	private synchronized long getNextRevisionId() {
 		ServiceObjectIndex state;
 		try {
-			state = getServiceObjectIndex(context);
+			state = getServiceObjectIndex();
 			long rev = state.getRevision() + 1;
 			state.setRevision(rev);
 			state.commit();
@@ -330,7 +329,7 @@ public class ChangeManager {
 		int NR_OF_BATCHES = 8;
 		
 		XPath.create(context, ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex(context))
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
 			.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
 
 				@Override
@@ -359,7 +358,7 @@ public class ChangeManager {
 		RestServices.LOG.info(service.getName() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
 		
 		XPath.create(context, ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex(context))
+			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
 			.eq(ObjectState.MemberNames._dirty, true)
 			.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
 
@@ -371,7 +370,7 @@ public class ChangeManager {
 						item.commit();
 					}
 					else
-						storeUpdate(item.getContext(), item, null, null, true);
+						storeUpdate(item, null, null, true);
 				}
 		});
 		

@@ -184,5 +184,6 @@ public class RestServiceRequest {
 	public void endDoc() {
 		if (getContentType() == ContentType.HTML) 
 			endHTMLDoc();
+		close();
 	}
 }

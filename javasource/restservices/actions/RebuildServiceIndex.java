@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.RestServices;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -19,22 +18,22 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
  */
 public class RebuildServiceIndex extends UserAction<Boolean>
 {
-	private IMendixObject __serviceIndex;
-	private restservices.proxies.ServiceObjectIndex serviceIndex;
+	private IMendixObject __serviceDefinition;
+	private restservices.proxies.ServiceDefinition serviceDefinition;
 
-	public RebuildServiceIndex(IMendixObject serviceIndex)
+	public RebuildServiceIndex(IMendixObject serviceDefinition)
 	{
 		super();
-		this.__serviceIndex = serviceIndex;
+		this.__serviceDefinition = serviceDefinition;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
-		this.serviceIndex = __serviceIndex == null ? null : restservices.proxies.ServiceObjectIndex.initialize(getContext(), __serviceIndex);
+		this.serviceDefinition = __serviceDefinition == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __serviceDefinition);
 
 		// BEGIN USER CODE
-		RestServices.getService(serviceIndex.getName()).getChangeManager().rebuildIndex();
+		RestServices.getService(serviceDefinition.getName()).getChangeManager().rebuildIndex();
 		return true;
 		// END USER CODE
 	}
