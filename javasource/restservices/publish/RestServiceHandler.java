@@ -83,16 +83,11 @@ public class RestServiceHandler extends RequestHandler{
 			return;
 		
 		try {
-			if ("GET".equals(method) && parts.length == 0) {
+			if ("GET".equals(method) && parts.length == 0) 
 				serveServiceOverview(rsr);
-			}
-			else if ("GET".equals(method) && parts.length == 1 ) {
-				checkReadAccess(request, response);
-				//TODO: check if listing is enabled
+			else if ("GET".equals(method) && parts.length == 1 ) 
 				service.serveListing(rsr, "true".equals(request.getParameter("data")));
-			}
 			else if ("GET".equals(method) && parts.length == 2) {
-				checkReadAccess(request, response);
 				if ("changes".equals(parts[1]))
 					service.getChangeManager().serveChanges(rsr);
 				else
@@ -118,10 +113,6 @@ public class RestServiceHandler extends RequestHandler{
 
 	private void expireAlways(HttpServletResponse response) {
 		response.setHeader("Expires", "-1");
-	}
-
-	private void checkReadAccess(HttpServletRequest request, HttpServletResponse response) {
-		//TODO:
 	}
 
 	private void serve404(HttpServletResponse response) { //TODO: require reason message

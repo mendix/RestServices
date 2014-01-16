@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceDefinition;
+import restservices.publish.RestRequestException.RestExceptionType;
+import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
@@ -68,8 +69,25 @@ public class PublishedService {
 	public String getServiceUrl() {
 		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + getName() + "/";
 	}
-	
+
+	private IMendixObject getObjectByKey(IContext context,
+			String key) throws CoreException {
+		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint(context);
+		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
+		return results.size() == 0 ? null : results.get(0);
+	}
+
+	private ObjectState getObjectStateByKey(IContext context, String key) throws CoreException {
+		return XPath.create(context, ObjectState.class)
+				.eq(ObjectState.MemberNames.key,key)
+				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
+				.first();
+	}	
+
 	public void serveListing(RestServiceRequest rsr, boolean includeData) throws Exception {
+		if (!def.getEnableListing())
+			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
+		
 		rsr.startDoc();
 		rsr.datawriter.array();
 
@@ -138,60 +156,70 @@ public class PublishedService {
 		}
 		while(!result.isEmpty());
 	}
-
+	
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
+		if (!def.getEnableGet())
+			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "GET is not enabled for this service");
+		
+		if(def.getEnableChangeTracking())
+			serveGetFromIndex(rsr, key);
+		else
+			serveGetFromDB(rsr, key);
+	}
+
+	
+	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
+		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
+		if (source == null || source.getdeleted()) 
+			throw new RestRequestException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
+		
+		if (Utils.isNotEmpty(rsr.getETag()) && rsr.getETag().equals(source.getetag())) {
+			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
+			rsr.close();
+			return;
+		}
+		
+		writeGetResult(rsr,key, new JSONObject(source.getjson()), source.getetag());
+	}
+
+	private void serveGetFromDB(RestServiceRequest rsr, String key) throws Exception {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		if (source == null) 
 			throw new RestRequestException(
-					keyExists(rsr.getContext(), key)? HttpStatus.SC_UNAUTHORIZED : HttpStatus.SC_NOT_FOUND,
+					keyExists(rsr.getContext(), key)? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND,
 					getName() + "/" + key);
 		
-		//TODO: optimize if change tracking is enabled
 		IMendixObject view = convertSourceToView(rsr.getContext(), source);
 		JSONObject result = JsonSerializer.writeMendixObjectToJson(rsr.getContext(), view);
 				
 		String jsonString = result.toString(4);
 		String eTag = Utils.getMD5Hash(jsonString);
 		
+		writeGetResult(rsr, key, result, eTag);
+		rsr.getContext().getSession().release(view.getId());
+	}
+
+	private void writeGetResult(RestServiceRequest rsr, String key, JSONObject result, String eTag) {
 		if (eTag.equals(rsr.getETag())) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
 			rsr.close();
 			return;
 		}
+		
 		rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
-		
-		switch(rsr.getContentType()) {
-		case JSON:
-			rsr.write(jsonString);
-			break;
-		case HTML:
-			rsr.startHTMLDoc();
-			rsr.write("<h1>").write(getName()).write("/").write(key).write("</h1>");
-			rsr.datawriter.value(result);
-			rsr.endHTMLDoc();
-			break;
-		case XML:
-			rsr.startXMLDoc(); 
-			rsr.write("<" + getName() + ">");
-			rsr.datawriter.value(result);
-			rsr.write("</" + getName() + ">");
-			break;
-		}
-		
-		rsr.close();
-		rsr.getContext().getSession().release(view.getId());
-	}
+		rsr.startDoc();
 
-	private IMendixObject getObjectByKey(IContext context,
-			String key) throws CoreException {
-		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint(context);
-		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
-		return results.size() == 0 ? null : results.get(0);
+		if (rsr.getContentType() == ContentType.HTML)
+			rsr.write("<h1>").write(getName()).write("/").write(key).write("</h1>");
+
+		rsr.datawriter.value(result);
+		rsr.endDoc();
 	}
 	
 	public void serveDelete(RestServiceRequest rsr, String key, String etag) throws Exception {
-		//TODO: check delete api enabled?
-		
+		if (!def.getEnableDelete())
+			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
+
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
 		if (source == null) {
@@ -207,10 +235,13 @@ public class PublishedService {
 			Core.delete(rsr.getContext(), source);
 		
 		rsr.setStatus(204); //no content
+		rsr.close();
 	}
 	
 	public void servePost(RestServiceRequest rsr, JSONObject data) throws Exception {
-		//TODO: if enabled
+		if (!def.getEnableCreate())
+			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (POST) is not enabled for this service");
+
 		IMendixObject target = Core.instantiate(rsr.getContext(), getSourceEntity());
 		
 		updateObject(rsr.getContext(), target, data);
@@ -241,6 +272,9 @@ public class PublishedService {
 				rsr.close();
 				return;
 			}
+
+			if (!def.getEnableCreate())
+				throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (PUT) is not enabled for this service");
 			
 			target = Core.instantiate(context, getSourceEntity());
 			target.setValue(context, getKeyAttribute(), key);
@@ -249,6 +283,10 @@ public class PublishedService {
 		}
 		else {
 			//already existing target
+			if (!def.getEnableUpdate())
+				throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Update (PUT) is not enabled for this service");
+
+			
 			verifyEtag(rsr.getContext(), target, etag);
 			rsr.setStatus(204);
 		}
