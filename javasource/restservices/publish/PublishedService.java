@@ -222,12 +222,12 @@ public class PublishedService {
 
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
-		if (source == null) {
-			rsr.setStatus(keyExists(rsr.getContext(), key) ? IMxRuntimeResponse.UNAUTHORIZED : IMxRuntimeResponse.NOT_FOUND);
-			return;
-		}
+		if (source == null) 
+			throw new RestRequestException(keyExists(rsr.getContext(), key) ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getName() + "/" + key);
 
-		verifyEtag(rsr.getContext(), source, etag);
+		verifyEtag(rsr.getContext(), key, source, etag);
+		
+		rsr.getContext().startTransaction();
 		
 		if (Utils.isNotEmpty(def.getOnDeleteMicroflow()))
 			Core.execute(rsr.getContext(), def.getOnDeleteMicroflow(), source);
@@ -242,6 +242,8 @@ public class PublishedService {
 		if (!def.getEnableCreate())
 			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (POST) is not enabled for this service");
 
+		rsr.getContext().startTransaction();
+
 		IMendixObject target = Core.instantiate(rsr.getContext(), getSourceEntity());
 		
 		updateObject(rsr.getContext(), target, data);
@@ -253,15 +255,18 @@ public class PublishedService {
 			throw new RuntimeException("Failed to serve POST request: microflow '" + def.getOnPublishMicroflow() + "' should have created a new key");
 			
 		rsr.setStatus(201); //created
-		//TODO: write url, or write key?
+		
+		//question: write url, or write key?
 		//rsr.write(getObjecturl(rsr.getContext(), target));
 		rsr.write(key);
 		rsr.close();
 	}
 
 	public void servePut(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
-		//TODO: start transaction for put/ post / delete?
+
 		IContext context = rsr.getContext();
+		context.startTransaction();
+		
 		IMendixObject target = getObjectByKey(context, key);
 		
 		if (!Utils.isValidKey(key))
@@ -285,9 +290,8 @@ public class PublishedService {
 			//already existing target
 			if (!def.getEnableUpdate())
 				throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Update (PUT) is not enabled for this service");
-
 			
-			verifyEtag(rsr.getContext(), target, etag);
+			verifyEtag(rsr.getContext(), key, target, etag);
 			rsr.setStatus(204);
 		}
 		
@@ -296,11 +300,12 @@ public class PublishedService {
 	}
 	
 	private boolean keyExists(IContext context, String key) throws CoreException {
-		return getObjectByKey(context, key) != null; //context is sudo, so that should work fine
+		return getObjectByKey(context, key) != null; //context is always sudo, so that should work fine
 	}
 
 	private void updateObject(IContext context, IMendixObject target,
 			JSONObject data) throws Exception, Exception {
+		//TODO: make utility function in Consisency checker, or here
 		Map<String, String> argtypes = Utils.getArgumentTypes(def.getOnUpdateMicroflow());
 		
 		if (argtypes.size() != 2)
@@ -329,19 +334,23 @@ public class PublishedService {
 		Core.execute(context, def.getOnUpdateMicroflow(), ImmutableMap.of(targetArgName, (Object) target, viewArgName, (Object) view));
 	}
 
-	private void verifyEtag(IContext context, IMendixObject source, String etag) throws Exception {
+	private void verifyEtag(IContext context, String key, IMendixObject source, String etag) throws Exception {
 		if (!this.def.getUseStrictVersioning())
 			return;
-		
-		//TODO: optimize if change tracking enabled
-		
-		IMendixObject view = convertSourceToView(context, source);
-		JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
+
+		String currentETag;
+		if (def.getEnableChangeTracking())
+			currentETag = getObjectStateByKey(context, key).getetag();
+		else {
+			IMendixObject view = convertSourceToView(context, source);
+			JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
 				
-		String jsonString = result.toString(4);
-		String eTag = Utils.getMD5Hash(jsonString);
-		if (!eTag.equals(etag))
-			throw new RuntimeException("Update conflict detected, expected change based on version '" + eTag + "', but found '" + etag + "'");
+			String jsonString = result.toString(4);
+			currentETag = Utils.getMD5Hash(jsonString);
+		}
+		
+		if (!currentETag.equals(etag))
+			throw new RestRequestException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
 	}
 
 	public IMetaObject getSourceMetaEntity() {

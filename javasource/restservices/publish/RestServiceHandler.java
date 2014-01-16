@@ -107,6 +107,7 @@ public class RestServiceHandler extends RequestHandler{
 				rsr.setStatus(501); //TODO: constant
 		}
 		finally {
+			//TODO: if in transaction, complete or rollback
 			rsr.dispose(); 
 		}
 	}

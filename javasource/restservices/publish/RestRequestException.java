@@ -12,7 +12,8 @@ public class RestRequestException extends Exception {
 	public enum RestExceptionType { 
 		NOT_FOUND(HttpStatus.SC_NOT_FOUND), 
 		UNAUTHORIZED(HttpStatus.SC_UNAUTHORIZED),
-		METHOD_NOT_ALLOWED(HttpStatus.SC_METHOD_NOT_ALLOWED);
+		METHOD_NOT_ALLOWED(HttpStatus.SC_METHOD_NOT_ALLOWED),
+		CONFLICTED(HttpStatus.SC_CONFLICT);
 		
 		private int status;
 
