@@ -74,8 +74,6 @@ public class RestServices {
 
 	public static final String PARAM_SINCE = "since";
 
-	public static final String PARAM_FEED = "feed";
-
 	public static final String PARAM_TIMEOUT = "timeout"; 
 	
 	public static void registerService(String name, PublishedService def) {

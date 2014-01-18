@@ -35,5 +35,7 @@ public class RestRequestException extends Exception {
 		return exType.getStatusCode();
 	}
 	
-	
+	public RestExceptionType getType() {
+		return exType;
+	}
 }

@@ -42,8 +42,6 @@ public class ConsistencyChecker {
 		
 		//TODO: should only one service that defines 'GET object', which will be the default
 		
-		//TODO: check on delete / onupdate microflows
-		//(copy from Publishedservice.updateObject)
 		//TODO: check security
 		
 		return errors.size() == 0 ? null : "* " + StringUtils.join(errors, "\n* ");
@@ -57,8 +55,12 @@ public class ConsistencyChecker {
 
 	private static void checkOnUpdateMF(ServiceDefinition def,
 			List<String> errors) {
-		// TODO Auto-generated method stub
-		
+		try {
+			PublishedService.extractArgInfoForUpdateMicroflow(def);
+		}
+		catch(Exception e) {
+			errors.add("Invalid update microflow: " + e.getMessage());
+		}
 	}
 
 	private static void checkOnPublishMf(ServiceDefinition def,

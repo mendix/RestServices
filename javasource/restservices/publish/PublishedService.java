@@ -166,7 +166,6 @@ public class PublishedService {
 			serveGetFromDB(rsr, key);
 	}
 
-	
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
 		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
 		if (source == null || source.getdeleted()) 
@@ -301,21 +300,25 @@ public class PublishedService {
 	private boolean keyExists(IContext context, String key) throws CoreException {
 		return getObjectByKey(context, key) != null; //context is always sudo, so that should work fine
 	}
-
-	private void updateObject(IContext context, IMendixObject target,
-			JSONObject data) throws Exception, Exception {
-		//TODO: make utility function in Consisency checker, or here
-		Map<String, String> argtypes = Utils.getArgumentTypes(def.getOnUpdateMicroflow());
+	
+	/**
+	 * Returns an array with [viewArgName, viewArgType, targetArgName]. 
+	 * TargetARgType is the sourceEntity of this microflow. 
+	 * Or throws an exception if the microflow does not supplies these argements
+	 * @return
+	 */
+	static String[] extractArgInfoForUpdateMicroflow(ServiceDefinition serviceDef) {
+		Map<String, String> argtypes = Utils.getArgumentTypes(serviceDef.getOnUpdateMicroflow());
 		
 		if (argtypes.size() != 2)
-			throw new RuntimeException("Expected exactly two arguments for microflow " + def.getOnUpdateMicroflow());
+			throw new RuntimeException("Expected exactly two arguments for microflow " + serviceDef.getOnUpdateMicroflow());
 		
 		//Determine argnames
 		String viewArgName = null;
 		String targetArgName = null;
 		String viewArgType = null;
 		for(Entry<String, String> e : argtypes.entrySet()) {
-			if (e.getValue().equals(target.getType()))
+			if (e.getValue().equals(serviceDef.getSourceEntity()))
 				targetArgName = e.getKey();
 			else if (Core.getMetaObject(e.getValue()) != null) {
 				viewArgName = e.getKey();
@@ -324,13 +327,21 @@ public class PublishedService {
 		}
 		
 		if (targetArgName == null || viewArgName == null || Core.getMetaObject(viewArgType).isPersistable())
-			throw new RuntimeException("Microflow '" + def.getOnUpdateMicroflow() + "' should have one argument of type " + target.getType() + ", and one argument typed with an persistent entity");
+			throw new RuntimeException("Microflow '" + serviceDef.getOnUpdateMicroflow() + "' should have one argument of type " + serviceDef.getSourceEntity() + ", and one argument typed with an persistent entity");
+
+		return new String[] { viewArgName, viewArgType, targetArgName };
+	}
+
+	private void updateObject(IContext context, IMendixObject target,
+			JSONObject data) throws Exception, Exception {
 		
-		IMendixObject view = Core.instantiate(context, viewArgType);
+		String[] argInfo = extractArgInfoForUpdateMicroflow(def);
+		
+		IMendixObject view = Core.instantiate(context, argInfo[1]);
 		JsonDeserializer.readJsonDataIntoMendixObject(context, data, view, false);
 		Core.commit(context, view);
 		
-		Core.execute(context, def.getOnUpdateMicroflow(), ImmutableMap.of(targetArgName, (Object) target, viewArgName, (Object) view));
+		Core.execute(context, def.getOnUpdateMicroflow(), ImmutableMap.of(argInfo[2], (Object) target, argInfo[0], (Object) view));
 	}
 
 	private void verifyEtag(IContext context, String key, IMendixObject source, String etag) throws Exception {
@@ -395,6 +406,5 @@ public class PublishedService {
 	public void dispose() {
 		this.changeManager.dispose();
 	}
-
 }
 

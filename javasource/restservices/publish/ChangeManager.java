@@ -152,7 +152,7 @@ public class ChangeManager {
 			}
 	}
 
-	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException, RestRequestException {
+	public void serveChanges(RestServiceRequest rsr, boolean asFeed) throws IOException, CoreException, RestRequestException {
 		if (!service.def.getEnableChangeTracking())
 			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Change tracking is not enabled for this service");
 		
@@ -165,7 +165,7 @@ public class ChangeManager {
 		if (rsr.request.getParameter(RestServices.PARAM_SINCE) != null) 
 			since = Long.parseLong(rsr.request.getParameter(RestServices.PARAM_SINCE));
 		
-		if ("true".equals(rsr.request.getParameter(RestServices.PARAM_FEED))) {
+		if (asFeed) {
 			String longPollMaxDuration = rsr.request.getParameter(RestServices.PARAM_TIMEOUT);
 			serveChangesFeed(rsr, since, Util.isEmptyString(longPollMaxDuration) ? RestServices.LONGPOLL_MAXDURATION : Long.valueOf(longPollMaxDuration));
 		}
