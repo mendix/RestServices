@@ -100,4 +100,8 @@ public class RestServices {
 	public static Set<String> getServiceNames() {
 		return services.keySet();
 	}
+
+	public static String getServiceUrl(String name) {
+		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + "/";
+	}
 }

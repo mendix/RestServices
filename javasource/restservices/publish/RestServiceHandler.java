@@ -84,7 +84,7 @@ public class RestServiceHandler extends RequestHandler{
 		
 		try {
 			if ("GET".equals(method) && parts.length == 0) 
-				serveServiceOverview(rsr);
+				ServiceDescriber.serveServiceOverview(rsr);
 			else if ("GET".equals(method) && parts.length == 1 ) 
 				service.serveListing(rsr, "true".equals(request.getParameter("data")));
 			else if ("GET".equals(method) && parts.length == 2) {
@@ -120,30 +120,5 @@ public class RestServiceHandler extends RequestHandler{
 		response.setStatus(IMxRuntimeResponse.NOT_FOUND);
 	}
 
-	public void serveServiceOverview(RestServiceRequest rsr) {
-		if (rsr.getContentType() == ContentType.XML) {
-			rsr.startXMLDoc();
-			rsr.write("<RestServices>");
-		}
-		else if (rsr.getContentType() == ContentType.HTML) {
-			rsr.startHTMLDoc();
-			rsr.write("<h1>RestServices</h1>");
-		}
 
-		rsr.datawriter.object()
-			.key("RestServices").value(RestServices.VERSION)
-			.key("services").array();
-		
-		for (String service : RestServices.getServiceNames())
-			RestServices.getService(service).serveServiceDescription(rsr);
-		
-		rsr.datawriter.endArray().endObject();
-		
-		if (rsr.getContentType() == ContentType.XML) 
-			rsr.write("</RestServices>");
-		else if (rsr.getContentType() == ContentType.HTML) 
-			rsr.endHTMLDoc();
-
-		rsr.close();
-	}
 }

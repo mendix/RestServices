@@ -23,6 +23,7 @@ import communitycommons.XPath.IBatchProcessor;
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceObjectIndex;
+import restservices.publish.RestRequestException.RestExceptionType;
 import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
@@ -116,7 +117,8 @@ public class ChangeManager {
 				
 			if (rsr.request.getAttribute("lpsession") == null) {	
 				// - this request just arrived (first branch) -> sleep until message arrive
-				service.debug("New continuation on " + rsr.request.getPathInfo());
+				if (RestServices.LOG.isDebugEnabled())
+					RestServices.LOG.debug("New continuation on " + rsr.request.getPathInfo());
 	
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
@@ -150,9 +152,9 @@ public class ChangeManager {
 			}
 	}
 
-	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException {
+	public void serveChanges(RestServiceRequest rsr) throws IOException, CoreException, RestRequestException {
 		if (!service.def.getEnableChangeTracking())
-			throw new NotFoundException("Change tracking is not enabled for this service");
+			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Change tracking is not enabled for this service");
 		
 		rsr.response.setStatus(IMxRuntimeResponse.OK);
 		rsr.response.flushBuffer();
