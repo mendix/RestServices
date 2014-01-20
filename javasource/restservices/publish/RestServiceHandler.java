@@ -150,10 +150,10 @@ public class RestServiceHandler extends RequestHandler{
 		case 1:
 			if (isGet) {
 				handled = true;
-				if (rsr.request.getParameter("about") != null)
-					ServiceDescriber.serveServiceDescription(rsr, service.def);
+				if (rsr.request.getParameter(RestServices.PARAM_ABOUT) != null)
+					new ServiceDescriber(rsr, service.def).serveServiceDescription();
 				else
-					service.serveListing(rsr, "true".equals(rsr.request.getParameter("data")));
+					service.serveListing(rsr, "true".equals(rsr.request.getParameter(RestServices.PARAM_DATA)));
 			}
 			else if ("POST".equals(method)) {
 				handled = true;
