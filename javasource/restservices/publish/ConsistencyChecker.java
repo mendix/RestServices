@@ -12,7 +12,6 @@ import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.core.CoreRuntimeException;
 import com.mendix.systemwideinterfaces.core.IDataType;
-import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 
 import restservices.RestServices;

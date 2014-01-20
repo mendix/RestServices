@@ -57,7 +57,6 @@ public class RestServiceHandler extends RequestHandler{
 		}
 	}
 
-	@SuppressWarnings("null")
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String path) {
@@ -78,8 +77,18 @@ public class RestServiceHandler extends RequestHandler{
 	
 		RestServiceRequest rsr = new RestServiceRequest(request, response);
 		try {
+			PublishedService service = null;
+			if (parts.length > 0) {
+				service = RestServices.getService(parts[0]);
+				if (service == null) 
+					throw new RestRequestException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+			}
+
+
+			if (service != null && !rsr.authenticateService(service, (ISession) getSessionFromRequest(req)))
+				throw new RestRequestException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			
-			dispatch(parts, request, method, requestStr, rsr);
+			dispatch(method, parts, rsr, service);
 			
 			if (rsr.getContext().isInTransaction())
 				rsr.getContext().endTransaction();
@@ -126,48 +135,61 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.endDoc();
 	}
 
-	private void dispatch(String[] parts, HttpServletRequest request,
-			String method, String requestStr,
-			RestServiceRequest rsr) throws Exception, IOException,
+	private void dispatch(String method, String[] parts, RestServiceRequest rsr, PublishedService service) throws Exception, IOException,
 			CoreException, RestRequestException {
-		PublishedService service = null;
-		if (parts.length > 0) {
-			service = RestServices.getService(parts[0]);
-			if (service == null) 
-				throw new RestRequestException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
-		}
-
-
-		if (service != null && !rsr.authenticateService(service, (ISession) getSessionFromRequest(req)))
-			return;
-
+		boolean handled = false;
+		boolean isGet = "GET".equals(method);
 		
-		if ("GET".equals(method) && parts.length == 0) 
-			ServiceDescriber.serveServiceOverview(rsr);
-		else if ("GET".equals(method) && parts.length == 1 ) 
-			service.serveListing(rsr, "true".equals(request.getParameter("data")));
-		else if ("GET".equals(method) && parts.length == 2) 
-			service.serveGet(rsr, parts[1]);
-		else if ("GET".equals(method) && parts.length == 3 && "changes".equals(parts[1])) {
-			if ("list".equals(parts[2]))
-				service.getChangeManager().serveChanges(rsr, false);
-			else if ("feed".equals(parts[2]))
-				service.getChangeManager().serveChanges(rsr, true);
-			else
-				throw new RestRequestException(RestExceptionType.NOT_FOUND, requestStr + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
+		switch(parts.length) {
+		case 0:
+			if (isGet) {
+				handled = true;
+				ServiceDescriber.serveServiceOverview(rsr);
+			}
+			break;
+		case 1:
+			if (isGet) {
+				handled = true;
+				if (rsr.request.getParameter("about") != null)
+					ServiceDescriber.serveServiceDescription(rsr, service.def);
+				else
+					service.serveListing(rsr, "true".equals(rsr.request.getParameter("data")));
+			}
+			else if ("POST".equals(method)) {
+				handled = true;
+				String body = IOUtils.toString(rsr.request.getInputStream());
+				service.servePost(rsr, new JSONObject(body));
+			}
+			break;
+		case 2:
+			if (isGet) {
+				handled = true;
+				service.serveGet(rsr, parts[1]);
+			}
+			else if ("PUT" .equals(method)) {
+				handled = true;
+				String body = IOUtils.toString(rsr.request.getInputStream());
+				service.servePut(rsr, parts[1], new JSONObject(body), rsr.getETag());
+			}
+			else if ("DELETE".equals(method) && parts.length == 2) {
+				handled = true;
+				service.serveDelete(rsr, parts[1], rsr.getETag());
+			}
+			break;
+		case 3:
+			if (isGet && "changes".equals(parts[1])) {
+				handled = true;
+				if ("list".equals(parts[2]))
+					service.getChangeManager().serveChanges(rsr, false);
+				else if ("feed".equals(parts[2]))
+					service.getChangeManager().serveChanges(rsr, true);
+				else
+					throw new RestRequestException(RestExceptionType.NOT_FOUND, "changes/"  + parts[2] + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
+			}
 		}
-		else if ("POST".equals(method) && parts.length ==  1) {
-			String body = IOUtils.toString(rsr.request.getInputStream());
-			service.servePost(rsr, new JSONObject(body));
-		}
-		else if ("PUT" .equals(method) && parts.length == 2) {
-			String body = IOUtils.toString(rsr.request.getInputStream());
-			service.servePut(rsr, parts[1], new JSONObject(body), rsr.getETag());
-		}
-		else if ("DELETE".equals(method) && parts.length == 2)
-			service.serveDelete(rsr, parts[1], rsr.getETag());
-		else
-			rsr.setStatus(501); //TODO: constant
+
+		if (!handled)
+			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
 	}
 
 }

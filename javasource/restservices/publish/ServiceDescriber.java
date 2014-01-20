@@ -58,15 +58,15 @@ public class ServiceDescriber {
 		return res;
 	}
 	
-	public void serveServiceDescription(RestServiceRequest rsr, ServiceDefinition def) {
+	public static void serveServiceDescription(RestServiceRequest rsr, ServiceDefinition def) {
 		rsr.datawriter.object()
 			.key("name").value(def.getName())
 			.key("url").value(RestServices.getServiceUrl(def.getName()))
 			//TODO: export description
 			.key("attributes").object();
 		
-		for(Entry<String, String> e : getPublishedMembers().entrySet()) 
-			rsr.datawriter.key(e.getKey()).value(e.getValue());
+		//for(Entry<String, String> e : getPublishedMembers().entrySet()) 
+		//	rsr.datawriter.key(e.getKey()).value(e.getValue());
 		
 		rsr.datawriter.endObject().endObject();
 	}

@@ -66,7 +66,7 @@ public class PublishedService {
 	}
 
 	public String getServiceUrl() {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + getName() + "/";
+		return RestServices.getServiceUrl(getName());
 	}
 
 	private IMendixObject getObjectByKey(IContext context,
@@ -166,6 +166,7 @@ public class PublishedService {
 			serveGetFromDB(rsr, key);
 	}
 
+	
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
 		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
 		if (source == null || source.getdeleted()) 
@@ -406,5 +407,6 @@ public class PublishedService {
 	public void dispose() {
 		this.changeManager.dispose();
 	}
+
 }
 
