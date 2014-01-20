@@ -21,7 +21,6 @@ import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.ISession;
 
 import communitycommons.XPath;
 
@@ -84,8 +83,7 @@ public class RestServiceHandler extends RequestHandler{
 					throw new RestRequestException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 			}
 
-
-			if (service != null && !rsr.authenticateService(service, (ISession) getSessionFromRequest(req)))
+			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticateService(service, getSessionFromRequest(req)))
 				throw new RestRequestException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			
 			dispatch(method, parts, rsr, service);
@@ -109,6 +107,10 @@ public class RestServiceHandler extends RequestHandler{
 		finally {
 			rsr.dispose(); 
 		}
+	}
+
+	private boolean isMetaDataRequest(String method, String[] parts, RestServiceRequest rsr) {
+		return "GET".equals(method) && parts.length == 1 && rsr.request.getParameter(RestServices.PARAM_ABOUT) != null;
 	}
 
 	private void rollback(RestServiceRequest rsr) {

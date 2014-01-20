@@ -76,7 +76,9 @@ public class RestServices {
 
 	public static final String PARAM_TIMEOUT = "timeout";
 
-	public static final String PARAM_ABOUT = "about"; 
+	public static final String PARAM_ABOUT = "about";
+
+	public static final String PARAM_DATA = "data"; 
 	
 	public static void registerService(String name, PublishedService def) {
 		PublishedService current = services.put(name,  def);
