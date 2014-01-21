@@ -2,9 +2,12 @@ package restservices.publish;
 
 import org.apache.commons.httpclient.HttpStatus;
 
+import communitycommons.StringUtils;
+
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestServiceRequest.ContentType;
+import restservices.util.Utils;
 
 public class ServiceDescriber {
 
@@ -30,6 +33,7 @@ public class ServiceDescriber {
 
 	private RestServiceRequest rsr;
 	private ServiceDefinition def;
+	private boolean isHTML;
 	
 /*	//TODO: replace with something recursive
 	public Map<String, String> getPublishedMembers() {
@@ -51,12 +55,14 @@ public class ServiceDescriber {
 	public ServiceDescriber(RestServiceRequest rsr, ServiceDefinition def) {
 		this.rsr = rsr;
 		this.def = def;
+		this.isHTML = rsr.getContentType() == ContentType.HTML;
 	}
 	
 	public void serveServiceDescription() {
 		rsr.startDoc();
-		if (rsr.getContentType() == ContentType.HTML) 
-			rsr.write("<h1>Service: " + def.getName() + "</h1><a href='/rest/'>Back to the overview</a>");
+		if (isHTML) { 
+			rsr.write("<a href='/rest/'>&laquo;Go Back</a><h1>Service: " + def.getName() + "</h1>");
+		}
 
 		
 		rsr.datawriter.object()
@@ -64,62 +70,68 @@ public class ServiceDescriber {
 			.key("description").value(def.getDescription())
 			.key("baseurl").value(RestServices.getServiceUrl(def.getName()))
 			.key("worldreadable").value("*".equals(def.getAccessRole()))
-			.key("requiresETags").value(def.getUseStrictVersioning())
-			.key("endpoints").object();
+			.key("requiresETags").value(def.getUseStrictVersioning());
+			
+		if (isHTML)
+			rsr.datawriter.endObject();
+		else
+			rsr.datawriter.key("endpoints").object();
 			
 		startEndpoint("GET", "?" + RestServices.PARAM_ABOUT, "This page");
 		addContentType();
 		endEndpoint();
 
 		if (def.getEnableListing()) {
-				startEndpoint("GET", "/", "List the URL of all objects published by this service");
-				addEndpointParam(RestServices.PARAM_DATA, "'true' or 'false'. Whether to list the URL (false) of the objects, or output the objects themselves (true). Defaults to 'true'");
+				startEndpoint("GET", "", "List the URL of all objects published by this service");
+				addEndpointParam(RestServices.PARAM_DATA, "'true' or 'false'. Whether to list the URLs (false) of each of the objects, or output the objects themselves (true). Defaults to 'false'");
 				addContentType();
 				endEndpoint();
 			}
 			if (def.getEnableGet()) {
-				startEndpoint("GET", "/<" + def.getSourceKeyAttribute() + ">", "Returns the object specified by the URL, which is retrieved from the database by using the given key.");
-				addEndpointParam(RestServices.IFNONEMATCH_HEADER + " (header)", "If the current version of the object matches this optional header, status 304 NOT MODIFIED will be returned instead of returning the whole objects. This header can be used for caching / performance optimization");
+				startEndpoint("GET", "<" + def.getSourceKeyAttribute() + ">", "Returns the object specified by the URL, which is retrieved from the database by using the given key.");
+				addEndpointParam(RestServices.IFNONEMATCH_HEADER + " (header)", "If the current version of the object matches the ETag provided by this optional header, status 304 NOT MODIFIED will be returned instead of returning the whole objects. This header can be used for caching / performance optimization");
 				addContentType();
 				endEndpoint();
 			}
 			if (def.getEnableChangeTracking()) {
-				startEndpoint("GET", "/changes/list", "Returns a list of incremental changes that allows the client to synchronize with recent changes on the server");
+				startEndpoint("GET", "changes/list", "Returns a list of incremental changes that allows the client to synchronize with recent changes on the server");
 				addEndpointParam(RestServices.PARAM_SINCE, SINCEPARAM_HELPTEXT);
 				addContentType();
 				endEndpoint();
 				
-				startEndpoint("GET", "/changes/feed", "Returns a list of incremental changes that allows the client to synchronize with recent changes on the server. The feed, in contrast to list, keeps the connection open to be able to push any new change directly to the client, without the client needing to actively request for new changes. (a.k.a. push over longpolling HTTP)"); 
+				startEndpoint("GET", "changes/feed", "Returns a list of incremental changes that allows the client to synchronize with recent changes on the server. The feed, in contrast to list, keeps the connection open to be able to push any new change directly to the client, without the client needing to actively request for new changes. (a.k.a. push over longpolling HTTP)"); 
 				addEndpointParam(RestServices.PARAM_SINCE, SINCEPARAM_HELPTEXT);
 				addEndpointParam(RestServices.PARAM_TIMEOUT, "Maximum time the current feed connecion is kept open. Defaults to 50 seconds to avoid firewall issues. Once this timeout exceeds, the connection is closed and the client should automatically reconnect. Use zero to never expire. Use a negative number to indicate that the connection should expire whenever the timeout is exceed, *or* when a new change arrives. This is useful for clients that cannot read partial responses");
 				addContentType();
 				endEndpoint();
 			}
 			if (def.getEnableCreate()) {
-				startEndpoint("POST", "/", "Stores an object as new entry in the collection served by this service. Returns the (generated) key of the new object");
+				startEndpoint("POST", "", "Stores an object as new entry in the collection served by this service. Returns the (generated) key of the new object");
 				addBodyParam();
 				addEtagParam();
 				endEndpoint();
 				
-				startEndpoint("PUT", "/<" + def.getSourceKeyAttribute() + ">", "Stores an object as new entry in the collection served by this service, under te given key. This key shouldn't exist yet.");
+				startEndpoint("PUT", "<" + def.getSourceKeyAttribute() + ">", "Stores an object as new entry in the collection served by this service, under te given key. This key shouldn't exist yet.");
 				addBodyParam();
 				addEtagParam();
 				endEndpoint();
 			}
 			if (def.getEnableUpdate()) {
-				startEndpoint("PUT", "/<" + def.getSourceKeyAttribute() + ">", "Updates the object with the given key. If the key does not exist yet, " +  (def.getEnableCreate() ? "the object will be created" : " the request will fail"));
+				startEndpoint("PUT", "<" + def.getSourceKeyAttribute() + ">", "Updates the object with the given key. If the key does not exist yet, " +  (def.getEnableCreate() ? "the object will be created" : " the request will fail"));
 				addBodyParam();
 				addEtagParam();
 				endEndpoint();
 			}
 			if (def.getEnableDelete()) {
-				startEndpoint("DELETE", "/<" + def.getSourceKeyAttribute() + ">", "Deletes the object identified by the key");
+				startEndpoint("DELETE", "<" + def.getSourceKeyAttribute() + ">", "Deletes the object identified by the key");
 				addBodyParam();
 				addEtagParam();
 				endEndpoint();
 			}
 		
-		rsr.datawriter.endObject().endObject();
+		if (!isHTML)
+			rsr.datawriter.endObject().endObject();
+		
 		rsr.endDoc();
 	}
 
@@ -134,22 +146,33 @@ public class ServiceDescriber {
 	}
 
 	private void addContentType() {
-		addEndpointParam("contenttype (param) or " + RestServices.ACCEPT_HEADER + " (header)", "Either 'json', 'html' or 'xml'. If the header is used, one of those three values is exctracted from the headers. This parameter is used to determine the output type. This results in an HTML represention in browsers (unless overriden using the param) and Json or XML data for non-browser clients.");
+		addEndpointParam("contenttype (param) or " + RestServices.ACCEPT_HEADER + " (header)", "Either 'json', 'html' or 'xml'. If the header is used, one of those three values is extracted from the headers. This parameter is used to determine the output type. This results in an HTML represention in browsers (unless overriden using the param) and Json or XML data for non-browser clients.");
 	}
 
 	private void addEndpointParam(String param, String description) {
-		rsr.datawriter.object().key("name").value(param).key("description").value(description).endObject();
+		if (isHTML)
+			rsr.write("<tr><td>" + param + "</td><td>" + description + "</td></tr>");
+		else
+			rsr.datawriter.object().key("name").value(param).key("description").value(description).endObject();
 	}
 
-	private void startEndpoint(String method, String url, String description) {
-		rsr.datawriter.object()
-			.key("path").value(method + " " + url)
-			.key("description").value(description)
-			.key("params").array();
+	private void startEndpoint(String method, String path, String description) {
+		String url = RestServices.getServiceUrl(def.getName()) + path;
+		if (isHTML)
+			rsr.write("<h2>"+ ("GET".equals(method) ? Utils.autoGenerateLink(url) : StringUtils.HTMLEncode(url)) + " (" + method + ")</h2>")
+				.write("<p>" + description + "</p>")
+				.write("<table><tr><th>Parameter</th><th>Description</th></tr>");
+		else
+			rsr.datawriter.object()
+				.key("path").value(method + " " + url)
+				.key("description").value(description)
+				.key("params").array();
 	}
 	
 	private void endEndpoint() {
-		rsr.datawriter.endArray().endObject();
+		if (isHTML)
+			rsr.write("</table>");
+		else
+			rsr.datawriter.endArray().endObject();
 	}
-
 }
