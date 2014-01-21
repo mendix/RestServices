@@ -63,7 +63,7 @@ public class BasicTests {
 
 	}
 	
-	//@Test
+	@Test
 	public void getFromIndex() throws Exception {
 		def.setEnableChangeTracking(true);
 		def.commit();
