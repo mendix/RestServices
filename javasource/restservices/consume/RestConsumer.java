@@ -393,7 +393,8 @@ public class RestConsumer {
 		//fetch
 		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag);
 		
-		if (!response.isOk())
+		if (!response.isOk()) 
+			//TODO: use consume exception
 			throw new Exception("Request didn't respond with status 200 or 304: " + response);
 
 		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED)  
@@ -455,6 +456,12 @@ public class RestConsumer {
 			throw new Exception("Request didn't respond with status 2** or 304: " + response);
 
 		return response.asRequestResult(context);
+	}
+
+	public static void addCredentialsToNextRequest(String testUser,
+			String string) {
+		// TODO Auto-generated method stub
+		// TODO create java action in model
 	}
 	
 }

@@ -185,7 +185,7 @@ public class PublishedService {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		if (source == null) 
 			throw new RestRequestException(
-					keyExists(rsr.getContext(), key)? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND,
+					keyExists(rsr.getContext(), key) && !isWorldReadable()? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND,
 					getName() + "/" + key);
 		
 		IMendixObject view = convertSourceToView(rsr.getContext(), source);
@@ -222,7 +222,7 @@ public class PublishedService {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
 		if (source == null) 
-			throw new RestRequestException(keyExists(rsr.getContext(), key) ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getName() + "/" + key);
+			throw new RestRequestException(keyExists(rsr.getContext(), key) && !isWorldReadable() ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getName() + "/" + key);
 
 		verifyEtag(rsr.getContext(), key, source, etag);
 		
@@ -272,7 +272,7 @@ public class PublishedService {
 			rsr.setStatus(404);
 		else if (target == null) {
 			if (keyExists(rsr.getContext(), key)){
-				rsr.setStatus(400);
+				rsr.setStatus(400); //TODO: use http status, should be 401?
 				rsr.close();
 				return;
 			}
