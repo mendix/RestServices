@@ -46,13 +46,13 @@ public class RestServiceRequest {
 		}
 
 		//TODO: constants
-		String authHeader = request.getHeader("Authorization");
+		String authHeader = request.getHeader(RestServices.HEADER_AUTHORIZATION);
 		String username = null;
 		String password = null;
 		ISession session = null;
 		
-		if (authHeader != null && authHeader.trim().startsWith("Basic")) {
-			String base64 = StringUtils.base64Decode(authHeader.trim().substring("basic".length()).trim());
+		if (authHeader != null && authHeader.trim().startsWith(RestServices.BASIC_AUTHENTICATION)) {
+			String base64 = StringUtils.base64Decode(authHeader.trim().substring(RestServices.BASIC_AUTHENTICATION.length()).trim());
 			String[] parts = base64.split(":");
 			username = parts[0];
 			password = parts[1];

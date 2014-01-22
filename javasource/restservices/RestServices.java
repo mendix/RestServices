@@ -78,7 +78,11 @@ public class RestServices {
 
 	public static final String PARAM_ABOUT = "about";
 
-	public static final String PARAM_DATA = "data"; 
+	public static final String PARAM_DATA = "data";
+
+	public static final String HEADER_AUTHORIZATION = "Authorization";
+
+	public static final String BASIC_AUTHENTICATION = "Basic"; 
 	
 	public static void registerService(String name, PublishedService def) {
 		PublishedService current = services.put(name,  def);

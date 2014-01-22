@@ -15,12 +15,12 @@ import com.mendix.systemwideinterfaces.core.UserAction;
 /**
  * Sets a header that will be used in the next request being made by the modele
  */
-public class setHeader extends UserAction<Boolean>
+public class addHeaderToNextRequest extends UserAction<Boolean>
 {
 	private String header;
 	private String value;
 
-	public setHeader(String header, String value)
+	public addHeaderToNextRequest(String header, String value)
 	{
 		super();
 		this.header = header;
@@ -42,7 +42,7 @@ public class setHeader extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "setHeader";
+		return "addHeaderToNextRequest";
 	}
 
 	// BEGIN EXTRA CODE

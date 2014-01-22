@@ -89,7 +89,7 @@ public class BasicTests {
 	public void simpleGet() throws Exception {
 		IContext c = Core.createSystemContext();
 		Task t = createTask(c, "Fetch milk", false);
-		publishTask(c, t);
+		publishTask(c, t, false);
 		
 		IContext c2 = Core.createSystemContext();
 		CTaskView v;
@@ -166,7 +166,7 @@ public class BasicTests {
 		
 		//make task no longer match constraint
 		t.setCompleted(true);
-		publishTask(c,t);
+		publishTask(c,t,false);
 		
 		try {
 			v = getTask(c2, t.getNr().toString(), null, ResponseCode.OK, 200);
@@ -213,12 +213,22 @@ public class BasicTests {
 		catch(Exception e) { //TODO: restconsumeexception only!
 			//OK //TODO: check status 401 (does not match the constraint, but the object does exist, but, not world readable)
 		}
+		
+		//unsecure, and delete
+		def.setAccessRole("*");
+		def.commit();
+		
+		t.delete();
+		publishTask(c, t, true);
 	}
 	
 	
 	
-	private void publishTask(IContext c, Task t) {
-		ChangeManager.publishUpdate(c, t.getMendixObject());
+	private void publishTask(IContext c, Task t, boolean delete) {
+		if (delete)
+			ChangeManager.publishDelete(c, t.getMendixObject());
+		else
+			ChangeManager.publishUpdate(c, t.getMendixObject());
 	}
 
 	@Test

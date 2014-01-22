@@ -43,6 +43,7 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import communitycommons.StringUtils;
 
 public class RestConsumer {
 	
@@ -458,10 +459,9 @@ public class RestConsumer {
 		return response.asRequestResult(context);
 	}
 
-	public static void addCredentialsToNextRequest(String testUser,
-			String string) {
-		// TODO Auto-generated method stub
-		// TODO create java action in model
+	public static void addCredentialsToNextRequest(String username,
+			String password) {
+		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));
 	}
 	
 }
