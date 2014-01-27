@@ -23,7 +23,7 @@ import communitycommons.XPath.IBatchProcessor;
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceObjectIndex;
-import restservices.publish.RestRequestException.RestExceptionType;
+import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
@@ -153,9 +153,9 @@ public class ChangeManager {
 			}
 	}
 
-	public void serveChanges(RestServiceRequest rsr, boolean asFeed) throws IOException, CoreException, RestRequestException {
+	public void serveChanges(RestServiceRequest rsr, boolean asFeed) throws IOException, CoreException, RestPublishException {
 		if (!service.def.getEnableChangeTracking())
-			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Change tracking is not enabled for this service");
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Change tracking is not enabled for this service");
 		
 		rsr.response.setStatus(IMxRuntimeResponse.OK);
 		rsr.response.flushBuffer();

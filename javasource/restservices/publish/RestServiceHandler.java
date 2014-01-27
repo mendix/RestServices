@@ -12,7 +12,7 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
-import restservices.publish.RestRequestException.RestExceptionType;
+import restservices.publish.RestPublishException.RestExceptionType;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -84,11 +84,11 @@ public class RestServiceHandler extends RequestHandler{
 			if (parts.length > 0) {
 				service = RestServices.getService(parts[0]);
 				if (service == null) 
-					throw new RestRequestException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+					throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 			}
 
 			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticateService(service, getSessionFromRequest(req)))
-				throw new RestRequestException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			
 			dispatch(method, parts, rsr, service);
 			
@@ -98,7 +98,7 @@ public class RestServiceHandler extends RequestHandler{
 			if (RestServices.LOG.isDebugEnabled())
 				RestServices.LOG.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
 		}
-		catch(RestRequestException rre) {
+		catch(RestPublishException rre) {
 			RestServices.LOG.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
 			rollback(rsr);
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
@@ -142,7 +142,7 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private void dispatch(String method, String[] parts, RestServiceRequest rsr, PublishedService service) throws Exception, IOException,
-			CoreException, RestRequestException {
+			CoreException, RestPublishException {
 		boolean handled = false;
 		boolean isGet = "GET".equals(method);
 		
@@ -190,12 +190,12 @@ public class RestServiceHandler extends RequestHandler{
 				else if ("feed".equals(parts[2]))
 					service.getChangeManager().serveChanges(rsr, true);
 				else
-					throw new RestRequestException(RestExceptionType.NOT_FOUND, "changes/"  + parts[2] + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
+					throw new RestPublishException(RestExceptionType.NOT_FOUND, "changes/"  + parts[2] + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
 			}
 		}
 
 		if (!handled)
-			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
 	}
 
 }

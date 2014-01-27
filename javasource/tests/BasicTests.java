@@ -252,9 +252,9 @@ public class BasicTests {
 		def.setEnableChangeTracking(true);
 		def.commit();
 		
-//		rebuildIndex();
+		rebuildIndex();
 		
-//		simpleGet();
+		simpleGet();
 
 	}
 

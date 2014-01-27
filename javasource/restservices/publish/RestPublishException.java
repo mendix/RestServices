@@ -3,7 +3,7 @@ package restservices.publish;
 import org.apache.http.HttpStatus;
 
 //TODO: rename to ServiceException 
-public class RestRequestException extends Exception {
+public class RestPublishException extends Exception {
 	/**
 	 * 
 	 */
@@ -27,7 +27,7 @@ public class RestRequestException extends Exception {
 		}
 	}
 	
-	public RestRequestException(RestExceptionType exType, String message) {
+	public RestPublishException(RestExceptionType exType, String message) {
 		super(message);
 		this.exType = exType;
 	}

@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceDefinition;
-import restservices.publish.RestRequestException.RestExceptionType;
+import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.ContentType;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
@@ -92,7 +92,7 @@ public class PublishedService {
 
 	public void serveListing(RestServiceRequest rsr, boolean includeData) throws Exception {
 		if (!def.getEnableListing())
-			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
 		
 		rsr.startDoc();
 		rsr.datawriter.array();
@@ -165,7 +165,7 @@ public class PublishedService {
 	
 	public void serveGet(RestServiceRequest rsr, String key) throws Exception {
 		if (!def.getEnableGet())
-			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "GET is not enabled for this service");
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "GET is not enabled for this service");
 		
 		if(def.getEnableChangeTracking())
 			serveGetFromIndex(rsr, key);
@@ -177,7 +177,7 @@ public class PublishedService {
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
 		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
 		if (source == null || source.getdeleted()) 
-			throw new RestRequestException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
+			throw new RestPublishException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
 		
 		if (Utils.isNotEmpty(rsr.getETag()) && rsr.getETag().equals(source.getetag())) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
@@ -191,7 +191,7 @@ public class PublishedService {
 	private void serveGetFromDB(RestServiceRequest rsr, String key) throws Exception {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		if (source == null) 
-			throw new RestRequestException(
+			throw new RestPublishException(
 					keyExists(rsr.getContext(), key) && !isWorldReadable()? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND,
 					getName() + "/" + key);
 		
@@ -224,12 +224,12 @@ public class PublishedService {
 	
 	public void serveDelete(RestServiceRequest rsr, String key, String etag) throws Exception {
 		if (!def.getEnableDelete())
-			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
 
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
 		if (source == null) 
-			throw new RestRequestException(keyExists(rsr.getContext(), key) && !isWorldReadable() ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getName() + "/" + key);
+			throw new RestPublishException(keyExists(rsr.getContext(), key) && !isWorldReadable() ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getName() + "/" + key);
 
 		verifyEtag(rsr.getContext(), key, source, etag);
 		
@@ -246,7 +246,7 @@ public class PublishedService {
 	
 	public void servePost(RestServiceRequest rsr, JSONObject data) throws Exception {
 		if (!def.getEnableCreate())
-			throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (POST) is not enabled for this service");
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (POST) is not enabled for this service");
 
 		rsr.getContext().startTransaction();
 
@@ -285,7 +285,7 @@ public class PublishedService {
 			}
 
 			if (!def.getEnableCreate())
-				throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (PUT) is not enabled for this service");
+				throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (PUT) is not enabled for this service");
 			
 			target = Core.instantiate(context, getSourceEntity());
 			target.setValue(context, getKeyAttribute(), key);
@@ -295,7 +295,7 @@ public class PublishedService {
 		else {
 			//already existing target
 			if (!def.getEnableUpdate())
-				throw new RestRequestException(RestExceptionType.METHOD_NOT_ALLOWED, "Update (PUT) is not enabled for this service");
+				throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Update (PUT) is not enabled for this service");
 			
 			verifyEtag(rsr.getContext(), key, target, etag);
 			rsr.setStatus(204);
@@ -368,7 +368,7 @@ public class PublishedService {
 		}
 		
 		if (!currentETag.equals(etag))
-			throw new RestRequestException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
+			throw new RestPublishException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
 	}
 
 	public IMetaObject getSourceMetaEntity() {
