@@ -18,6 +18,7 @@ import restservices.util.Utils;
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
+import com.mendix.core.CoreRuntimeException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.connectionbus.requests.IRetrievalSchema;
 import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.SortDirection;
@@ -71,9 +72,15 @@ public class PublishedService {
 
 	private IMendixObject getObjectByKey(IContext context,
 			String key) throws CoreException {
-		String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint(context);
-		List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
-		return results.size() == 0 ? null : results.get(0);
+		try {
+			String xpath = XPath.create(context, getSourceEntity()).eq(getKeyAttribute(), key).getXPath() + this.getConstraint(context);
+			List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
+			return results.size() == 0 ? null : results.get(0);
+		}
+		catch(CoreRuntimeException e) {
+			RestServices.LOG.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
+			return null;
+		}
 	}
 
 	private ObjectState getObjectStateByKey(IContext context, String key) throws CoreException {

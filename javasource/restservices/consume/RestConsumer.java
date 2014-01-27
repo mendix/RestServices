@@ -226,8 +226,8 @@ public class RestConsumer {
 		try {
 			int status = client.executeMethod(request);
 		
-			if (status != 200)
-				throw new IllegalStateException("Expected status 200, found " + status + " on " + url);
+			if (status != HttpStatus.SC_OK)
+				throw new RestConsumeException(status, "Failed to start request stream on " + url);
 
 			JSONTokener x = new JSONTokener(request.getResponseBodyAsStream());
 			//Based on: https://github.com/douglascrockford/JSON-java/blob/master/JSONArray.java
@@ -269,8 +269,8 @@ public class RestConsumer {
 
 		try {
 			int status = client.executeMethod(get);
-			if (status != IMxRuntimeResponse.OK)
-				throw new RuntimeException("Failed to setup stream to " + collectionUrl +  ", status: " + status);
+			if (status != HttpStatus.SC_OK)
+				throw new RestConsumeException(status, "Failed to start request stream on " + collectionUrl);
 			
 			InputStream in = get.getResponseBodyAsStream();
 			try {
@@ -385,25 +385,27 @@ public class RestConsumer {
 		//pre
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
-		if (target == null)
-			throw new IllegalArgumentException("Target should not be null");
 		
 		if (!Utils.isUrl(url))
-			throw new IllegalArgumentException("Target should have a valid URL attribute");
+			throw new IllegalArgumentException("Requested resource seems to be an invalid URL: " + url);
 		
 		//fetch
 		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag);
 		
 		if (!response.isOk()) 
-			//TODO: use consume exception
-			throw new Exception("Request didn't respond with status 200 or 304: " + response);
+			throw new RestConsumeException(response);
 
-		if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED)  
-			JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
-	
-		if (Core.isSubClassOf(ReferableObject.entityName, target.getType())) {
-			target.setValue(context, ReferableObject.MemberNames.URL.toString(), url);
-			target.setValue(context, ReferableObject.MemberNames.ETag.toString(), response.getETag());
+		if (target != null) {
+			if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED) {
+				if (!response.getBody().matches("^\\s*\\{[\\s\\S]*"))
+					throw new IllegalArgumentException("Response body does not seem to be a valid JSON Object. A JSON object starts with '{' but found: " + response.getBody());
+				JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
+			}
+		
+			if (Core.isSubClassOf(ReferableObject.entityName, target.getType())) {
+				target.setValue(context, ReferableObject.MemberNames.URL.toString(), url);
+				target.setValue(context, ReferableObject.MemberNames.ETag.toString(), response.getETag());
+			}
 		}
 		
 		return response.asRequestResult(context);
@@ -443,7 +445,7 @@ public class RestConsumer {
 				});
 		
 		if (!response.isOk())
-			throw new Exception("Request didn't respond with status 2** or 304: " + response);
+			throw new RestConsumeException(response);
 
 		return response.asRequestResult(context);
 	}
@@ -454,7 +456,7 @@ public class RestConsumer {
 		HttpResponseData response = doRequest("PUT", url, etag, data.toString(4));
 
 		if (!response.isOk())
-			throw new Exception("Request didn't respond with status 2** or 304: " + response);
+			throw new RestConsumeException(response);
 
 		return response.asRequestResult(context);
 	}

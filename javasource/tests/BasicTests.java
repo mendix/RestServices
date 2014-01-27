@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
@@ -18,6 +19,7 @@ import system.proxies.UserRole;
 import tests.proxies.CTaskView;
 import tests.proxies.Task;
 
+import com.google.common.collect.ImmutableList;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
@@ -37,6 +39,8 @@ public class BasicTests {
 		XPath.create(Core.createSystemContext(), Task.class).deleteAll();
 		
 		this.def = XPath.create(Core.createSystemContext(), ServiceDefinition.class).findOrCreateNoCommit(ServiceDefinition.MemberNames.Name, "tasks");
+		def.setEnableGet(true);
+		def.setEnableListing(true);
 		def.setAccessRole("*");
 		def.setSourceEntity(Task.entityName);
 		def.setSourceKeyAttribute(Task.MemberNames.Nr.toString());
@@ -58,11 +62,13 @@ public class BasicTests {
 	private String getTestUser() throws CoreException {
 		if (username == null){
 			IContext c = Core.createSystemContext();
-			username = XPath.create(c, User.class).findOrCreate(
+			User user = XPath.create(c, User.class).findOrCreate(
 					User.MemberNames.Name, StringUtils.randomHash(),
-					User.MemberNames.Password, "Password1!",
-					User.MemberNames.UserRoles, 
-						XPath.create(c, UserRole.class).eq(UserRole.MemberNames.Name, "User").first()).getName();
+					User.MemberNames.Password, "Password1!");
+
+			user.setUserRoles(XPath.create(c, UserRole.class).eq(UserRole.MemberNames.Name, "User").all());
+			user.commit();
+			username = user.getName();
 		}
 		return username;
 	}
@@ -110,7 +116,7 @@ public class BasicTests {
 
 		//use etag, should return modified and nothing sensible
 		v = getTask(c2, t.getNr().toString(), v.getETag(), ResponseCode.NotModified, 304);
-		Assert.assertEquals("", v.getDescription());
+		Assert.assertEquals(null, v.getDescription());
 		Assert.assertEquals(0L, (long) v.getNr());
 		Assert.assertEquals(false, v.getCompleted());
 
@@ -121,41 +127,46 @@ public class BasicTests {
 		Assert.assertEquals(false, v.getCompleted());
 
 		//use invalid nr, should return 404
-		v = getTask(c2, "-17", v.getETag(), ResponseCode.NotModified, 304);
-		Assert.assertEquals("", v.getDescription());
-		Assert.assertEquals(0L, (long) v.getNr());
-		Assert.assertEquals(false, v.getCompleted());
+		try {
+			v = getTask(c2, "-17", v.getETag(), ResponseCode.NotModified, 304);
+			Assert.fail();
+		}
+		catch(RestConsumeException e) {
+			Assert.assertEquals(404L, e.getStatus());
+		}
 		
 		//use invalid key, should return 404
 		try {
-			v = getTask(c2, v.getNr().toString(), null, ResponseCode.OK, 200);
+			v = getTask(c2, "iamnotanumber", null, ResponseCode.OK, 200);
 			Assert.fail();
 		}
-		catch(Exception e) { //TODO: restconsumeexception only!
-			//OK //TODO: check status 404
+		catch(RestConsumeException e) { 
+			Assert.assertEquals(404L, e.getStatus());
 		}
 		
 		//use other contentType, should work but not set data
-		v = getTask(c2, t.getNr().toString() + "?contenttype=xml", "", ResponseCode.OK, 200);
-		Assert.assertEquals("", v.getDescription());
-		Assert.assertEquals(0L, (long) v.getNr());
-		Assert.assertEquals(false, v.getCompleted());
-		Assert.assertTrue(lastRequestResult.getResponseBody().contains("milk"));
+		RequestResult xmlresult = RestConsumer.getObject(c, baseUrl + t.getNr().toString() + "?contenttype=xml", null, null);
+		
+		Assert.assertEquals(200L, (long)(int)xmlresult.getRawResponseCode());
+		Assert.assertTrue(xmlresult.getResponseBody().startsWith("<?xml"));
+		Assert.assertTrue(xmlresult.getResponseBody().contains("milk"));
 		
 		//disble the service
 		def.setEnableGet(false);
+		def.setEnableListing(false);
 		def.commit();
 		
 		try {
 			v = getTask(c2, v.getNr().toString(), null, ResponseCode.OK, 200);
 			Assert.fail();
 		}
-		catch(Exception e) { //TODO: restconsumeexception only!
-			//OK //TODO: check status 503
+		catch(RestConsumeException e) {
+			Assert.assertEquals(405L, e.getStatus()); //Method  not allowed
 		}
 		
 		//enable, set constraint, find
 		def.setEnableGet(true);
+		def.setEnableListing(true);
 		def.setSourceConstraint("[" + Task.MemberNames.Completed.toString() + " = false()]");
 		def.commit();
 		
@@ -172,11 +183,12 @@ public class BasicTests {
 			v = getTask(c2, t.getNr().toString(), null, ResponseCode.OK, 200);
 			Assert.fail();
 		}
-		catch(Exception e) { //TODO: restconsumeexception only!
-			//OK //TODO: check status 404 (does not match the constraint, but the object does exist, but, world readable)
+		catch(RestConsumeException e) { 
+			Assert.assertEquals(404L, e.getStatus());
 		}
 		
 		t.setCompleted(false);
+		publishTask(c2, t, false);
 		
 		//enable but secure the service
 		def.setAccessRole("User");
@@ -187,8 +199,8 @@ public class BasicTests {
 			v = getTask(c2, v.getNr().toString(), null, ResponseCode.OK, 200);
 			Assert.fail();
 		}
-		catch(Exception e) { 
-			//OK //TODO: check status 401
+		catch(RestConsumeException e) { 
+			Assert.assertEquals(401L, e.getStatus());
 		}
 		
 		//secure, use valid user
@@ -210,8 +222,8 @@ public class BasicTests {
 			v = getTask(c2, t.getNr().toString(), null, ResponseCode.OK, 200);
 			Assert.fail();
 		}
-		catch(Exception e) { //TODO: restconsumeexception only!
-			//OK //TODO: check status 401 (does not match the constraint, but the object does exist, but, not world readable)
+		catch(RestConsumeException e) { 
+			Assert.assertEquals(401L, e.getStatus());
 		}
 		
 		//unsecure, and delete
@@ -224,11 +236,15 @@ public class BasicTests {
 	
 	
 	
-	private void publishTask(IContext c, Task t, boolean delete) {
-		if (delete)
+	private void publishTask(IContext c, Task t, boolean delete) throws CoreException {
+		if (delete) {
 			ChangeManager.publishDelete(c, t.getMendixObject());
-		else
+			t.delete();
+		}
+		else {
 			ChangeManager.publishUpdate(c, t.getMendixObject());
+			t.commit();
+		}
 	}
 
 	@Test
@@ -236,9 +252,9 @@ public class BasicTests {
 		def.setEnableChangeTracking(true);
 		def.commit();
 		
-		rebuildIndex();
+//		rebuildIndex();
 		
-		simpleGet();
+//		simpleGet();
 
 	}
 

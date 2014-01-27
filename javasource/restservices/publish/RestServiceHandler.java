@@ -48,9 +48,13 @@ public class RestServiceHandler extends RequestHandler{
 			return;
 		
 		String errors = ConsistencyChecker.check(def);
-		if (errors != null)
-			RestServices.LOG.error("Failed to load service '" + def.getName() + "': \n" + errors);
+		if (errors != null) {
+			String msg = "Failed to load service '" + def.getName() + "': \n" + errors;
+			RestServices.LOG.error(msg);
+			throw new IllegalStateException(msg);
+		}
 		else {
+			RestServices.LOG.info("Reloading definition of service '" + def.getName() + "'");
 			PublishedService service = new PublishedService(def);
 			RestServices.registerService(service.getName(), service);
 		}
@@ -114,7 +118,7 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private void rollback(RestServiceRequest rsr) {
-		if (rsr.getContext().isInTransaction())
+		if (rsr != null && rsr.getContext() != null && rsr.getContext().isInTransaction())
 			rsr.getContext().rollbackTransAction();
 	}
 
