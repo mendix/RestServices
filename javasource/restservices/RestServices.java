@@ -15,7 +15,7 @@ public class RestServices {
 	
 	public static int BATCHSIZE = 1000;
 
-	public static ILogNode LOG = Core.getLogger("RestPublisher");
+	public static ILogNode LOG = Core.getLogger("Rest");//TODO: split in consume and publish node
 	
 	public static final String VERSION = "1.0.0";
 	

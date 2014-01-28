@@ -214,7 +214,9 @@ public class ChangeManager {
 			storeUpdate(objectState, eTag, jsonString, deleted);
 		}
 		
-		else if (objectState.getetag().equals(eTag) && objectState.getdeleted() != deleted) 
+		else if (deleted && objectState.getdeleted()) 
+			return; //nothing changed
+		else if (!deleted && !objectState.getdeleted() && eTag != null && eTag.equals(objectState.getetag()))
 			return; //nothing changed
 	
 		else

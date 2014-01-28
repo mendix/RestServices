@@ -384,7 +384,7 @@ public class PublishedService {
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
 		if (this.getConstraint(c).isEmpty())
 			return true;
-		return Core.retrieveXPathQueryAggregate(c, "count(//" + getSourceEntity() + "[id='" + id.toLong() + "']" + this.getConstraint(c)) == 1;
+		return Core.retrieveXPathQueryAggregate(c, "count(//" + getSourceEntity() + "[id='" + id.toLong() + "']" + this.getConstraint(c) + ")") == 1;
 	}
 
 	public String getObjecturl(IContext c, IMendixObject obj) {

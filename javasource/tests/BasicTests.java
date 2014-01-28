@@ -232,18 +232,26 @@ public class BasicTests {
 		
 		t.delete();
 		publishTask(c, t, true);
+		
+		try {
+			v = getTask(c2, t.getNr().toString(), null, ResponseCode.OK, 200);
+			Assert.fail();
+		}
+		catch(RestConsumeException e) { 
+			Assert.assertEquals(404L, e.getStatus());
+		}
 	}
 	
 	
 	
 	private void publishTask(IContext c, Task t, boolean delete) throws CoreException {
 		if (delete) {
-			ChangeManager.publishDelete(c, t.getMendixObject());
 			t.delete();
+			ChangeManager.publishDelete(c, t.getMendixObject());
 		}
 		else {
-			ChangeManager.publishUpdate(c, t.getMendixObject());
 			t.commit();
+			ChangeManager.publishUpdate(c, t.getMendixObject());
 		}
 	}
 
