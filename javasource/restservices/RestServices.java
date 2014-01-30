@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 
+import restservices.publish.PublishedMicroflow;
 import restservices.publish.PublishedService;
 
 import com.mendix.core.Core;
@@ -109,5 +110,11 @@ public class RestServices {
 
 	public static String getServiceUrl(String name) {
 		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + "/";
+	}
+
+	public static void registerPublishedMicroflow(String microflowname,
+			PublishedMicroflow publishedMicroflow) {
+		// TODO Auto-generated method stub
+		
 	}
 }

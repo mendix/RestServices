@@ -164,8 +164,10 @@ public class RestServiceHandler extends RequestHandler{
 			else if ("POST".equals(method)) {
 				handled = true;
 				String body = IOUtils.toString(rsr.request.getInputStream());
+				//TODO: support form encoded as wel!
 				service.servePost(rsr, new JSONObject(body));
 			}
+			//TODO: published microflow?
 			break;
 		case 2:
 			if (isGet) {
