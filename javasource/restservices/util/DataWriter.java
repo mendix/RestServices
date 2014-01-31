@@ -3,7 +3,7 @@ package restservices.util;
 import java.io.OutputStream;
 import java.util.Stack;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -109,7 +109,7 @@ public class DataWriter {
 		else if (mode == XML)
 			write("<").write(keyName).write(">");
 		else if (mode == HTML)
-			write("\n<tr><td>").write(StringEscapeUtils.escapeHtml4(keyName)).write("</td><td>");
+			write("\n<tr><td>").write(StringEscapeUtils.escapeHtml(keyName)).write("</td><td>");
 		
 		return this;
 	}
@@ -154,7 +154,7 @@ public class DataWriter {
 			else if (mode == XML)
 				write(StringEscapeUtils.escapeXml(value));
 			else if (mode == HTML)
-				write(Utils.autoGenerateLink(StringEscapeUtils.escapeHtml4(value)));
+				write(Utils.autoGenerateLink(StringEscapeUtils.escapeHtml(value)));
 		}	
 		
 		writeValueEnd();

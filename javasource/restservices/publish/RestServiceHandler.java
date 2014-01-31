@@ -6,8 +6,8 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jetty.http.HttpStatus;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -106,7 +106,7 @@ public class RestServiceHandler extends RequestHandler{
 		catch(Throwable e) {
 			RestServices.LOG.error("Failed to serve " + requestStr + " " +e.getMessage(), e);
 			rollback(rsr);
-			serveErrorPage(rsr, HttpStatus.INTERNAL_SERVER_ERROR_500, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
+			serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
 		}
 		finally {
 			rsr.dispose(); 
