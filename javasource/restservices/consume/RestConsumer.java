@@ -20,9 +20,16 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
+import org.apache.commons.httpclient.methods.multipart.FilePart;
+import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
+import org.apache.commons.httpclient.methods.multipart.Part;
+import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -34,6 +41,7 @@ import restservices.proxies.ResponseCode;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
+import system.proxies.FileDocument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -56,17 +64,20 @@ public class RestConsumer {
 	//TODO: use this class in exception handling as well
 	public static class HttpResponseData{
 		private int status;
-		private String body;
+		private String body = null;
 		private String eTag;
 		private String url;
 		private String method;
 
-		HttpResponseData(String method, String url, int status, String body, String eTag) {
+		HttpResponseData(String method, String url, int status, String eTag) {
 			this.url = url;
 			this.status = status;
-			this.body = body;
 			this.eTag = eTag;
 			this.method = method;
+		}
+		
+		public void setBody(String body) {
+			this.body = body;
 		}
 		
 		public boolean isOk() {
@@ -146,7 +157,7 @@ public class RestConsumer {
 	}
 
 	public static HttpResponseData doRequest(final String method, String url, String etag) throws Exception {
-		return doRequest(method, url, etag, (Predicate<HttpMethodBase>) null);
+		return doRequest(method, url, etag, (Predicate<HttpMethodBase>) null, (Predicate<HttpMethodBase>) null);
 	}
 	
 	public static HttpResponseData doRequest(final String method, String url, String etag, final String body) throws Exception {
@@ -167,13 +178,13 @@ public class RestConsumer {
 				return true;
 			}
 			
-		});
+		}, null);
 	}
 
 	/**
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
 	 */
-	public static HttpResponseData doRequest(String method, String url, String etag, Predicate<HttpMethodBase> beforeSubmitHandler) throws Exception {
+	public static HttpResponseData doRequest(String method, String url, String etag, Predicate<HttpMethodBase> beforeSubmitHandler, Predicate<HttpMethodBase> bodyProcessor) throws Exception {
 		if (RestServices.LOG.isDebugEnabled())
 			RestServices.LOG.debug("Fetching '" + url + "' etag: " + etag + "..");
 		
@@ -204,9 +215,11 @@ public class RestConsumer {
 			int status = client.executeMethod(request);
 			Header responseEtag = request.getResponseHeader(RestServices.ETAG_HEADER);
 			
-			HttpResponseData response = new HttpResponseData(method, url, status, 
-					request.getResponseBodyAsString(),
-					responseEtag == null ? null : responseEtag.getValue());
+			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue());
+			if (bodyProcessor == null)
+				response.setBody(request.getResponseBodyAsString());
+			else
+				bodyProcessor.apply(request);
 			
 			RestServices.LOG.info(response);
 			
@@ -381,7 +394,7 @@ public class RestConsumer {
 		});
 	}
 	
-	public static RequestResult getObject(IContext context, String url, String eTag, IMendixObject target) throws Exception {
+	public static RequestResult getObject(final IContext context, String url, String eTag, final IMendixObject target) throws Exception {
 		//pre
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
@@ -389,13 +402,32 @@ public class RestConsumer {
 		if (!Utils.isUrl(url))
 			throw new IllegalArgumentException("Requested resource seems to be an invalid URL: " + url);
 		
+		boolean isFileTarget = target != null && Core.isSubClassOf(FileDocument.entityName, target.getType()); 
+		
 		//fetch
-		HttpResponseData response = RestConsumer.doRequest("GET", url, eTag);
+		HttpResponseData response;
+		if (!isFileTarget)
+			response = RestConsumer.doRequest("GET", url, eTag);
+		else {
+			response = RestConsumer.doRequest("GET", url, eTag, null, new Predicate<HttpMethodBase>() {
+				
+				@Override
+				public boolean apply(HttpMethodBase request) {
+					try {
+						Core.storeFileDocumentContent(context, target, request.getResponseBodyAsStream());
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+					return true;
+				}
+			});
+		}
 		
 		if (!response.isOk()) 
 			throw new RestConsumeException(response);
 
-		if (target != null) {
+		//process response
+		if (target != null && !isFileTarget) {
 			if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED) {
 				if (!response.getBody().matches("^\\s*\\{[\\s\\S]*"))
 					throw new IllegalArgumentException("Response body does not seem to be a valid JSON Object. A JSON object starts with '{' but found: " + response.getBody());
@@ -425,24 +457,63 @@ public class RestConsumer {
 		return rr;
 	}
 	
-	public static RequestResult postObject(IContext context, String url, IMendixObject source, boolean asFormData) throws Exception {
+	public static RequestResult postObject(final IContext context, String url, final IMendixObject source, boolean asFormData) throws Exception {
+		final boolean isFile = Core.isSubClassOf(FileDocument.entityName, source.getType());
 		final JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
 		
-		HttpResponseData response = !asFormData 
-				? doRequest("POST", url, null, data.toString(4))
-				: doRequest("POST", url, null, new Predicate<HttpMethodBase>() {
+		HttpResponseData response;
+		
+		if (!asFormData && !isFile)
+			response = doRequest("POST", url, null, data.toString(4));
+		else if (!asFormData && isFile) {
+			response = doRequest("POST", url, null, new Predicate<HttpMethodBase>() {
+					
+				@Override
+				public boolean apply(HttpMethodBase request) {
+					((PostMethod)request).setRequestEntity(new InputStreamRequestEntity(Core.getFileDocumentContent(context, source)));
+					return true;
+				}
+			}, null);
+		}
+		else if (asFormData) {
+				response = doRequest("POST", url, null, new Predicate<HttpMethodBase>() {
 
-					@Override
-					public boolean apply(HttpMethodBase request) {
-						request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"); //TODO: fix
-						for(String key : JSONObject.getNames(data)) {
-							Object value = data.get(key);
-							if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
-								((PostMethod)request).addParameter(key, String.valueOf(value));
-						}
-						return true;
+				@Override
+				public boolean apply(HttpMethodBase request) {
+					request.setRequestHeader("Content-Type", isFile ? "multipart/form-data": "application/x-www-form-urlencoded"); //TODO: fix
+					
+					//extract params
+					HttpMethodParams params = new HttpMethodParams();
+					for(String key : JSONObject.getNames(data)) {
+						if (FileDocument.MemberNames.valueOf(key) != null) //Do not pick up default filedoc attrs!
+							continue; 
+						
+						Object value = data.get(key);
+						if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
+							params.setParameter(key, String.valueOf(value));
 					}
-				});
+					
+					if (!isFile)
+						((PostMethod)request).setParams(params);
+					else {
+						//add file
+						String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
+						
+						try {
+							ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
+							MultipartRequestEntity me = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, params);
+							((PostMethod)request).setRequestEntity(me);
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					}
+					
+					return true;
+				}
+			}, null);
+		}
+		else
+			throw new IllegalStateException();
 		
 		if (!response.isOk())
 			throw new RestConsumeException(response);
@@ -465,5 +536,7 @@ public class RestConsumer {
 			String password) {
 		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));
 	}
+
+
 	
 }

@@ -1,8 +1,10 @@
 package restservices.util;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -29,8 +31,19 @@ public class JsonSerializer {
 	 * @throws Exception 
 	 */
 	public static Object identifierToJSON(IContext context, IMendixIdentifier id) throws Exception {
+		return identifierToJSON(context, id, new HashSet<Long>());
+	}
+	
+	
+	private static Object identifierToJSON(IContext context, IMendixIdentifier id, Set<Long> alreadySeen) throws Exception {
 		if (id == null)
 			return null;
+		
+		if (alreadySeen.contains(id.toLong())) {
+			RestServices.LOG.warn("ID already seen: " + id.toLong() + ", skipping serialization");
+			return null;
+		}
+		alreadySeen.add(id.toLong());
 		
 		/* persistable object, generate url */
 		if (Core.getMetaObject(id.getObjectType()).isPersistable()) {
@@ -58,10 +71,14 @@ public class JsonSerializer {
 			RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
 			return null;
 		}
-		return writeMendixObjectToJson(context, obj);
+		return writeMendixObjectToJson(context, obj, alreadySeen);
 	}
 
 	public static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view) throws Exception {
+		return writeMendixObjectToJson(context, view, new HashSet<Long>());
+	}
+	
+	private static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view, Set<Long> alreadySeen) throws Exception {
 		if (view == null)
 			throw new IllegalArgumentException("Mendix to JSON conversion expects an object");
 		
@@ -71,13 +88,13 @@ public class JsonSerializer {
 		
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			serializeMember(context, res, e.getValue(), view.getMetaObject());
+			serializeMember(context, res, e.getValue(), view.getMetaObject(), alreadySeen);
 		
 		return res;
 	}
 
 	private static void serializeMember(IContext context, JSONObject target,
-			IMendixObjectMember<?> member, IMetaObject viewType) throws Exception {
+			IMendixObjectMember<?> member, IMetaObject viewType, Set<Long> alreadySeen) throws Exception {
 		if (context == null)
 			throw new IllegalStateException("Context is null");
 	
@@ -124,7 +141,7 @@ public class JsonSerializer {
 		 */
 		else if (member instanceof MendixObjectReference){
 			if (value != null) 
-				value = identifierToJSON(context, (IMendixIdentifier) value);
+				value = identifierToJSON(context, (IMendixIdentifier) value, alreadySeen);
 			
 			if (value == null)
 				target.put(Utils.getShortMemberName(memberName), JSONObject.NULL);
@@ -141,7 +158,7 @@ public class JsonSerializer {
 				@SuppressWarnings("unchecked")
 				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
 				for(IMendixIdentifier id : ids) if (id != null) {
-					Object url = identifierToJSON(context, id);
+					Object url = identifierToJSON(context, id, alreadySeen);
 					if (url != null)
 						ar.put(url);
 				}
