@@ -671,12 +671,20 @@ public class XPath<T>
 		
 		long count = this.count();
 		
-		this.offset(0);
-		this.limit(batchsize);
-		List<T> data = this.all();
+		int baseoffset = this.offset;
+		int baselimit = this.limit;
 		
-		while(data.size() > 0) {
-			long i = 0;
+		boolean useBaseLimit = baselimit > -1;
+		
+		this.offset(baseoffset);
+		List<T> data;
+		
+		long i = 0;
+
+		do {
+			this.limit(useBaseLimit ? Math.min(batchsize, baseoffset + baselimit - this.offset) : batchsize);
+			data = this.all();
+
 			for(T item : data) {
 				i += 1;
 				try
@@ -690,8 +698,7 @@ public class XPath<T>
 			}
 			
 			this.offset(this.offset + data.size());
-			data = this.all();
-		}
+		} while(data.size() > 0);
 	}
 	
 	/**

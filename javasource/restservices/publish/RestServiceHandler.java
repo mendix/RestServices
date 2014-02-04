@@ -159,7 +159,10 @@ public class RestServiceHandler extends RequestHandler{
 				if (rsr.request.getParameter(RestServices.PARAM_ABOUT) != null)
 					new ServiceDescriber(rsr, service.def).serveServiceDescription();
 				else
-					service.serveListing(rsr, "true".equals(rsr.request.getParameter(RestServices.PARAM_DATA)));
+					service.serveListing(rsr, 
+							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")), 
+							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")), 
+							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_LIMIT, "-1")));
 			}
 			else if ("POST".equals(method)) {
 				handled = true;

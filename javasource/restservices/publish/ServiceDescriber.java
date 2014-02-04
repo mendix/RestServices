@@ -84,6 +84,8 @@ public class ServiceDescriber {
 		if (def.getEnableListing()) {
 				startEndpoint("GET", "", "List the URL of all objects published by this service");
 				addEndpointParam(RestServices.PARAM_DATA, "'true' or 'false'. Whether to list the URLs (false) of each of the objects, or output the objects themselves (true). Defaults to 'false'");
+				addEndpointParam(RestServices.PARAM_OFFSET, "positive number, optional argument");
+				addEndpointParam(RestServices.PARAM_LIMIT, "positive number, optional argument");
 				addContentType();
 				endEndpoint();
 			}

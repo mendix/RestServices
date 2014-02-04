@@ -186,4 +186,9 @@ public class RestServiceRequest {
 			endHTMLDoc();
 		close();
 	}
+
+	public String getRequestParameter(String param, String defaultValue) {
+		String result = request.getParameter(param);
+		return result == null ? defaultValue : param;
+	}
 }

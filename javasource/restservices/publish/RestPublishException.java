@@ -14,7 +14,8 @@ public class RestPublishException extends Exception {
 		NOT_FOUND(HttpStatus.SC_NOT_FOUND), 
 		UNAUTHORIZED(HttpStatus.SC_UNAUTHORIZED),
 		METHOD_NOT_ALLOWED(HttpStatus.SC_METHOD_NOT_ALLOWED),
-		CONFLICTED(HttpStatus.SC_CONFLICT);
+		CONFLICTED(HttpStatus.SC_CONFLICT), 
+		BAD_REQUEST(HttpStatus.SC_BAD_REQUEST);
 		
 		private int status;
 

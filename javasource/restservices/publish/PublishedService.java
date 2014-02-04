@@ -90,28 +90,33 @@ public class PublishedService {
 				.first();
 	}	
 
-	public void serveListing(RestServiceRequest rsr, boolean includeData) throws Exception {
+	public void serveListing(RestServiceRequest rsr, boolean includeData, int offset, int limit) throws Exception {
 		if (!def.getEnableListing())
 			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
+		if (offset >= 0 ^ limit >= 0)
+			throw new RestPublishException(RestExceptionType.BAD_REQUEST, "'offset' and 'limit' parameters should both be provided and positive, or none of them");
 		
 		rsr.startDoc();
 		rsr.datawriter.array();
 
 		if (def.getEnableChangeTracking())
-			serveListingFromIndex(rsr, includeData);
+			serveListingFromIndex(rsr, includeData, offset, limit);
 		else
-			serveListingFromDB(rsr, includeData);
+			serveListingFromDB(rsr, includeData, offset, limit);
 
 		rsr.datawriter.endArray();
 		rsr.endDoc();
 	}
 	
 	private void serveListingFromIndex(final RestServiceRequest rsr,
-			final boolean includeData) throws CoreException {
+			final boolean includeData, int offset, int limit) throws CoreException {
 		XPath.create(rsr.getContext(), ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
 			.eq(ObjectState.MemberNames.deleted, false)
 			.addSortingAsc(ObjectState.MemberNames.key)
+			.append("") //MWE: <- does nothing, but makes sure offset & limit are supported. If this gives compile error, please upgrade community commons
+			.offset(offset) //MWE: note that this only works on later versions of community!
+			.limit(limit)
 			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
 
 				@Override
@@ -125,24 +130,27 @@ public class PublishedService {
 			});
 	}
 
-	private void serveListingFromDB(RestServiceRequest rsr, boolean includeData) throws Exception {
-		IRetrievalSchema schema = Core.createRetrievalSchema(); 
+	private void serveListingFromDB(RestServiceRequest rsr, boolean includeData, int baseoffset, int limit) throws Exception {
+		IRetrievalSchema schema = Core.createRetrievalSchema();
+		boolean hasOffset = baseoffset >= 0;
 		
 		if (!includeData) {
 			schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
 			schema.addMetaPrimitiveName(getKeyAttribute());
-			schema.setAmount(RestServices.BATCHSIZE);
 		}
 		
-		long offset = 0;
+		int offset = hasOffset ? baseoffset : 0;
+
 		String xpath = "//" + getSourceEntity() + getConstraint(rsr.getContext());
 		List<IMendixObject> result = null;
 		
 		do {
+			int amount = hasOffset ? Math.min(baseoffset + limit - offset, RestServices.BATCHSIZE) : RestServices.BATCHSIZE;
 			schema.setOffset(offset);
+			schema.setAmount(amount);
 			
 			result = !includeData
-					? Core.retrieveXPathQuery(rsr.getContext(), xpath, RestServices.BATCHSIZE, (int) offset, ImmutableMap.of(getKeyAttribute(), "ASC")) 
+					? Core.retrieveXPathQuery(rsr.getContext(), xpath, amount, offset, ImmutableMap.of(getKeyAttribute(), "ASC")) 
 					: Core.retrieveXPathSchema(rsr.getContext(), xpath , schema, false);
 		
 			for(IMendixObject item : result) {
@@ -158,7 +166,7 @@ public class PublishedService {
 				}
 			}
 			
-			offset += RestServices.BATCHSIZE;
+			offset += result.size();
 		}
 		while(!result.isEmpty());
 	}
