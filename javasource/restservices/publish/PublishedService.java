@@ -90,11 +90,36 @@ public class PublishedService {
 				.first();
 	}	
 
+	public void serveCount(RestServiceRequest rsr) throws CoreException, RestPublishException {
+		if (!def.getEnableListing())
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
+
+		rsr.startDoc();
+		rsr.datawriter.object();
+		
+		long count;
+		
+		if (def.getEnableChangeTracking()) {
+			count = XPath.create(rsr.getContext(), ObjectState.class)
+					.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
+					.eq(ObjectState.MemberNames.deleted, false)
+					.count();
+		} else 
+			count = Core.retrieveXPathQueryAggregate(rsr.getContext(), "count(//" + getSourceEntity() + getConstraint(rsr.getContext()) + ")");
+			
+		
+		rsr.datawriter.key("count").value(count).endObject();
+		rsr.endDoc();
+	}
+
+	
 	public void serveListing(RestServiceRequest rsr, boolean includeData, int offset, int limit) throws Exception {
 		if (!def.getEnableListing())
 			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "List is not enabled for this service");
 		if (offset >= 0 ^ limit >= 0)
 			throw new RestPublishException(RestExceptionType.BAD_REQUEST, "'offset' and 'limit' parameters should both be provided and positive, or none of them");
+		if (offset >= 0 && limit < 1)
+			throw new RestPublishException(RestExceptionType.BAD_REQUEST, "'limit' should be positive and larget than zero");
 		
 		rsr.startDoc();
 		rsr.datawriter.array();
@@ -423,5 +448,6 @@ public class PublishedService {
 		this.changeManager.dispose();
 	}
 
+	
 }
 

@@ -189,6 +189,6 @@ public class RestServiceRequest {
 
 	public String getRequestParameter(String param, String defaultValue) {
 		String result = request.getParameter(param);
-		return result == null ? defaultValue : param;
+		return result == null ? defaultValue : result;
 	}
 }

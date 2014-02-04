@@ -22,7 +22,7 @@ public class RestServices {
 	
 	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
 	static Map<String, PublishedService> servicesByEntity = new HashMap<String, PublishedService>();
-	
+
 	public static PublishedService getServiceForEntity(String entityType) {
 		if (servicesByEntity.containsKey(entityType))
 			return servicesByEntity.get(entityType);
@@ -79,6 +79,8 @@ public class RestServices {
 
 	public static final String PARAM_ABOUT = "about";
 
+	public static final String PARAM_COUNT = "count" ;
+	
 	public static final String PARAM_DATA = "data";
 
 	public static final String PARAM_OFFSET = "offset"; 

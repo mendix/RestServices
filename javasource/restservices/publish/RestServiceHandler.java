@@ -158,6 +158,8 @@ public class RestServiceHandler extends RequestHandler{
 				handled = true;
 				if (rsr.request.getParameter(RestServices.PARAM_ABOUT) != null)
 					new ServiceDescriber(rsr, service.def).serveServiceDescription();
+				else if (rsr.request.getParameter(RestServices.PARAM_COUNT) != null)
+					service.serveCount(rsr);
 				else
 					service.serveListing(rsr, 
 							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")), 
