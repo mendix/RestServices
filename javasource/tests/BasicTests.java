@@ -41,9 +41,12 @@ public class BasicTests {
 
 	@Before
 	public void setup() throws CoreException {
-		XPath.create(Core.createSystemContext(), Task.class).deleteAll();
+		IContext c = Core.createSystemContext();
+		XPath.create(c, Task.class).deleteAll();
 		
-		this.def = XPath.create(Core.createSystemContext(), ServiceDefinition.class).findOrCreateNoCommit(ServiceDefinition.MemberNames.Name, "tasks");
+		XPath.create(c, ServiceDefinition.class).eq(ServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
+		
+		this.def = XPath.create(c, ServiceDefinition.class).findOrCreateNoCommit(ServiceDefinition.MemberNames.Name, "tasks");
 		def.setEnableGet(true);
 		def.setEnableListing(true);
 		def.setAccessRole("*");
@@ -431,6 +434,7 @@ public class BasicTests {
 
 			tearDown();
 			setup();
+
 			listFromIndex();
 
 			tearDown();

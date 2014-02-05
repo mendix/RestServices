@@ -687,7 +687,11 @@ public class XPath<T>
 		long i = 0;
 
 		do {
-			this.limit(useBaseLimit ? Math.min(batchsize, baseoffset + baselimit - this.offset) : batchsize);
+			int newlimit = useBaseLimit ? Math.min(batchsize, baseoffset + baselimit - this.offset) : batchsize;
+			if (newlimit == 0)
+				break; //where done, no more data is needed
+			
+			this.limit(newlimit);
 			data = this.all();
 
 			for(T item : data) {
