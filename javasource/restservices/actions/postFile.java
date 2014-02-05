@@ -9,30 +9,32 @@
 
 package restservices.actions;
 
-import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class addCredentialsToNextRequest extends UserAction<Boolean>
+public class postFile extends UserAction<IMendixObject>
 {
-	private String username;
-	private String password;
+	private String targetUrl;
+	private IMendixObject __dataObject;
+	private system.proxies.FileDocument dataObject;
 
-	public addCredentialsToNextRequest(String username, String password)
+	public postFile(String targetUrl, IMendixObject dataObject)
 	{
 		super();
-		this.username = username;
-		this.password = password;
+		this.targetUrl = targetUrl;
+		this.__dataObject = dataObject;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public IMendixObject executeAction() throws Exception
 	{
+		this.dataObject = __dataObject == null ? null : system.proxies.FileDocument.initialize(getContext(), __dataObject);
+
 		// BEGIN USER CODE
-		RestConsumer.addCredentialsToNextRequest(username, password);
-		return true;
+		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
 		// END USER CODE
 	}
 
@@ -42,7 +44,7 @@ public class addCredentialsToNextRequest extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "addCredentialsToNextRequest";
+		return "postFile";
 	}
 
 	// BEGIN EXTRA CODE

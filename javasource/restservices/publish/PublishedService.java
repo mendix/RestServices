@@ -135,14 +135,18 @@ public class PublishedService {
 	
 	private void serveListingFromIndex(final RestServiceRequest rsr,
 			final boolean includeData, int offset, int limit) throws CoreException {
-		XPath.create(rsr.getContext(), ObjectState.class)
+		XPath<ObjectState> xp  = XPath.create(rsr.getContext(), ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
 			.eq(ObjectState.MemberNames.deleted, false)
 			.addSortingAsc(ObjectState.MemberNames.key)
-			.append("") //MWE: <- does nothing, but makes sure offset & limit are supported. If this gives compile error, please upgrade community commons
-			.offset(offset) //MWE: note that this only works on later versions of community!
-			.limit(limit)
-			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
+			.append(""); //MWE: <- does nothing, but makes sure offset & limit are supported. If this gives compile error, please upgrade community commons
+			
+		if (offset > -1)
+			xp.offset(offset); //MWE: note that this only works on later versions of community!
+		if (limit > 0)
+			xp.limit(limit);
+		
+		xp.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
 
 				@Override
 				public void onItem(ObjectState item, long offset, long total)
@@ -170,7 +174,7 @@ public class PublishedService {
 		List<IMendixObject> result = null;
 		
 		do {
-			int amount = hasOffset ? Math.min(baseoffset + limit - offset, RestServices.BATCHSIZE) : RestServices.BATCHSIZE;
+			int amount = hasOffset && limit > 0 ? Math.min(baseoffset + limit - offset, RestServices.BATCHSIZE) : RestServices.BATCHSIZE;
 			schema.setOffset(offset);
 			schema.setAmount(amount);
 			

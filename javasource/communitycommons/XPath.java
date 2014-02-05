@@ -110,12 +110,17 @@ public class XPath<T>
 	}
 	
 	public XPath<T> offset(int offset2) {
+		if (offset2 < 0)
+			throw new IllegalArgumentException("Offset should not be negative");
 		this.offset  = offset2;
 		return this;
 	}
 	
 	public XPath<T> limit(int limit2) {
-		this.limit  = limit2;
+		if (limit2 < -1 || limit2 == 0)
+			throw new IllegalArgumentException("Limit should be larger than zero or -1. ");
+
+		this.limit = limit2;
 		return this;
 	}
 	

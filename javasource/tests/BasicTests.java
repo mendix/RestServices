@@ -261,6 +261,11 @@ public class BasicTests {
 	
 	@Test
 	public void simpleList() throws Exception {
+		//count
+		JSONObject d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
+		Assert.assertEquals(0, d.getInt("count"));
+				
+		
 		IContext c = Core.createSystemContext();
 		Task t1 = createTask(c, "Fetch milk", false);
 		Task t2 = createTask(c, "Give it to the cat", true);
@@ -273,16 +278,18 @@ public class BasicTests {
 		IContext c2 = Core.createSystemContext();
 		
 		//count
-		JSONObject d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
+		d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
 		Assert.assertEquals(3, d.getInt("count"));
 		
 		//Test difference between include data and not include data
 		JSONArray ar = new JSONArray(RestConsumer.doRequest("GET", baseUrl, null).getBody());
+		Assert.assertEquals(3, ar.length());
 		Assert.assertEquals(ar.getString(0), baseUrl + t1.getNr());
 		Assert.assertEquals(ar.getString(1), baseUrl + t2.getNr());
 		Assert.assertEquals(ar.getString(2), baseUrl + t3.getNr());
 
 		ar = new JSONArray(RestConsumer.doRequest("GET", baseUrl + "?data=true", null).getBody());
+		Assert.assertEquals(3, ar.length());
 		Assert.assertEquals(ar.get(0) instanceof JSONObject, true);
 		Assert.assertEquals(ar.get(1) instanceof JSONObject, true);
 		Assert.assertEquals(ar.get(2) instanceof JSONObject, true);
@@ -421,11 +428,19 @@ public class BasicTests {
 			RestServices.BATCHSIZE = 2;
 			
 			simpleList();
+
+			tearDown();
+			setup();
 			listFromIndex();
 
+			tearDown();
+			setup();
 			RestServices.BATCHSIZE = 1;
 			
 			simpleList();
+			
+			tearDown();
+			setup();
 			listFromIndex();
 		}
 		finally {
