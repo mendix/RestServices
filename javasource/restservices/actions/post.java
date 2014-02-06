@@ -20,19 +20,21 @@ public class post extends UserAction<IMendixObject>
 {
 	private String collectionUrl;
 	private IMendixObject dataObject;
+	private Boolean asFormData;
 
-	public post(String collectionUrl, IMendixObject dataObject)
+	public post(String collectionUrl, IMendixObject dataObject, Boolean asFormData)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
 		this.dataObject = dataObject;
+		this.asFormData = asFormData;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, false).getMendixObject();
+		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, asFormData).getMendixObject();
 		// END USER CODE
 	}
 

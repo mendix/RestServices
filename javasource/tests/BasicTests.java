@@ -340,9 +340,10 @@ public class BasicTests {
 		def.commit();
 		
 		//republish all tasks
-		publishTask(c, t1, false);
+		/*publishTask(c, t1, false);
 		publishTask(c, t2, false);
-		publishTask(c, t3, false);
+		publishTask(c, t3, false);*/
+		rebuildIndex();
 		
 		//count
 		d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
@@ -453,6 +454,7 @@ public class BasicTests {
 	}
 
 	private void rebuildIndex() throws CoreException, InterruptedException, ExecutionException {
+		//TODO: should not be needed anymore!
 		RestServices.getService("tasks").getChangeManager().rebuildIndex();
 	}
 	

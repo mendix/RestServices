@@ -9,6 +9,7 @@
 
 package restservices.actions;
 
+import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -20,12 +21,14 @@ public class postFile extends UserAction<IMendixObject>
 	private String targetUrl;
 	private IMendixObject __dataObject;
 	private system.proxies.FileDocument dataObject;
+	private Boolean asFormData;
 
-	public postFile(String targetUrl, IMendixObject dataObject)
+	public postFile(String targetUrl, IMendixObject dataObject, Boolean asFormData)
 	{
 		super();
 		this.targetUrl = targetUrl;
 		this.__dataObject = dataObject;
+		this.asFormData = asFormData;
 	}
 
 	@Override
@@ -34,7 +37,7 @@ public class postFile extends UserAction<IMendixObject>
 		this.dataObject = __dataObject == null ? null : system.proxies.FileDocument.initialize(getContext(), __dataObject);
 
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		return RestConsumer.postObject(getContext(), targetUrl, __dataObject, asFormData).getMendixObject();
 		// END USER CODE
 	}
 

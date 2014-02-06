@@ -9,6 +9,7 @@
 
 package restservices.actions;
 
+import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -36,7 +37,7 @@ public class getFile extends UserAction<IMendixObject>
 		this.stub = __stub == null ? null : system.proxies.FileDocument.initialize(getContext(), __stub);
 
 		// BEGIN USER CODE
-		throw new com.mendix.systemwideinterfaces.MendixRuntimeException("Java action was not implemented");
+		return RestConsumer.getObject(getContext(), url, optEtag, __stub).getMendixObject();
 		// END USER CODE
 	}
 

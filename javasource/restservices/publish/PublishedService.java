@@ -138,6 +138,7 @@ public class PublishedService {
 		XPath<ObjectState> xp  = XPath.create(rsr.getContext(), ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
 			.eq(ObjectState.MemberNames.deleted, false)
+			.eq(ObjectState.MemberNames._dirty, false)
 			.addSortingAsc(ObjectState.MemberNames.key)
 			.append(""); //MWE: <- does nothing, but makes sure offset & limit are supported. If this gives compile error, please upgrade community commons
 			
@@ -213,7 +214,7 @@ public class PublishedService {
 	
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
 		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
-		if (source == null || source.getdeleted()) 
+		if (source == null || source.getdeleted() || source.get_dirty()) 
 			throw new RestPublishException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
 		
 		if (Utils.isNotEmpty(rsr.getETag()) && rsr.getETag().equals(source.getetag())) {

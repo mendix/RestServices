@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.AsyncContext;
 
+import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 
 import com.mendix.core.Core;
@@ -22,6 +23,7 @@ import communitycommons.XPath.IBatchProcessor;
 
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
+import restservices.proxies.ServiceDefinition;
 import restservices.proxies.ServiceObjectIndex;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.JsonSerializer;
@@ -32,7 +34,7 @@ public class ChangeManager {
 	
 	private PublishedService service;
 	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
-	private ServiceObjectIndex serviceObjectIndex;
+	private volatile ServiceObjectIndex serviceObjectIndex;
 	private volatile boolean isRebuildingIndex = false;
 	
 	public ChangeManager(PublishedService service) {
@@ -214,34 +216,22 @@ public class ChangeManager {
 			storeUpdate(objectState, eTag, jsonString, deleted);
 		}
 		
-		else if (deleted && objectState.getdeleted()) 
-			return; //nothing changed
-		else if (!deleted && !objectState.getdeleted() && eTag != null && eTag.equals(objectState.getetag()))
-			return; //nothing changed
-	
+		//nothing changed
+		else if (
+				(deleted && objectState.getdeleted()) 
+			|| (!deleted && !objectState.getdeleted() && eTag != null && eTag.equals(objectState.getetag()))
+		) {
+			if (objectState.get_dirty() && !objectState.getdeleted()) {
+				//if there is a dirty mark, but no changes, the object should be preserved although it isn' t updated
+				objectState.set_dirty(false);
+				objectState.commit();
+			}
+			return; 
+		}
+		
+		//changed
 		else
 			storeUpdate(objectState, eTag, jsonString, deleted);
-	}
-
-	ServiceObjectIndex getServiceObjectIndex() throws CoreException {
-		final IContext context = Core.createSystemContext();
-		
-		synchronized(this) {
-			if (this.serviceObjectIndex == null) {
-				this.serviceObjectIndex = XPath.create(context, ServiceObjectIndex.class)
-					.findOrCreate(ServiceObjectIndex.MemberNames.ServiceObjectIndex_ServiceDefinition, service.def);
-			}
-		}
-
-		if (this.serviceObjectIndex.getRevision() < 1) {
-			try {
-				rebuildIndex();
-			} catch (Exception e) {
-				RestServices.LOG.warn("Failed to rebuild index: " + e.getMessage(), e);
-			}
-		}
-				
-		return this.serviceObjectIndex;
 	}
 
 	private synchronized long getNextRevisionId() {
@@ -323,16 +313,39 @@ public class ChangeManager {
 			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
 		}
 	}
+
+
+	ServiceObjectIndex getServiceObjectIndex() throws CoreException {
+		final IContext context = Core.createSystemContext();
+		boolean isNew = false;
+		
+		synchronized(this) {
+			if (this.serviceObjectIndex == null) {
+				isNew = true;
+				serviceObjectIndex = new ServiceObjectIndex(context);
+				serviceObjectIndex.setServiceObjectIndex_ServiceDefinition(service.def);
+				serviceObjectIndex.set_indexversion(calculateIndexVersion(service.def));
+				serviceObjectIndex.commit();
+						
+			}
+		}
+
+		if ((this.serviceObjectIndex.getRevision() < 0 && isNew)
+			||!calculateIndexVersion(service.def).equals(serviceObjectIndex.get_indexversion())) {
+			try {
+				rebuildIndex();
+			} catch (Exception e) {
+				RestServices.LOG.warn("Failed to rebuild index: " + e.getMessage(), e);
+			}
+		}
+				
+		return this.serviceObjectIndex;
+	}
 	
 	public void rebuildIndex() throws CoreException, InterruptedException, ExecutionException {
 		synchronized(this) {
-			if (service.def.getEnableChangeTracking() == false) {
-				RestServices.LOG.warn("SKIP rebuilding index, change tracking is not enabled. ");
-				return;
-			}
-			else if (isRebuildingIndex) {
-				RestServices.LOG.warn("SKIP rebuilding index, index is already building... ");
-				return;
+			if (isRebuildingIndex) {
+				throw new IllegalStateException("SKIP rebuilding index, index is already building... ");
 			}
 			isRebuildingIndex = true;
 		}
@@ -344,6 +357,9 @@ public class ChangeManager {
 			
 			int NR_OF_BATCHES = 8;
 			
+			/**
+			 * From now on, consider everything dirty
+			 */
 			XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
 				.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
@@ -358,8 +374,11 @@ public class ChangeManager {
 			
 			RestServices.LOG.info(service.getName() + ": Initializing change log. Marking old index dirty... DONE. Rebuilding index for existing objects...");
 			
+			/** 
+			 * Republish all known objects, if they are part of the constraint (won' t result in an update if nothing actually changed)
+			 */
 			XPath.create(context, service.getSourceEntity())
-				//DO NOT append constraint, the constraint might have changed and then the old ones should be marked as 'deleted'
+				.append(service.getConstraint(context).replaceAll("(^\\[|\\]$","")) //Note: trims brackets
 				.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<IMendixObject>() {
 	
 					@Override
@@ -367,12 +386,15 @@ public class ChangeManager {
 							long total) throws Exception {
 						if (offset % 100 == 0)
 							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
-						publishUpdate(context, item, true); 
+						publishUpdate(context, item, false); 
 					}
 				});
 			
 			RestServices.LOG.info(service.getName() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
-			
+
+			/**
+			 * Everything that is marked dirty, is either deleted earlier and shouldn' t be dirty, or should be deleted now. 
+			 */
 			XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
 				.eq(ObjectState.MemberNames._dirty, true)
@@ -381,20 +403,37 @@ public class ChangeManager {
 					@Override
 					public void onItem(ObjectState item, long offset, long total)
 							throws Exception {
+						//was already deleted, so OK
 						if (item.getdeleted() == true) {
 							item.set_dirty(false);
 							item.commit();
 						}
+						
+						//wasn' t deleted before. Delete now. 
 						else
 							storeUpdate(item, null, null, true);
 					}
 			});
+			
+			serviceObjectIndex.set_indexversion(calculateIndexVersion(service.def));
+			serviceObjectIndex.commit();
 			
 			RestServices.LOG.info(service.getName() + ": Initializing change log. DONE");
 		}
 		finally {
 			isRebuildingIndex = false;
 		}
+	}
+
+	/**
+	 * Determines on which settings this index was build. If changed, a new index should be generated
+	 * @param def
+	 * @return
+	 */
+	private String calculateIndexVersion(ServiceDefinition def) {
+		return StringUtils.join(new String[] {
+			def.getSourceEntity(), def.getSourceKeyAttribute(), def.getSourceConstraint()
+		},";");
 	}
 
 	public void dispose() {
