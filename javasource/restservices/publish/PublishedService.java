@@ -35,7 +35,11 @@ public class PublishedService {
 
 	public PublishedService(ServiceDefinition def) {
 		this.def = def;
-		changeManager = new ChangeManager(this);
+		try {
+			changeManager = new ChangeManager(this);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public String getConstraint(IContext context) {

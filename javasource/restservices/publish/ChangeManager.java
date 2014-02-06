@@ -37,10 +37,17 @@ public class ChangeManager {
 	private volatile ServiceObjectIndex serviceObjectIndex;
 	private volatile boolean isRebuildingIndex = false;
 	
-	public ChangeManager(PublishedService service) {
+	public ChangeManager(PublishedService service) throws CoreException, InterruptedException, ExecutionException {
 		this.service = service;
-		if (service.def.getEnableChangeTracking() && service.def.getEnableGet())
-			this.getServiceObjectIndex(); //tracker index rebuilding if required
+		if (service.def.getEnableChangeTracking() && service.def.getEnableGet()) {
+			IContext context = Core.createSystemContext();
+			
+			serviceObjectIndex = XPath.create(context, ServiceObjectIndex.class)
+				.findOrCreate(ServiceObjectIndex.MemberNames.ServiceObjectIndex_ServiceDefinition, service.def);
+			
+			if (!calculateIndexVersion(service.def).equals(serviceObjectIndex.get_indexversion())) 
+				rebuildIndex();
+		}
 	}
 
 	JSONObject writeObjectStateToJson(ObjectState state){
@@ -318,32 +325,6 @@ public class ChangeManager {
 
 
 	ServiceObjectIndex getServiceObjectIndex() {
-		final IContext context = Core.createSystemContext();
-		boolean isNew = false;
-		
-		synchronized(this) {
-			if (this.serviceObjectIndex == null) {
-				isNew = true;
-				serviceObjectIndex = new ServiceObjectIndex(context);
-				serviceObjectIndex.setServiceObjectIndex_ServiceDefinition(service.def);
-				serviceObjectIndex.set_indexversion(calculateIndexVersion(service.def));
-				try {
-					serviceObjectIndex.commit();
-				} catch (CoreException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		}
-
-		if ((this.serviceObjectIndex.getRevision() < 0 && isNew)
-			||!calculateIndexVersion(service.def).equals(serviceObjectIndex.get_indexversion())) {
-			try {
-				rebuildIndex();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-				
 		return this.serviceObjectIndex;
 	}
 	
@@ -367,7 +348,7 @@ public class ChangeManager {
 			 */
 			XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
-				.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
+				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ObjectState>() {
 	
 					@Override
 					public void onItem(ObjectState item, long offset, long total)
@@ -384,7 +365,7 @@ public class ChangeManager {
 			 */
 			XPath.create(context, service.getSourceEntity())
 				.append(service.getConstraint(context).replaceAll("(^\\[|\\]$)","")) //Note: trims brackets
-				.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<IMendixObject>() {
+				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<IMendixObject>() {
 	
 					@Override
 					public void onItem(IMendixObject item, long offset,
@@ -403,7 +384,7 @@ public class ChangeManager {
 			XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
 				.eq(ObjectState.MemberNames._dirty, true)
-				.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<ObjectState>() {
+				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ObjectState>() {
 	
 					@Override
 					public void onItem(ObjectState item, long offset, long total)
