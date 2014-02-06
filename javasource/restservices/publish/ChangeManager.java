@@ -39,6 +39,8 @@ public class ChangeManager {
 	
 	public ChangeManager(PublishedService service) {
 		this.service = service;
+		if (service.def.getEnableChangeTracking() && service.def.getEnableGet())
+			this.getServiceObjectIndex(); //tracker index rebuilding if required
 	}
 
 	JSONObject writeObjectStateToJson(ObjectState state){
@@ -315,7 +317,7 @@ public class ChangeManager {
 	}
 
 
-	ServiceObjectIndex getServiceObjectIndex() throws CoreException {
+	ServiceObjectIndex getServiceObjectIndex() {
 		final IContext context = Core.createSystemContext();
 		boolean isNew = false;
 		
@@ -325,8 +327,11 @@ public class ChangeManager {
 				serviceObjectIndex = new ServiceObjectIndex(context);
 				serviceObjectIndex.setServiceObjectIndex_ServiceDefinition(service.def);
 				serviceObjectIndex.set_indexversion(calculateIndexVersion(service.def));
-				serviceObjectIndex.commit();
-						
+				try {
+					serviceObjectIndex.commit();
+				} catch (CoreException e) {
+					throw new RuntimeException(e);
+				}
 			}
 		}
 
@@ -335,7 +340,7 @@ public class ChangeManager {
 			try {
 				rebuildIndex();
 			} catch (Exception e) {
-				RestServices.LOG.warn("Failed to rebuild index: " + e.getMessage(), e);
+				throw new RuntimeException(e);
 			}
 		}
 				
@@ -378,7 +383,7 @@ public class ChangeManager {
 			 * Republish all known objects, if they are part of the constraint (won' t result in an update if nothing actually changed)
 			 */
 			XPath.create(context, service.getSourceEntity())
-				.append(service.getConstraint(context).replaceAll("(^\\[|\\]$","")) //Note: trims brackets
+				.append(service.getConstraint(context).replaceAll("(^\\[|\\]$)","")) //Note: trims brackets
 				.batch(RestServices.BATCHSIZE, NR_OF_BATCHES, new IBatchProcessor<IMendixObject>() {
 	
 					@Override

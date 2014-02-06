@@ -35,6 +35,7 @@ public class PublishedService {
 
 	public PublishedService(ServiceDefinition def) {
 		this.def = def;
+		changeManager = new ChangeManager(this);
 	}
 
 	public String getConstraint(IContext context) {
@@ -48,7 +49,7 @@ public class PublishedService {
 	
 	private IMetaObject sourceMetaEntity;
 
-	private ChangeManager changeManager = new ChangeManager(this);
+	private ChangeManager changeManager;
 	
 	public ChangeManager getChangeManager() {
 		return changeManager;

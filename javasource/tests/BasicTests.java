@@ -455,7 +455,7 @@ public class BasicTests {
 
 	private void rebuildIndex() throws CoreException, InterruptedException, ExecutionException {
 		//TODO: should not be needed anymore!
-		RestServices.getService("tasks").getChangeManager().rebuildIndex();
+		//RestServices.getService("tasks").getChangeManager().rebuildIndex();
 	}
 	
 }
