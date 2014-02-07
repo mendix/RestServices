@@ -3,7 +3,6 @@ package restservices.publish;
 import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.AsyncContext;
@@ -37,7 +36,7 @@ public class ChangeManager {
 	private volatile ServiceObjectIndex serviceObjectIndex;
 	private volatile boolean isRebuildingIndex = false;
 	
-	public ChangeManager(PublishedService service) throws CoreException, InterruptedException, ExecutionException {
+	public ChangeManager(PublishedService service) throws CoreException {
 		this.service = service;
 		if (service.def.getEnableChangeTracking() && service.def.getEnableGet()) {
 			IContext context = Core.createSystemContext();
@@ -328,7 +327,7 @@ public class ChangeManager {
 		return this.serviceObjectIndex;
 	}
 	
-	public void rebuildIndex() throws CoreException, InterruptedException, ExecutionException {
+	public void rebuildIndex() throws CoreException {
 		synchronized(this) {
 			if (isRebuildingIndex) {
 				throw new IllegalStateException("SKIP rebuilding index, index is already building... ");
@@ -341,7 +340,7 @@ public class ChangeManager {
 			RestServices.LOG.info(service.getName() + ": Initializing change log. This might take a while...");
 			RestServices.LOG.info(service.getName() + ": Initializing change log. Marking old index dirty...");
 			
-			int NR_OF_BATCHES = 8;
+			//int NR_OF_BATCHES = 8;
 			
 			/**
 			 * From now on, consider everything dirty

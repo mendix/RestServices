@@ -1,6 +1,7 @@
 package restservices;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,6 +23,7 @@ public class RestServices {
 	
 	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
 	static Map<String, PublishedService> servicesByEntity = new HashMap<String, PublishedService>();
+	static Map<String, PublishedMicroflow> microflowServices = new HashMap<String, PublishedMicroflow>();
 
 	public static PublishedService getServiceForEntity(String entityType) {
 		if (servicesByEntity.containsKey(entityType))
@@ -105,6 +107,7 @@ public class RestServices {
 		else {
 			//TODO: make sure it is unregistered
 		}
+		LOG.info("Registered data service '" + def.getName() + "'");
 	}
 
 	public static PublishedService getService(String name) {
@@ -112,16 +115,21 @@ public class RestServices {
 	}
 
 	public static Set<String> getServiceNames() {
-		return services.keySet();
+		Set<String> names = new HashSet<String>(services.keySet());
+		names.addAll(microflowServices.keySet());
+		return names;
 	}
 
 	public static String getServiceUrl(String name) {
 		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + "/";
 	}
 
-	public static void registerPublishedMicroflow(String microflowname,
-			PublishedMicroflow publishedMicroflow) {
-		// TODO Auto-generated method stub
-		
+	public static void registerPublishedMicroflow(PublishedMicroflow s) {
+		microflowServices.put(s.getName(), s);
+		LOG.info("Registered microflow service '" + s.getName() + "'");
+	}
+	
+	public static PublishedMicroflow getPublishedMicroflow(String name) {
+		return microflowServices.get(name);
 	}
 }
