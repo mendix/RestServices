@@ -2,7 +2,6 @@ package restservices.consume;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -13,6 +12,7 @@ import java.util.Map.Entry;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
@@ -23,6 +23,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
@@ -35,6 +36,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
+import restservices.proxies.HttpMethod;
 import restservices.proxies.ReferableObject;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
@@ -81,15 +83,7 @@ public class RestConsumer {
 		}
 		
 		public boolean isOk() {
-			switch(status) {
-				case 200:
-				case 201:
-				case 204:
-				case 304:
-					return true;
-				default:
-					return false;
-			}
+			return status == HttpStatus.SC_NOT_MODIFIED || (status >= 200 && status < 300);
 		}
 		
 		public RequestResult asRequestResult(IContext context) {
@@ -156,37 +150,16 @@ public class RestConsumer {
 		}
 	}
 
-	public static HttpResponseData doRequest(final String method, String url, String etag) throws Exception {
-		return doRequest(method, url, etag, (Predicate<HttpMethodBase>) null, (Predicate<HttpMethodBase>) null);
-	}
-	
-	public static HttpResponseData doRequest(final String method, String url, String etag, final String body) throws Exception {
-		return doRequest(method, url, etag, new Predicate<HttpMethodBase>() {
-
-			@Override
-			public boolean apply(HttpMethodBase request) {
-				StringRequestEntity re;
-				try {
-					re = new StringRequestEntity(body, RestServices.TEXTJSON, RestServices.UTF8);
-				} catch (UnsupportedEncodingException e) {
-					throw new RuntimeException(e);
-				}
-				if ("POST".equals(method))
-					((PostMethod)request).setRequestEntity(re);
-				else if ("PUT".equals(method))
-					((PutMethod)request).setRequestEntity(re);
-				return true;
-			}
-			
-		}, null);
-	}
-
 	/**
 	 * Retreives a url. Returns if statuscode is 200 OK, 304 NOT MODIFIED or 404 NOT FOUND. Exception otherwise. 
+	 * @throws IOException 
+	 * @throws HttpException 
 	 */
-	public static HttpResponseData doRequest(String method, String url, String etag, Predicate<HttpMethodBase> beforeSubmitHandler, Predicate<HttpMethodBase> bodyProcessor) throws Exception {
+	private static HttpResponseData doRequest(String method, String url,
+			Map<String, String> requestHeaders, HttpMethodParams params,
+			RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
 		if (RestServices.LOG.isDebugEnabled())
-			RestServices.LOG.debug("Fetching '" + url + "' etag: " + etag + "..");
+			RestServices.LOG.debug("Fetching '" + url + "'..");
 		
 		HttpMethodBase request;
 		
@@ -201,25 +174,27 @@ public class RestConsumer {
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
 		
-		
 		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
-		if (etag != null && !etag.isEmpty())
-			request.setRequestHeader(RestServices.IFNONEMATCH_HEADER, etag);
 
+		if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
+			request.addRequestHeader(e.getKey(), e.getValue());
 		includeHeaders(request);
 		
-		if (beforeSubmitHandler != null)
-			beforeSubmitHandler.apply(request);
+		if (params != null)
+			request.setParams(params);
+		
+		if (request instanceof PostMethod && requestEntity != null)
+			((PostMethod)request).setRequestEntity(requestEntity);
+		else if (request instanceof PutMethod && requestEntity != null)
+			((PutMethod)request).setRequestEntity(requestEntity);
 		
 		try {
 			int status = client.executeMethod(request);
 			Header responseEtag = request.getResponseHeader(RestServices.ETAG_HEADER);
 			
 			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue());
-			if (bodyProcessor == null)
-				response.setBody(request.getResponseBodyAsString());
-			else
-				bodyProcessor.apply(request);
+			if (onSuccess != null && status >= 200 && status < 300)
+				onSuccess.apply(request.getResponseBodyAsStream());
 			
 			RestServices.LOG.info(response);
 			
@@ -230,45 +205,39 @@ public class RestConsumer {
 		}
 	}
 	
-	public static void readJsonObjectStream(String url, Predicate<Object> onObject) throws Exception, IOException {
-		GetMethod request = new GetMethod(url);
-		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
-		
-		includeHeaders(request);
-		
-		try {
-			int status = client.executeMethod(request);
-		
-			if (status != HttpStatus.SC_OK)
-				throw new RestConsumeException(status, "Failed to start request stream on " + url);
+	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
+		HttpResponseData response = doRequest("GET", url, null,null, null, new Predicate<InputStream>() {
 
-			JSONTokener x = new JSONTokener(request.getResponseBodyAsStream());
-			//Based on: https://github.com/douglascrockford/JSON-java/blob/master/JSONArray.java
-			if (x.nextClean() != '[') 
-	            throw x.syntaxError("A JSONArray text must start with '['");
-            for (;;) {
-            	switch(x.nextClean()) {
-	            	case ',':
-	            		break;
-	            	case ']':
-	            		return;
-	            	case '{':
-	            		x.back();
-	            		onObject.apply(new JSONObject(x));
-	            		break;
-	            	case '[':
-	            		x.back();
-	            		onObject.apply(new JSONArray(x));
-	            		break;
-	            	default:
-	            		x.back();
-	                    onObject.apply(x.nextValue());
-               }
-            }
-		}
-		finally {
-			request.releaseConnection();
-		}
+			@Override
+			public boolean apply(InputStream stream) {
+				JSONTokener x = new JSONTokener(stream);
+				//Based on: https://github.com/douglascrockford/JSON-java/blob/master/JSONArray.java
+				if (x.nextClean() != '[') 
+		            throw x.syntaxError("A JSONArray text must start with '['");
+	            for (;;) {
+	            	switch(x.nextClean()) {
+		            	case ',':
+		            		break;
+		            	case ']':
+		            		return true;
+		            	case '{':
+		            		x.back();
+		            		onObject.apply(new JSONObject(x));
+		            		break;
+		            	case '[':
+		            		x.back();
+		            		onObject.apply(new JSONArray(x));
+		            		break;
+		            	default:
+		            		x.back();
+		                    onObject.apply(x.nextValue());
+	               }
+	            }
+			}
+		});
+		
+		if (response.getStatus() != HttpStatus.SC_OK)
+			throw new RestConsumeException(response.getStatus(), "Failed to start request stream on '" + url + "', expected status to be 200 OK");
 	}
 	
 
@@ -394,144 +363,98 @@ public class RestConsumer {
 		});
 	}
 	
-	public static RequestResult getObject(final IContext context, String url, String eTag, final IMendixObject target) throws Exception {
-		//pre
+
+	public static RequestResult request(final IContext context, HttpMethod method, final String url, 
+			final IMendixObject source, final IMendixObject target, final boolean asFormData) throws Exception {
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
 		
 		if (!Utils.isUrl(url))
 			throw new IllegalArgumentException("Requested resource seems to be an invalid URL: " + url);
+
+		if (method == null)
+			method = HttpMethod.GET;
 		
-		boolean isFileTarget = target != null && Core.isSubClassOf(FileDocument.entityName, target.getType()); 
+		final boolean isFileSource = source != null && Core.isSubClassOf(FileDocument.entityName, source.getType()); 
+		final boolean isFileTarget = target != null && Core.isSubClassOf(FileDocument.entityName, target.getType()); 
+
+		if (isFileSource && !(method == HttpMethod.POST || method == HttpMethod.PUT))
+			throw new IllegalArgumentException("Files can only be send with method is POST or PUT");
+
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		HttpMethodParams params = new HttpMethodParams();
+		RequestEntity requestEntity = null;
 		
-		//fetch
-		HttpResponseData response;
-		if (!isFileTarget)
-			response = RestConsumer.doRequest("GET", url, eTag);
-		else {
-			response = RestConsumer.doRequest("GET", url, eTag, null, new Predicate<HttpMethodBase>() {
+		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
+		
+		//register params, if its a GET request or formData format is used
+		if (source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE)) {
+			for(String key : JSONObject.getNames(data)) {
+				if (isFileSource && FileDocument.MemberNames.valueOf(key) != null) //Do not pick up default filedoc attrs!
+					continue; 
 				
-				@Override
-				public boolean apply(HttpMethodBase request) {
-					try {
-						Core.storeFileDocumentContent(context, target, request.getResponseBodyAsStream());
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-					return true;
-				}
-			});
-		}
-		
-		if (!response.isOk()) 
-			throw new RestConsumeException(response);
-
-		//process response
-		if (target != null && !isFileTarget) {
-			if (response.getStatus() != IMxRuntimeResponse.NOT_MODIFIED) {
-				if (!response.getBody().matches("^\\s*\\{[\\s\\S]*"))
-					throw new IllegalArgumentException("Response body does not seem to be a valid JSON Object. A JSON object starts with '{' but found: " + response.getBody());
-				JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(response.getBody()).nextValue(), target, true);
+				Object value = data.get(key);
+				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
+					params.setParameter(key, String.valueOf(value));
 			}
-		
-			if (Core.isSubClassOf(ReferableObject.entityName, target.getType())) {
-				target.setValue(context, ReferableObject.MemberNames.URL.toString(), url);
-				target.setValue(context, ReferableObject.MemberNames.ETag.toString(), response.getETag());
-			}
+			
 		}
-		
-		return response.asRequestResult(context);
-	}
-	
-	public static RequestResult deleteObject(IContext context, String url, String etag) throws Exception {
-		HttpResponseData response = doRequest("DELETE", url, etag);
-		
-		
-		if (!response.isOk() && response.getStatus() != HttpStatus.SC_NOT_FOUND)
-			throw new Exception("Request didn't respond with status 2** or 304: " + response);
-		
-		RequestResult rr = response.asRequestResult(context);
-		if (response.getStatus() == HttpStatus.SC_NOT_FOUND)
-			rr.setResponseCode(ResponseCode.NotModified); //not found means that delete didn't modify anything
-		
-		return rr;
-	}
-	
-	public static RequestResult postObject(final IContext context, String url, final IMendixObject source, boolean asFormData) throws Exception {
-		final boolean isFile = Core.isSubClassOf(FileDocument.entityName, source.getType());
-		final JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
-		
-		HttpResponseData response;
-		
-		if (!asFormData && !isFile)
-			response = doRequest("POST", url, null, data.toString(4));
-		else if (!asFormData && isFile) {
-			response = doRequest("POST", url, null, new Predicate<HttpMethodBase>() {
-					
-				@Override
-				public boolean apply(HttpMethodBase request) {
-					((PostMethod)request).setRequestEntity(new InputStreamRequestEntity(Core.getFileDocumentContent(context, source)));
-					return true;
-				}
-			}, null);
+			
+		//Setup request entity for file
+		if (!asFormData && isFileSource) {
+			requestEntity = new InputStreamRequestEntity(Core.getFileDocumentContent(context, source));
 		}
-		else if (asFormData) {
-				response = doRequest("POST", url, null, new Predicate<HttpMethodBase>() {
+		else if (source != null && asFormData && isFileSource) {
+			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, "multipart/form-data");
+			
+			String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
+			
+			ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
+			requestEntity = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, params);
+		}
+		else if (asFormData && !isFileSource)
+			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, "application/x-www-form-urlencoded");
+		else if (data != null)
+			requestEntity = new StringRequestEntity(data.toString(4), RestServices.TEXTJSON, RestServices.UTF8);
+		
+		final StringBuilder bodyBuffer = new StringBuilder();
+		HttpResponseData response = doRequest("GET", url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {
 
-				@Override
-				public boolean apply(HttpMethodBase request) {
-					request.setRequestHeader("Content-Type", isFile ? "multipart/form-data": "application/x-www-form-urlencoded"); //TODO: fix
-					
-					//extract params
-					HttpMethodParams params = new HttpMethodParams();
-					for(String key : JSONObject.getNames(data)) {
-						if (FileDocument.MemberNames.valueOf(key) != null) //Do not pick up default filedoc attrs!
-							continue; 
-						
-						Object value = data.get(key);
-						if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
-							params.setParameter(key, String.valueOf(value));
-					}
-					
-					if (!isFile)
-						((PostMethod)request).setParams(params);
+			@Override
+			public boolean apply(InputStream stream) {
+				try {
+					if (isFileTarget)
+						Core.storeFileDocumentContent(context, target, stream);
 					else {
-						//add file
-						String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
-						
-						try {
-							ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
-							MultipartRequestEntity me = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, params);
-							((PostMethod)request).setRequestEntity(me);
-						} catch (IOException e) {
-							throw new RuntimeException(e);
+						String body = IOUtils.toString(stream);
+						bodyBuffer.append(body);
+						if (target != null){
+							if (!body.matches("^\\s*\\{[\\s\\S]*"))
+								throw new IllegalArgumentException("Response body does not seem to be a valid JSON Object. A JSON object starts with '{' but found: " + body);
+							JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONTokener(body).nextValue(), target, true);
 						}
 					}
-					
 					return true;
 				}
-			}, null);
-		}
-		else
-			throw new IllegalStateException();
-		
+				catch(Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		});
+
+		//wrap up
 		if (!response.isOk())
 			throw new RestConsumeException(response);
-
+		
+		response.setBody(bodyBuffer.toString());
+		if (target != null && Core.isSubClassOf(ReferableObject.entityName, target.getType())) {
+			target.setValue(context, ReferableObject.MemberNames.URL.toString(), url);
+			target.setValue(context, ReferableObject.MemberNames.ETag.toString(), response.getETag());
+		}
+		
 		return response.asRequestResult(context);
 	}
 	
-	public static RequestResult putObject(IContext context, String url, IMendixObject source, String etag) throws Exception{
-		JSONObject data = JsonSerializer.writeMendixObjectToJson(context, source);
-		
-		HttpResponseData response = doRequest("PUT", url, etag, data.toString(4));
-
-		if (!response.isOk())
-			throw new RestConsumeException(response);
-
-		return response.asRequestResult(context);
-	}
-
 	public static void addCredentialsToNextRequest(String username,
 			String password) {
 		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));

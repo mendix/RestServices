@@ -11,6 +11,7 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.consume.RestConsumer;
+import restservices.proxies.HttpMethod;
 import restservices.proxies.Primitive;
 import restservices.proxies.RestPrimitiveType;
 
@@ -60,7 +61,7 @@ public class JsonDeserializer {
 		else if (jsonValue instanceof String) {
 			if (!autoResolveReferences)
 				throw new RuntimeException("Unable to read url '" + jsonValue + "' into '" + targetType + "'; since references will not be resolved automatically for incoming data");
-			RestConsumer.getObject(context, (String) jsonValue, null, target);
+			RestConsumer.request(context, HttpMethod.GET, (String) jsonValue, null, target, false);
 		}
 		
 		else if (jsonValue instanceof JSONObject) {

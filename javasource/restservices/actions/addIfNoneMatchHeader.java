@@ -9,29 +9,31 @@
 
 package restservices.actions;
 
-import restservices.publish.PublishedMicroflow;
+import restservices.RestServices;
+import restservices.consume.RestConsumer;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
+ * Use this header to provide an eTag. If the resource requested is not modified, the servier might respond with a 304 Not Modified response, instead of sending the data. 
  * 
+ * This saves resources of both the client and server. 
  */
-public class StartMicroflowServiceJava extends UserAction<Boolean>
+public class addIfNoneMatchHeader extends UserAction<Boolean>
 {
-	private String microflowName;
-	private String securityRole;
+	private String eTag;
 
-	public StartMicroflowServiceJava(String microflowName, String securityRole)
+	public addIfNoneMatchHeader(String eTag)
 	{
 		super();
-		this.microflowName = microflowName;
-		this.securityRole = securityRole;
+		this.eTag = eTag;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new PublishedMicroflow(microflowName, securityRole); //automatically registers
+		RestConsumer.addHeaderToNextRequest(RestServices.IFNONEMATCH_HEADER, eTag);
 		return true;
 		// END USER CODE
 	}
@@ -42,7 +44,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartMicroflowServiceJava";
+		return "addIfNoneMatchHeader";
 	}
 
 	// BEGIN EXTRA CODE

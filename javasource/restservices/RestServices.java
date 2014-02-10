@@ -11,6 +11,7 @@ import restservices.publish.PublishedService;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 
 public class RestServices {
@@ -93,6 +94,8 @@ public class RestServices {
 
 	public static final String BASIC_AUTHENTICATION = "Basic";
 
+	public static final String HEADER_CONTENTTYPE = "Content-Type";
+
 	
 	public static void registerService(String name, PublishedService def) {
 		PublishedService current = services.put(name,  def);
@@ -132,4 +135,5 @@ public class RestServices {
 	public static PublishedMicroflow getPublishedMicroflow(String name) {
 		return microflowServices.get(name);
 	}
+
 }
