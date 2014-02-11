@@ -11,7 +11,6 @@ package restservices.actions;
 
 import restservices.RestServices;
 import restservices.consume.RestConsumer;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
@@ -33,7 +32,7 @@ public class addIfNoneMatchHeader extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		RestConsumer.addHeaderToNextRequest(RestServices.IFNONEMATCH_HEADER, eTag);
+		RestConsumer.useETagInNextRequest(eTag);
 		return true;
 		// END USER CODE
 	}

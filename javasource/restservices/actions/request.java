@@ -9,8 +9,8 @@
 
 package restservices.actions;
 
-import restservices.RestServices;
 import restservices.consume.RestConsumer;
+import restservices.proxies.HttpMethod;
 
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
@@ -40,7 +40,7 @@ public class request extends UserAction<IMendixObject>
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.request(getContext(), method == null ? "GET" : method.toString(), url, optRequestData, optResponseData, sendWithFormEncoding).getMendixObject();
+		return RestConsumer.request(getContext(), method == null ? HttpMethod.GET : method, url, optRequestData, optResponseData, sendWithFormEncoding).getMendixObject();
 		// END USER CODE
 	}
 

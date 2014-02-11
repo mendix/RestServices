@@ -296,6 +296,11 @@ public class ChangeManager {
 			RestServices.LOG.warn("Skipped publishing update, changetracking is not enabled for service " + service.getName());
 			return;
 		}	
+		service.getChangeManager().publishUpdateHelper(context, source, checkConstraint);
+	}
+
+	private void publishUpdateHelper(IContext context, IMendixObject source,
+			boolean checkConstraint) {
 		try {
 			//Check if publishable
 			if (checkConstraint && !service.identifierInConstraint(context, source.getId())) {
@@ -315,7 +320,7 @@ public class ChangeManager {
 			String jsonString = result.toString(4);
 			String eTag = Utils.getMD5Hash(jsonString);
 			
-			service.getChangeManager().processUpdate(key, jsonString, eTag, false);
+			processUpdate(key, jsonString, eTag, false);
 		}
 		catch(Exception e) {
 			throw new RuntimeException("Failed to process change for " + source + ": " + e.getMessage(), e);
@@ -371,7 +376,7 @@ public class ChangeManager {
 							long total) throws Exception {
 						if (offset % 100 == 0)
 							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
-						publishUpdate(context, item, false); 
+						publishUpdateHelper(context, item, false); 
 					}
 				});
 			

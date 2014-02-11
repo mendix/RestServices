@@ -14,6 +14,7 @@ import org.junit.Test;
 import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
+import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
 import restservices.proxies.ServiceDefinition;
@@ -23,7 +24,6 @@ import system.proxies.UserRole;
 import tests.proxies.CTaskView;
 import tests.proxies.Task;
 
-import com.google.common.collect.ImmutableList;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
@@ -265,11 +265,11 @@ public class BasicTests {
 	@Test
 	public void simpleList() throws Exception {
 		//count
-		JSONObject d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
+		IContext c = Core.createSystemContext();
+		JSONObject d = new JSONObject(RestConsumer.request(c, HttpMethod.GET, baseUrl +"?count", null, null, false).getResponseBody());
 		Assert.assertEquals(0, d.getInt("count"));
 				
 		
-		IContext c = Core.createSystemContext();
 		Task t1 = createTask(c, "Fetch milk", false);
 		Task t2 = createTask(c, "Give it to the cat", true);
 		Task t3 = createTask(c, "Make coffee", false);
@@ -281,17 +281,17 @@ public class BasicTests {
 		IContext c2 = Core.createSystemContext();
 		
 		//count
-		d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
+		d = new JSONObject(RestConsumer.request(c, HttpMethod.GET, baseUrl +"?count", null, null, false).getResponseBody());
 		Assert.assertEquals(3, d.getInt("count"));
 		
 		//Test difference between include data and not include data
-		JSONArray ar = new JSONArray(RestConsumer.doRequest("GET", baseUrl, null).getBody());
+		JSONArray ar = new JSONArray(RestConsumer.request(c, HttpMethod.GET, baseUrl, null, null, false).getResponseBody());
 		Assert.assertEquals(3, ar.length());
 		Assert.assertEquals(ar.getString(0), baseUrl + t1.getNr());
 		Assert.assertEquals(ar.getString(1), baseUrl + t2.getNr());
 		Assert.assertEquals(ar.getString(2), baseUrl + t3.getNr());
 
-		ar = new JSONArray(RestConsumer.doRequest("GET", baseUrl + "?data=true", null).getBody());
+		ar = new JSONArray(RestConsumer.request(c, HttpMethod.GET, baseUrl +"?data=true", null, null, false).getResponseBody());
 		Assert.assertEquals(3, ar.length());
 		Assert.assertEquals(ar.get(0) instanceof JSONObject, true);
 		Assert.assertEquals(ar.get(1) instanceof JSONObject, true);
@@ -346,7 +346,7 @@ public class BasicTests {
 		rebuildIndex();
 		
 		//count
-		d = new JSONObject(RestConsumer.doRequest("GET", baseUrl +"?count", null).getBody());
+		d = new JSONObject(RestConsumer.request(c, HttpMethod.GET, baseUrl +"?count", null, null, false).getResponseBody());
 		Assert.assertEquals(d.getInt("count"), 2);
 		
 		//check results

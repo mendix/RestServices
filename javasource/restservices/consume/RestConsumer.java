@@ -460,6 +460,32 @@ public class RestConsumer {
 		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));
 	}
 
+	public static RequestResult deleteObject(IContext context, String resourceUrl,
+			String optEtag) throws Exception {
+		return request(context, HttpMethod.DELETE, resourceUrl, null, null, false);
+	}
+
+	public static RequestResult getObject(IContext context, String url,
+			String optEtag, IMendixObject stub) throws Exception {
+		useETagInNextRequest(optEtag);
+		return request(context, HttpMethod.DELETE, url, null, stub, false);
+	}
+
+	public static RequestResult putObject(IContext context, String url,
+			IMendixObject dataObject, String optEtag) throws Exception {
+		useETagInNextRequest(optEtag);
+		return request(context, HttpMethod.PUT, url, dataObject, null, false);
+	}
+
+	public static RequestResult postObject(IContext context, String collectionUrl,
+			IMendixObject dataObject, Boolean asFormData) throws Exception {
+		return request(context, HttpMethod.POST, collectionUrl, dataObject, null, asFormData);
+	}
+	
+	public static void useETagInNextRequest(String eTag) {
+		if (eTag != null)
+			addHeaderToNextRequest(RestServices.IFNONEMATCH_HEADER, eTag);
+	}
 
 	
 }

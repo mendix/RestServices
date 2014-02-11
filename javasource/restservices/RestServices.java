@@ -11,7 +11,6 @@ import restservices.publish.PublishedService;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 
 public class RestServices {
