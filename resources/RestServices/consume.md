@@ -24,8 +24,32 @@ Oauth is a quite different authentication scheme. In contrast to the other metho
 
 Since OAuth is a framework, and not a protocol, no-ready-to-use implementation is available. Yet, OAuth can be setup using the REST module. However it is recommended to try to use a simpler authentication protocol first to get familiar with the RestServices module. 
 
-When setting up OAuth typically the following steps must be followed. The goal of OAuth is to obtain some sort of 'AccessToken' that allows your application to access a service in behalf a specific user, usally for a limited amount of time and a limited scope. 
+When setting up OAuth typically the following steps must be followed. The goal of OAuth is to obtain some sort of 'AccessToken' that allows your application to access a service in behalf a specific user, usally for a limited amount of time and a limited scope. The following flow describes in high level what a typical OAuth(2) authorization flow looks like. Note that the specific details are very service specific. The meaning, format and names of each request should be described at the service documentation in great detail. 
 
 1. Setup your domain model to store access tokens which are connected to specific users
 2. Obtain API keys to be able to talk the server. These API keys are necessary to obtain a access token later on. 
-3. Obtain an access token for a specific user. This typically involves creating a link which the user can click to authorize your application. The link then redirects the user to the service you are trying to access, to allow him to authorize your applicaton to use that service. This link should state which resources you are trying to access and, very important, a `callback` that is used to bring the user back to your application. 
+3. Obtain an access token for a specific user. This typically involves creating a link which the user can click to authorize your application. The link then redirects the user to the service you are trying to access, to allow him to authorize your applicaton to use that service. This link should state which resources you are trying to access and, very important, a `callback` that is used to bring the user back to your application. This callback should typically be picked up by a deeplink (see the Appstore Deeplink module) which receives some token or code. 
+4. This token or code typically needs to be exchanged at the service provider for an access token. 
+5. The resulting access token can be reused for any subsequent requests made for this user. Usually a HTTP header is used to send tokens to the providing services. 
+
+## Sending a request
+
+Sending requests is done by using the `request` function of one of its specific overloads; `get`, `post`, `put` or `delete`. When sending a request, provide the `method` and the `targetUrl` as you can find them in the service docs. If the service documentation does not state the method, then use `GET`. 
+
+The targeturl should start with `http(s)://` and is further specified by the service. If the request method is GET or DELETE, additional parameters can be edited to this url by manually appending them, or by using the utility method `appendParamToUrl`. 
+
+In most REST services, the following meaning is assigned to the method:
+
+* GET - Requests a resouce described by the target url, for example: GET http://myapp.com/customer/1
+* DELETE - Deletes the resource at the target url, for example: DELETE http://myapp.com/customer/1
+* PUT - Create or update a resource described by the target url. PUT requests require a payload. For example: PUT http://myapp.com/customer/2
+* POST - Create a new resource, within the target url's  namespace. This request requires a payload as well: POST http://myapp.com/customer. The response of a POST request should describe the newly created resource. 
+
+### Request payload
+POST and PUT request usually require a payload. The restservice module distinguishes three types of payloads:
+
+1. JSON Data. To send complex JSON data, construct a transient object describing the whole JSON structure and pass it as requestData parameter. For a detailed explanation about (de)serializing JSON into transient objects see below. 
+2. Form Data. Form data mimics the behavior of web browsers submitting data, and is often used if only simple parameters are required. Often form data and request parameters can be mixed and matched freely, meaning that you either send a parameter as part of the URL after the question mark, or as part of the body. Form Data can be submitted in the same way as JSON data, except that only primitive values can be send. Associated data will be ignored. To send data in form data format, set the parameter `asFormData` to true. 
+3. Files. If a file document is passed to the `request` method, the whole file is streamed as binary data to the target url. If `asFormData` is set however, the file will be made part of a multipart form upload, and other members of the same document will be added as parameters to the request. 
+
+### Interpreting the response 

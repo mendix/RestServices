@@ -1,5 +1,6 @@
 package restservices.publish;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -304,7 +305,7 @@ public class PublishedService {
 			throw new RuntimeException("Failed to serve POST request: microflow '" + def.getOnPublishMicroflow() + "' should have created a new key");
 			
 		rsr.setStatus(201); //created
-		
+		rsr.response.setHeader(RestServices.ETAG_HEADER, getETag(rsr.getContext(), key, target));
 		//question: write url, or write key?
 		//rsr.write(getObjecturl(rsr.getContext(), target));
 		rsr.write(key);
@@ -345,6 +346,7 @@ public class PublishedService {
 		}
 		
 		updateObject(rsr.getContext(), target, data);
+		rsr.response.setHeader(RestServices.ETAG_HEADER, getETag(rsr.getContext(), key, target));
 		rsr.close();
 	}
 	
@@ -399,6 +401,14 @@ public class PublishedService {
 		if (!this.def.getUseStrictVersioning())
 			return;
 
+		String currentETag = getETag(context, key, source);
+		
+		if (!currentETag.equals(etag))
+			throw new RestPublishException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
+	}
+
+	private String getETag(IContext context, String key, IMendixObject source)
+			throws CoreException, Exception, UnsupportedEncodingException {
 		String currentETag;
 		if (def.getEnableChangeTracking())
 			currentETag = getObjectStateByKey(context, key).getetag();
@@ -409,9 +419,7 @@ public class PublishedService {
 			String jsonString = result.toString(4);
 			currentETag = Utils.getMD5Hash(jsonString);
 		}
-		
-		if (!currentETag.equals(etag))
-			throw new RestPublishException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
+		return currentETag;
 	}
 
 	public IMetaObject getSourceMetaEntity() {

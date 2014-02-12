@@ -2,13 +2,9 @@ package tests;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import restservices.RestServices;
@@ -17,101 +13,16 @@ import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
-import restservices.proxies.ServiceDefinition;
-import restservices.publish.ChangeManager;
-import system.proxies.User;
-import system.proxies.UserRole;
 import tests.proxies.CTaskView;
 import tests.proxies.Task;
 
 import com.mendix.core.Core;
-import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
-import communitycommons.StringUtils;
-import communitycommons.XPath;
+public class BasicTests extends TestBase {
 
-public class BasicTests {
-
-	private ServiceDefinition def;
-	private String baseUrl;
-	private RequestResult lastRequestResult;
-	private String username;
-
-	@Before
-	public void setup() throws CoreException {
-		IContext c = Core.createSystemContext();
-		XPath.create(c, Task.class).deleteAll();
-		
-		XPath.create(c, ServiceDefinition.class).eq(ServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
-		
-		this.def = XPath.create(c, ServiceDefinition.class).findOrCreateNoCommit(ServiceDefinition.MemberNames.Name, "tasks");
-		def.setEnableGet(true);
-		def.setEnableListing(true);
-		def.setAccessRole("*");
-		def.setSourceEntity(Task.entityName);
-		def.setSourceConstraint("");
-		def.setSourceKeyAttribute(Task.MemberNames.Nr.toString());
-		def.setOnPublishMicroflow("Tests.TaskToView");
-		def.setEnableChangeTracking(false);
-		def.commit();
-		
-		this.baseUrl = RestServices.getServiceUrl("tasks");
-	}
-	
-	@After
-	public void tearDown() throws CoreException {
-		if (username != null) {
-			XPath.create(Core.createSystemContext(), User.class).eq(User.MemberNames.Name, username).deleteAll();
-			username = null;
-		}
-	}
-	
-	private String getTestUser() throws CoreException {
-		if (username == null){
-			IContext c = Core.createSystemContext();
-			User user = XPath.create(c, User.class).findOrCreate(
-					User.MemberNames.Name, StringUtils.randomHash(),
-					User.MemberNames.Password, "Password1!");
-
-			user.setUserRoles(XPath.create(c, UserRole.class).eq(UserRole.MemberNames.Name, "User").all());
-			user.commit();
-			username = user.getName();
-		}
-		return username;
-	}
-	
-	private Task createTask(IContext c, String description, boolean done) throws CoreException {
-		Task t = new Task(c);
-		t.setDescription(description);
-		t.setCompleted(done);
-		t.commit();
-		return t;
-	}
-	
-	private CTaskView getTask(IContext c, String nr, String eTag, ResponseCode respCode, long status) throws Exception {
-		CTaskView task = new CTaskView(c);
-		RequestResult res = RestConsumer.getObject(c, baseUrl + nr, eTag, task.getMendixObject());
-		this.lastRequestResult = res;
-		
-		Assert.assertEquals(respCode, res.getResponseCode());
-		Assert.assertEquals(status, (long) res.getRawResponseCode());
-		return task;
-	}
-	
-	private void publishTask(IContext c, Task t, boolean delete) throws CoreException {
-		if (delete) {
-			t.delete();
-			ChangeManager.publishDelete(c, t.getMendixObject());
-		}
-		else {
-			t.commit();
-			ChangeManager.publishUpdate(c, t.getMendixObject());
-		}
-	}
-	
-	@Test
+		@Test
 	public void simpleGet() throws Exception {
 		IContext c = Core.createSystemContext();
 		Task t = createTask(c, "Fetch milk", false);
@@ -299,7 +210,6 @@ public class BasicTests {
 
 		//Peform a get on the list
 		
-		CTaskView v;
 		List<IMendixObject> tasks = new ArrayList<IMendixObject>();
 		IMendixObject firstResult = new CTaskView(c2).getMendixObject();
 		
@@ -338,12 +248,6 @@ public class BasicTests {
 		def.setEnableListing(true);
 		def.setSourceConstraint("[" + Task.MemberNames.Completed.toString() + " = false()]");
 		def.commit();
-		
-		//republish all tasks
-		/*publishTask(c, t1, false);
-		publishTask(c, t2, false);
-		publishTask(c, t3, false);*/
-		rebuildIndex();
 		
 		//count
 		d = new JSONObject(RestConsumer.request(c, HttpMethod.GET, baseUrl +"?count", null, null, false).getResponseBody());
@@ -407,8 +311,6 @@ public class BasicTests {
 		def.setEnableChangeTracking(true);
 		def.commit();
 		
-		rebuildIndex();
-		
 		simpleGet();
 
 	}
@@ -418,8 +320,6 @@ public class BasicTests {
 		def.setEnableChangeTracking(true);
 		def.setSourceConstraint("");
 		def.commit();
-		
-		rebuildIndex();
 		
 		simpleList();
 	}
@@ -453,9 +353,5 @@ public class BasicTests {
 		}
 	}
 
-	private void rebuildIndex() throws CoreException, InterruptedException, ExecutionException {
-		//TODO: should not be needed anymore!
-		//RestServices.getService("tasks").getChangeManager().rebuildIndex();
-	}
 	
 }

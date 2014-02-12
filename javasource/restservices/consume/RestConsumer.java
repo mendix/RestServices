@@ -418,7 +418,7 @@ public class RestConsumer {
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.TEXTJSON, RestServices.UTF8);
 		
 		final StringBuilder bodyBuffer = new StringBuilder();
-		HttpResponseData response = doRequest("GET", url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {
+		HttpResponseData response = doRequest(method.toString(), url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {
 
 			@Override
 			public boolean apply(InputStream stream) {
@@ -468,7 +468,7 @@ public class RestConsumer {
 	public static RequestResult getObject(IContext context, String url,
 			String optEtag, IMendixObject stub) throws Exception {
 		useETagInNextRequest(optEtag);
-		return request(context, HttpMethod.DELETE, url, null, stub, false);
+		return request(context, HttpMethod.GET, url, null, stub, false);
 	}
 
 	public static RequestResult putObject(IContext context, String url,
