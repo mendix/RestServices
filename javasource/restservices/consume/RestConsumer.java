@@ -193,9 +193,12 @@ public class RestConsumer {
 			Header responseEtag = request.getResponseHeader(RestServices.ETAG_HEADER);
 			
 			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue());
-			if (onSuccess != null && status >= 200 && status < 300)
-				onSuccess.apply(request.getResponseBodyAsStream());
-			
+			InputStream instream = request.getResponseBodyAsStream(); 
+			if (onSuccess != null && status >= 200 && status < 300 && instream != null) //NO CONENT doesnt yield a stream..
+				onSuccess.apply(instream);
+			else if (instream != null)
+				response.setBody(IOUtils.toString(instream));
+				
 			RestServices.LOG.info(response);
 			
 			return response;

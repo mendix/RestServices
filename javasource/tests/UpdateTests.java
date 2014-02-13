@@ -46,7 +46,7 @@ public class UpdateTests extends TestBase {
 		Assert.assertEquals(true, t.getCompleted());
 		
 		
-		t = getTask(c, nr, response.getETag(), ResponseCode.OK, 304);
+		t = getTask(c, nr, response.getETag(), ResponseCode.NotModified, 304);
 		
 		//update
 		def.setUseStrictVersioning(true);
@@ -67,21 +67,21 @@ public class UpdateTests extends TestBase {
 		def.commit();
 		
 		try {
-			response = RestConsumer.putObject(c, baseUrl, t.getMendixObject(), null);
+			response = RestConsumer.putObject(c, baseUrl + nr, t.getMendixObject(), null);
 			Assert.fail();
 		}
 		catch(RestConsumeException e) {
-			Assert.assertEquals(410L, e.getStatus()); //Conflicted
+			Assert.assertEquals(409L, e.getStatus()); //Conflicted
 		}
 		
-		response = RestConsumer.putObject(c, baseUrl, t.getMendixObject(), response.getETag());
+		response = RestConsumer.putObject(c, baseUrl + nr, t.getMendixObject(), response.getETag());
 		Assert.assertEquals(204L, (long) response.getRawResponseCode()); //No content
 		Assert.assertTrue(null != response.getETag());
 		
 		//new ETag should result in no response
 		t = getTask(c, nr, response.getETag(), ResponseCode.NotModified, 304);
 		
-		t = getTask(c, nr, response.getETag(), ResponseCode.NotModified, 200);
+		t = getTask(c, nr, null, ResponseCode.OK, 200);
 		Assert.assertEquals(t.getDescription(), "Twix");
 		Assert.assertEquals(false, t.getCompleted());
 		
@@ -91,18 +91,18 @@ public class UpdateTests extends TestBase {
 		
 		t.setDescription("Exception");
 		try {
-			response = RestConsumer.putObject(c, baseUrl, t.getMendixObject(), null);
+			response = RestConsumer.putObject(c, baseUrl + nr, t.getMendixObject(), null);
 			Assert.fail();
 		} catch(RestConsumeException e) {
-			Assert.assertEquals(501, e.getStatus());
+			Assert.assertEquals(500, e.getStatus());
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("error"), 501);
+			Assert.assertEquals(result.getLong("error"), 500);
 			Assert.assertEquals(result.getString("message"), "Internal server error");
 		}
 		
 		t.setDescription("WebserviceException");
 		try {
-			response = RestConsumer.putObject(c, baseUrl, t.getMendixObject(), null);
+			response = RestConsumer.putObject(c, baseUrl + nr, t.getMendixObject(), null);
 			Assert.fail();
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(560, e.getStatus()); //TODO: correct error code
@@ -131,9 +131,19 @@ public class UpdateTests extends TestBase {
 			Assert.fail();
 		}
 		catch(RestConsumeException e) {
-			Assert.assertEquals(411L, e.getStatus()); //Conflict
+			Assert.assertEquals(409L, e.getStatus()); //Conflict
 		}
+		
 		response = RestConsumer.deleteObject(c, baseUrl + nr, response.getETag());
 		Assert.assertEquals(201L, (long)response.getRawResponseCode());
+		
+		try {
+			getTask(c, nr, null, ResponseCode.OK, 200);
+			Assert.fail();
+		}
+		catch(RestConsumeException e) {
+			Assert.assertEquals(404L, e.getStatus()); //Not available anymore
+		}
+		
 	}
 }
