@@ -465,6 +465,7 @@ public class RestConsumer {
 
 	public static RequestResult deleteObject(IContext context, String resourceUrl,
 			String optEtag) throws Exception {
+		useETagInNextRequest(optEtag);
 		return request(context, HttpMethod.DELETE, resourceUrl, null, null, false);
 	}
 

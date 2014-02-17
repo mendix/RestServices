@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -20,6 +21,7 @@ import com.mendix.core.CoreException;
 import com.mendix.externalinterface.connector.RequestHandler;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
+import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
 
 import communitycommons.XPath;
@@ -104,9 +106,16 @@ public class RestServiceHandler extends RequestHandler{
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
 		}
 		catch(Throwable e) {
-			RestServices.LOG.error("Failed to serve " + requestStr + " " +e.getMessage(), e);
 			rollback(rsr);
-			serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
+			Throwable cause = ExceptionUtils.getRootCause(e);
+			if (cause instanceof WebserviceException) {
+				RestServices.LOG.warn("Invalid request " + requestStr + ": " +cause.getMessage());
+				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage());
+			}
+			else { 
+				RestServices.LOG.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
+				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
+			}
 		}
 		finally {
 			rsr.dispose(); 
@@ -134,7 +143,7 @@ public class RestServiceHandler extends RequestHandler{
 			break;
 		case JSON:
 		case XML:
-			rsr.datawriter.value(new JSONObject(ImmutableMap.of("error", title, "status", status, "message", detail)).toString(4));
+			rsr.datawriter.value(new JSONObject(ImmutableMap.of("error", (Object) title, "status", status, "message", detail)));
 			break;
 		}
 		

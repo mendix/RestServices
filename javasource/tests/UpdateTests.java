@@ -41,7 +41,7 @@ public class UpdateTests extends TestBase {
 		Assert.assertTrue(nr != null && !nr.isEmpty());
 		Assert.assertTrue(null != response.getETag());
 		
-		t = getTask(c, nr, null, ResponseCode.OK, 200); //created
+		t = getTask(c, nr, null, ResponseCode.OK, 200); 
 		Assert.assertEquals("Brownie", t.getDescription());
 		Assert.assertEquals(true, t.getCompleted());
 		
@@ -96,8 +96,8 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(500, e.getStatus());
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("error"), 500);
-			Assert.assertEquals(result.getString("message"), "Internal server error");
+			Assert.assertEquals(result.getLong("status"), 500);
+			Assert.assertTrue(result.getString("message").contains("internal server error"));
 		}
 		
 		t.setDescription("WebserviceException");
@@ -105,9 +105,9 @@ public class UpdateTests extends TestBase {
 			response = RestConsumer.putObject(c, baseUrl + nr, t.getMendixObject(), null);
 			Assert.fail();
 		} catch(RestConsumeException e) {
-			Assert.assertEquals(560, e.getStatus()); //TODO: correct error code
+			Assert.assertEquals(400, e.getStatus()); 
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("error"), 560);
+			Assert.assertEquals(result.getLong("status"), 400);
 			Assert.assertEquals(result.getString("message"), "Invalid input");
 		}
 		
@@ -135,7 +135,7 @@ public class UpdateTests extends TestBase {
 		}
 		
 		response = RestConsumer.deleteObject(c, baseUrl + nr, response.getETag());
-		Assert.assertEquals(201L, (long)response.getRawResponseCode());
+		Assert.assertEquals(204L, (long)response.getRawResponseCode());
 		
 		try {
 			getTask(c, nr, null, ResponseCode.OK, 200);
@@ -145,5 +145,13 @@ public class UpdateTests extends TestBase {
 			Assert.assertEquals(404L, e.getStatus()); //Not available anymore
 		}
 		
+	}
+	
+	@Test
+	public void postUsingIndex ()throws Exception {
+		def.setUseAutomaticChangeTracking(true);
+		def.commit();
+		
+		this.testPost();
 	}
 }
