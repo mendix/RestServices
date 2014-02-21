@@ -14,6 +14,7 @@ import system.proxies.User;
 import system.proxies.UserRole;
 import tests.proxies.CTaskView;
 import tests.proxies.Task;
+import tests.proxies.TaskCopy;
 
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -31,6 +32,7 @@ public class TestBase {
 	public void setup() throws CoreException {
 		IContext c = Core.createSystemContext();
 		XPath.create(c, Task.class).deleteAll();
+		XPath.create(c, TaskCopy.class).deleteAll();
 		
 		XPath.create(c, ServiceDefinition.class).eq(ServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
 		
