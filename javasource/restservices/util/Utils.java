@@ -64,9 +64,11 @@ public class Utils {
 	}
 
 	public static IDataType getFirstArgumentType(String microflow) {
-		Map<String, IDataType> args = Core.getInputParameters(microflow);
-		if (args == null)
+		Map<String, IDataType> args = Core.getInputParameters(microflow); //if microflow does not exist, this returns empty map instead of null
+
+		if (null == Core.getReturnType(microflow) || args == null)
 			throw new RuntimeException("Unknown microflow: " + microflow);
+
 		if (args.size() == 0)
 			throw new RuntimeException("Microflow " + microflow + " should have at least one argument!");
 		
@@ -97,7 +99,7 @@ public class Utils {
 
 	public static Map<String, String> getArgumentTypes(String mf) {
 		Map<String, IDataType> knownArgs = Core.getInputParameters(mf);
-		if (knownArgs == null)
+		if (knownArgs == null || null == Core.getReturnType(mf)) //known args is usually empty map for non existing microflow :S.
 			throw new IllegalArgumentException("Unknown microflow");
 		
 		Map<String, String> args = new HashMap<String, String>();

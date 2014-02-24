@@ -86,7 +86,7 @@ public class ChangeFeedListener {
 	public String getChangesRequestUrl(boolean useFeed) {
 		//TODO: build args in better way, check for ? existence already and such
 		
-		return url + "/changes?feed=" + (useFeed ? "true" : "false") + "&since=" + (state.getRevision() + 1); //revision expresses the last *received* revision, so start +1. 
+		return url + (url.endsWith("/") ? "" : "/") + "changes/" + (useFeed ? "feed" : "list") + "?since=" + (state.getRevision());  
 	}
 
 	void fetch() throws IOException, Exception {

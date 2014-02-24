@@ -13,14 +13,15 @@ import communitycommons.XPath;
 
 import restservices.consume.ChangeFeedListener;
 import restservices.consume.RestConsumer;
+import restservices.proxies.FollowChangesState;
 import restservices.proxies.HttpMethod;
 import tests.proxies.Task;
 import tests.proxies.TaskCopy;
 
 public class ChangeTests extends TestBase{
 
-	private static final String ONUPDATE = "Tests.OnUpdateTask";
-	private static final String ONDELETE = "Tests.OnDeleteTask";
+	private static final String ONUPDATE = "Tests.OnTaskUpdate";
+	private static final String ONDELETE = "Tests.OnTaskDelete";
 	
 	private JSONArray getChangesJSON(IContext c, long since) throws JSONException, Exception {
 		return new JSONArray(RestConsumer.request(c, HttpMethod.GET, baseUrl + "changes/list?since=" + since, null, null, false).getResponseBody());
@@ -28,11 +29,14 @@ public class ChangeTests extends TestBase{
 	
 	@Test
 	public void testChanges() throws Exception {
+		IContext c = Core.createSystemContext();
+		IContext c2 = Core.createSystemContext();
+
+		XPath.create(c, FollowChangesState.class).contains(FollowChangesState.MemberNames.CollectionUrl, baseUrl).deleteAll();
+
 		def.setEnableChangeTracking(true);
 		def.commit();
 		
-		IContext c = Core.createSystemContext();
-		IContext c2 = Core.createSystemContext();
 		
 		Assert.assertEquals(0L, getChangesJSON(c2, 0).length());
 		
@@ -44,20 +48,22 @@ public class ChangeTests extends TestBase{
 		
 		changes = getChangesJSON(c2, 0);
 		Assert.assertEquals(1L, changes.length());
+		assertChange(changes.getJSONObject(0), t1.getNr(), false, "milk",1 );
 		
 		publishTask(c, t1, false); //should not change anything
 
 		changes = getChangesJSON(c2, 0);
 		Assert.assertEquals(1L, changes.length());
-		assertChange(changes.getJSONObject(0), t1.getNr(), false, "milk");
+		assertChange(changes.getJSONObject(0), t1.getNr(), false, "milk",1 );
 		
 		t1.setDescription("karnemelk");
 		publishTask(c, t1, false);
 
 		changes = getChangesJSON(c2, 0);
 		Assert.assertEquals(1L, changes.length());
-		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk");
+		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk",2);
 		
+		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
 		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(1L, XPath.create(c2, TaskCopy.class).count());
 		Assert.assertEquals(t1.getNr(), XPath.create(c2, TaskCopy.class).first().getNr());
@@ -69,13 +75,13 @@ public class ChangeTests extends TestBase{
 
 		changes = getChangesJSON(c2, 0);
 		Assert.assertEquals(2L, changes.length());
-		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk");
-		assertChange(changes.getJSONObject(1), t2.getNr(), false, "twix");
+		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk",2);
+		assertChange(changes.getJSONObject(1), t2.getNr(), false, "twix",3);
 
 		//check since param
 		changes = getChangesJSON(c2, changes.getJSONObject(0).getLong("rev"));
 		Assert.assertEquals(1L, changes.length());
-		assertChange(changes.getJSONObject(0), t2.getNr(), false, "twix");
+		assertChange(changes.getJSONObject(0), t2.getNr(), false, "twix",3);
 		
 		Task t3 = createTask(c, "dog", false);
 		publishTask(c, t3, false);
@@ -86,10 +92,10 @@ public class ChangeTests extends TestBase{
 		publishTask(c, t2, true);
 
 		changes = getChangesJSON(c2, 0);
-		Assert.assertEquals(2L, changes.length());
-		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk");
-		assertChange(changes.getJSONObject(1), t3.getNr(), false, "dog");
-		assertChange(changes.getJSONObject(2), t2.getNr(), true, null);
+		Assert.assertEquals(3L, changes.length());
+		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk",2);
+		assertChange(changes.getJSONObject(1), t3.getNr(), false, "dog",4);
+		assertChange(changes.getJSONObject(2), t2.getNr(), true, null, 5);
 
 		//fetching should  now result in 2 items
 		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
@@ -97,6 +103,7 @@ public class ChangeTests extends TestBase{
 		
 		//if we reset the state
 		ChangeFeedListener.resetState(baseUrl);
+		XPath.create(c2, TaskCopy.class).deleteAll();
 
 		//there should be nothing
 		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
@@ -123,17 +130,19 @@ public class ChangeTests extends TestBase{
 		
 	}
 
+	//TODO: add nr
 	private void assertChange(JSONObject jsonObject, Long key, boolean deleted,
-			String description) throws Exception {
+			String description, long rev) throws Exception {
 		Assert.assertEquals((long) jsonObject.getLong("key"), (long) key);
 		Assert.assertEquals((boolean) jsonObject.getBoolean("deleted"), deleted);
+		Assert.assertEquals(rev, jsonObject.getLong("rev"));
 		
 		if (!deleted) {
-			Assert.assertEquals(jsonObject.getJSONObject("data").getString("Description"), description, "Invalid description");
+			Assert.assertEquals(jsonObject.getJSONObject("data").getString("Description"), description);
 
 			//check etag
 			String etag = RestConsumer.request(Core.createSystemContext(), HttpMethod.GET, baseUrl + key, null, null, false).getETag();
-			Assert.assertEquals(etag, jsonObject.getString("etag"), "Invalid etag");
+			Assert.assertEquals(etag, jsonObject.getString("etag"));
 		}
 	}
 }

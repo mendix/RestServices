@@ -6,6 +6,7 @@ import org.junit.Before;
 
 import restservices.RestServices;
 import restservices.consume.RestConsumer;
+import restservices.proxies.FollowChangesState;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
 import restservices.proxies.ServiceDefinition;

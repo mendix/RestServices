@@ -89,7 +89,7 @@ public class ChangeManager {
 		
 		XPath.create(c, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex())
-			.compare(ObjectState.MemberNames.revision, ">=", since)
+			.compare(ObjectState.MemberNames.revision, ">", since)
 			.addSortingAsc(ObjectState.MemberNames.revision)
 			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
 	
