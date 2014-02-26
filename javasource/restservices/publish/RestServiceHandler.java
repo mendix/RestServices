@@ -103,6 +103,7 @@ public class RestServiceHandler extends RequestHandler{
 		catch(RestPublishException rre) {
 			RestServices.LOG.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
 			rollback(rsr);
+			
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
 		}
 		catch(Throwable e) {
@@ -135,6 +136,11 @@ public class RestServiceHandler extends RequestHandler{
 			String detail) {
 		rsr.response.reset();
 		rsr.response.setStatus(status);
+		
+		//reques authentication
+		if (status == HttpStatus.SC_UNAUTHORIZED)
+			rsr.response.addHeader(RestServices.HEADER_WWWAUTHENTICATE, "Basic realm=\"Rest Services\"");
+		
 		rsr.startDoc();
 		
 		switch(rsr.getContentType()) {

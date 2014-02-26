@@ -95,6 +95,8 @@ public class RestServices {
 
 	public static final String HEADER_CONTENTTYPE = "Content-Type";
 
+	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
+
 	
 	public static void registerService(String name, PublishedService def) {
 		PublishedService current = services.put(name,  def);
