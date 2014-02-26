@@ -94,7 +94,7 @@ public class RestServiceHandler extends RequestHandler{
 			
 			dispatch(method, parts, rsr, service);
 			
-			if (rsr.getContext().isInTransaction())
+			if (rsr.getContext() != null && rsr.getContext().isInTransaction())
 				rsr.getContext().endTransaction();
 			
 			if (RestServices.LOG.isDebugEnabled())
