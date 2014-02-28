@@ -443,7 +443,7 @@ public class PublishedService {
 		String key = getKey(c, obj);
 		if (!Utils.isValidKey(key))
 			throw new IllegalStateException("Invalid key for object " + obj.toString());
-		return this.getServiceUrl() + key;
+		return this.getServiceUrl() + Utils.urlEncode(key);
 	}
 
 	public String getKey(IContext c, IMendixObject obj) {

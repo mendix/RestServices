@@ -73,6 +73,10 @@ public class ChangeFeedListener {
 		this.currentRequest = get;
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
+		//DefaultHttpRequestRetryHandler retryhandler = new DefaultHttpRequestRetryHandler(10, true);
+		//get.setParameter(HttpMethodParams.RETRY_HANDLER, retryhandler);
+		//TODO: auto retry
+		
 		RestConsumer.includeHeaders(get, headers);
 		int status = RestConsumer.client.executeMethod(get);
 		if (status != IMxRuntimeResponse.OK)

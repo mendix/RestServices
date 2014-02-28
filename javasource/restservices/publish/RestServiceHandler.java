@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
+import restservices.util.Utils;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -23,7 +24,6 @@ import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
-
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -196,21 +196,20 @@ public class RestServiceHandler extends RequestHandler{
 				//TODO: support form encoded as wel!
 				service.servePost(rsr, new JSONObject(body));
 			}
-			//TODO: published microflow?
 			break;
 		case 2:
 			if (isGet) {
 				handled = true;
-				service.serveGet(rsr, parts[1]);
+				service.serveGet(rsr, Utils.urlDecode(parts[1]));
 			}
 			else if ("PUT" .equals(method)) {
 				handled = true;
 				String body = IOUtils.toString(rsr.request.getInputStream());
-				service.servePut(rsr, parts[1], new JSONObject(body), rsr.getETag());
+				service.servePut(rsr, Utils.urlDecode(parts[1]), new JSONObject(body), rsr.getETag());
 			}
 			else if ("DELETE".equals(method) && parts.length == 2) {
 				handled = true;
-				service.serveDelete(rsr, parts[1], rsr.getETag());
+				service.serveDelete(rsr, Utils.urlDecode(parts[1]), rsr.getETag());
 			}
 			break;
 		case 3:

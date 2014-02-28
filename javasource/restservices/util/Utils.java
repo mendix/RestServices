@@ -1,11 +1,11 @@
 package restservices.util;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -75,19 +75,14 @@ public class Utils {
 		return args.entrySet().iterator().next().getValue();
 	}
 
-	//TODO: move to utils
 	public static String getMD5Hash(String jsonString)
 			throws UnsupportedEncodingException {
 		return DigestUtils.md5Hex(jsonString.getBytes(RestServices.UTF8));
 	}
 
 	public static boolean isValidKey(String key) {
-		if (key == null)
-			return false;
-		return keyPattern.matcher(key).matches();
+		return key != null && !key.trim().isEmpty() && key.length() > 0 && key.length() < 400; //TODO: bit arbitrary
 	}
-
-	static Pattern keyPattern = Pattern.compile("^[-a-zA-Z0-9_~@^*:;,.]+$"); //anything that doesnt need special url parsing goes..
 
 	public static boolean isEmpty(String value) {
 		return value == null || value.trim().isEmpty();
@@ -122,6 +117,18 @@ public class Utils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	public static String urlDecode(String value)
+	{
+		try
+		{
+			return URLDecoder.decode(value, RestServices.UTF8);
+		}
+		catch (UnsupportedEncodingException e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
 
 	public static String appendParamToUrl(String url, String paramName,
 			String paramValue) {
@@ -136,4 +143,5 @@ public class Utils {
 		return statusText == null ? "" : statusText;
 	}
 
+	
 }
