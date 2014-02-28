@@ -10,30 +10,46 @@
 package restservices.actions;
 
 import restservices.consume.ChangeFeedListener;
+
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
+ * Collection url:
  * 
+ * Url where the collection resides, for example http://localhost:8080/rest/customers
+ * 
+ * UpdateMicroflow:
+ * will be triggered when a change is received. Should have one input argument which is a transient object, in which the json data will be parsed
+ * 
+ * DeleteMicroflow:
+ * will be triggered when a delete is received. Input argument is the key of the object to be deleted, as string
+ * 
+ * 
+ * Timeout:
+ * 
+ * timeout of individual in seconds (longer is more efficient, but might cause firewall issues). 0 for unlimited. negative for timeout or return on the first change. Default value should be -50. 
  */
 public class followChanges extends UserAction<Boolean>
 {
 	private String collectionUrl;
 	private String updateMicroflow;
 	private String deleteMicroflow;
+	private Long timeout;
 
-	public followChanges(String collectionUrl, String updateMicroflow, String deleteMicroflow)
+	public followChanges(String collectionUrl, String updateMicroflow, String deleteMicroflow, Long timeout)
 	{
 		super();
 		this.collectionUrl = collectionUrl;
 		this.updateMicroflow = updateMicroflow;
 		this.deleteMicroflow = deleteMicroflow;
+		this.timeout = timeout;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		ChangeFeedListener.follow(collectionUrl, updateMicroflow, deleteMicroflow);
+		ChangeFeedListener.follow(collectionUrl, updateMicroflow, deleteMicroflow, timeout);
 		return true;
 		// END USER CODE
 	}

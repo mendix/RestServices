@@ -37,13 +37,15 @@ public class ChangeFeedListener {
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
 	private volatile boolean cancelled = false;
 	private Map<String, String> headers;
+	private long	timeout;
 	
 	
 	//TODO: make status enabled in the UI
-	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
+	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF, long timeout) throws Exception {
 		this.url = collectionUrl;
 		this.onUpdateMF = onUpdateMF;
 		this.onDeleteMF = onDeleteMF;
+		this.timeout = timeout;
 		this.state = XPath.create(Core.createSystemContext(), FollowChangesState.class).findOrCreate(FollowChangesState.MemberNames.CollectionUrl, url);
 	}
 	
@@ -91,9 +93,12 @@ public class ChangeFeedListener {
 	}
 
 	public String getChangesRequestUrl(boolean useFeed) {
-		//TODO: build args in better way, check for ? existence already and such
+		//TODO: use constants
 		
-		return url + (url.endsWith("/") ? "" : "/") + "changes/" + (useFeed ? "feed" : "list") + "?since=" + (state.getRevision());  
+		return Utils.appendParamToUrl(Utils.appendParamToUrl(
+			Utils.appendSlashToUrl(url) + "changes/" + (useFeed ? "feed" : "list"),
+			"since", String.valueOf((long) state.getRevision())),
+			"timeout", String.valueOf(timeout));
 	}
 
 	void fetch() throws IOException, Exception {
@@ -177,9 +182,23 @@ public class ChangeFeedListener {
 		this.currentRequest.abort();
 	}
 
-	public static synchronized ChangeFeedListener follow(String collectionUrl, String updateMicroflow,
-			String deleteMicroflow) throws Exception {
-		return new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow).follow();		
+	public static synchronized void follow(final String collectionUrl, final String updateMicroflow,
+			final String deleteMicroflow, final long timeout) {
+		(new Thread() {
+			
+			@SuppressWarnings("synthetic-access")
+			@Override
+			public void run() {
+				try
+				{
+					new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow, timeout).follow();
+				}
+				catch (Exception e)
+				{
+					RestServices.LOG.error("Failed to setup follow stream for " + collectionUrl + "/changes/feed", e);
+				}
+			}
+		}).start();
 	}
 	
 	public static synchronized void unfollow(String collectionUrl) {
@@ -188,7 +207,7 @@ public class ChangeFeedListener {
 	}
 	
 	public static synchronized void fetch(String collectionUrl, String updateMicroflow, String deleteMicroflow) throws Exception {
-		new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow).fetch();
+		new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow, 0L).fetch();
 	}
 
 	public static void resetState(String collectionUrl) throws CoreException {
