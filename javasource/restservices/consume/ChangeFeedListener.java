@@ -28,16 +28,15 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import communitycommons.XPath;
 
 public class ChangeFeedListener {
-	private InputStream inputStream; //TODO: close somewhere
 	private String url;
 	private String onUpdateMF;
 	private String onDeleteMF;
 	private FollowChangesState state;
-	private GetMethod currentRequest;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
 	private volatile boolean cancelled = false;
 	private Map<String, String> headers;
 	private long	timeout;
+	private volatile GetMethod currentRequest;
 	
 	
 	//TODO: make status enabled in the UI
@@ -61,16 +60,33 @@ public class ChangeFeedListener {
 		headers = RestConsumer.nextHeaders.get();
 		RestConsumer.nextHeaders.set(null);
 		
-		restartConnection();
+		///TODO: clean this up, one thread should suffice, make sure no httpclient retries are used, or that only that is used..
+		(new Thread() {
+			public void run() {
+				while(!cancelled) {
+					try {
+						startConnection();
+					}
+					catch (Exception e)
+					{
+						RestServices.LOG.error("Failed to setup follow stream for " + getChangesRequestUrl(true) + ", retrying in 10. " + e.getMessage());//, e);
+						try {
+							Thread.sleep(10000);
+						} catch (InterruptedException e1) {
+							cancelled = true;
+						} //Retry each 10 seconds
+					}
+				}
+			}
+		}).start();
 		return this;
 	}
 
-	private void restartConnection() throws IOException,
+	private void startConnection() throws IOException,
 			HttpException {
 		String requestUrl = getChangesRequestUrl(true);
 		
-		GetMethod get = new GetMethod(requestUrl);
-		this.currentRequest = get;
+		GetMethod get = this.currentRequest = new GetMethod(requestUrl);
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
 		//DefaultHttpRequestRetryHandler retryhandler = new DefaultHttpRequestRetryHandler(10, true);
@@ -81,19 +97,31 @@ public class ChangeFeedListener {
 		int status = RestConsumer.client.executeMethod(get);
 		if (status != IMxRuntimeResponse.OK)
 			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
-//		get.getResponseBody()
-		this.inputStream = get.getResponseBodyAsStream();
 
-		(new Thread() {
-			@Override
-			public void run() {
-				try {
-					listen();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
+		InputStream inputStream = get.getResponseBodyAsStream();
+		
+		JSONTokener jt = new JSONTokener(inputStream);
+		JSONObject instr = null;
+			
+		try {
+			while(true) {
+				instr = new JSONObject(jt);
+				
+				processChange(instr);
 			}
-		}).start();
+		}
+		catch(InterruptedException e2) {
+			cancelled = true;
+			RestServices.LOG.warn("Changefeed interrupted", e2);
+		}
+		catch(Exception e) {
+			//Not graceful disconnected?
+			if (!cancelled && !(jt.end() && e instanceof JSONException))
+				throw new RuntimeException(e);
+		}
+		finally {
+			get.releaseConnection();
+		}
 	}
 
 	public String getChangesRequestUrl(boolean useFeed) {
@@ -121,30 +149,6 @@ public class ChangeFeedListener {
 			}
 			
 		});
-	}
-	
-	void listen()
-			throws Exception {
-		JSONTokener jt = new JSONTokener(inputStream);
-		JSONObject instr = null;
-		
-		try {
-			while(true) {
-				instr = new JSONObject(jt);
-				
-				processChange(instr);
-			}
-		}
-		catch(Exception e) {
-			//Not graceful disconnected?
-			if (!cancelled && !(jt.end() && e instanceof JSONException))
-				throw new RuntimeException(e);
-		}
-		finally {
-			this.currentRequest.releaseConnection();
-		}
-		
-		restartConnection();
 	}
 	
 	void processChange(JSONObject instr) throws Exception {
@@ -183,26 +187,13 @@ public class ChangeFeedListener {
 	private void close() {
 		activeListeners.remove(url);
 		cancelled = true;
-		this.currentRequest.abort();
+		if (this.currentRequest != null)
+			this.currentRequest.abort();
 	}
 
 	public static synchronized void follow(final String collectionUrl, final String updateMicroflow,
-			final String deleteMicroflow, final long timeout) {
-		(new Thread() {
-			
-			@SuppressWarnings("synthetic-access")
-			@Override
-			public void run() {
-				try
-				{
-					new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow, timeout).follow();
-				}
-				catch (Exception e)
-				{
-					RestServices.LOG.error("Failed to setup follow stream for " + collectionUrl + "/changes/feed", e);
-				}
-			}
-		}).start();
+			final String deleteMicroflow, final long timeout) throws HttpException, IOException, Exception {
+		new ChangeFeedListener(collectionUrl, updateMicroflow, deleteMicroflow, timeout).follow();
 	}
 	
 	public static synchronized void unfollow(String collectionUrl) {

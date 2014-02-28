@@ -130,7 +130,6 @@ public class ChangeTests extends TestBase{
 		
 	}
 
-	//TODO: add nr
 	private void assertChange(JSONObject jsonObject, Long key, boolean deleted,
 			String description, long rev) throws Exception {
 		Assert.assertEquals((long) jsonObject.getLong("key"), (long) key);
@@ -144,5 +143,65 @@ public class ChangeTests extends TestBase{
 			String etag = RestConsumer.request(Core.createSystemContext(), HttpMethod.GET, baseUrl + key, null, null, false).getETag();
 			Assert.assertEquals(etag, jsonObject.getString("etag"));
 		}
+	}
+	
+	//TODO: add low level tests to see whether request is aborted at the proper times. 
+	
+	@Test
+	public void testChangesFeedTimeout() throws Exception {
+		testChangesFeed(10);
+	}
+	
+	@Test
+	public void testChangesFeedTimeoutOrAutoReconnect() throws Exception {
+		testChangesFeed(-10);
+	}
+	
+	public void testChangesFeed(long timeout) throws Exception {
+		IContext c = Core.createSystemContext();
+		IContext c2 = Core.createSystemContext();
+
+		XPath.create(c, FollowChangesState.class).contains(FollowChangesState.MemberNames.CollectionUrl, baseUrl).deleteAll();
+
+		def.setEnableChangeTracking(true);
+		def.commit();
+
+		Task t1 = createTask(c, "milk", false);
+		TaskCopy t2;
+		publishTask(c, t1, false);
+
+		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, timeout);
+		try {
+			t2 = XPath.create(c2, TaskCopy.class)
+				.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+				.firstOrWait(1000);
+			Assert.assertTrue(t2 != null);
+			Assert.assertEquals("milk", t2.getDescription());
+			
+			t1.setDescription("karnemilk");
+			publishTask(c, t1, false);
+			
+			t2 = XPath.create(c2, TaskCopy.class)
+					.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+					.firstOrWait(1000);
+			Assert.assertTrue(t2 != null);
+			Assert.assertEquals("karnemilk", t2.getDescription());
+				
+			Thread.sleep(3 * Math.abs(timeout) * 1000); //initial request is over now
+			
+			t1.setDescription("twix");
+			publishTask(c, t1, false);
+			
+			t2 = XPath.create(c2, TaskCopy.class)
+					.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+					.firstOrWait(1000);
+			Assert.assertTrue(t2 != null);
+			Assert.assertEquals("twix", t2.getDescription());
+		}
+		finally {
+			ChangeFeedListener.unfollow(baseUrl);
+		}
+		
+		
 	}
 }
