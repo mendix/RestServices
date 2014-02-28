@@ -36,6 +36,8 @@ public class ChangeFeedListener {
 	private GetMethod currentRequest;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
 	private volatile boolean cancelled = false;
+	private Map<String, String> headers;
+	
 	
 	//TODO: make status enabled in the UI
 	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
@@ -53,6 +55,10 @@ public class ChangeFeedListener {
 			activeListeners.put(url, this);
 		}
 		
+		
+		headers = RestConsumer.nextHeaders.get();
+		RestConsumer.nextHeaders.set(null);
+		
 		restartConnection();
 		return this;
 	}
@@ -65,6 +71,7 @@ public class ChangeFeedListener {
 		this.currentRequest = get;
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
+		RestConsumer.includeHeaders(get, headers);
 		int status = RestConsumer.client.executeMethod(get);
 		if (status != IMxRuntimeResponse.OK)
 			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);

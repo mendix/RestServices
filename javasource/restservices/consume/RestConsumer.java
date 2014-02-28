@@ -128,7 +128,7 @@ public class RestConsumer {
 		}
 	}
 	
-	private static ThreadLocal<Map<String, String>> nextHeaders = new ThreadLocal<Map<String, String>>();
+	static ThreadLocal<Map<String, String>> nextHeaders = new ThreadLocal<Map<String, String>>();
 	
 	public static void addHeaderToNextRequest(String header, String value) {
 		Map<String, String> headers = nextHeaders.get();
@@ -141,12 +141,16 @@ public class RestConsumer {
 		headers.put(header, value);
 	}
 	
-	private static void includeHeaders(HttpMethodBase request) {
+	static void includeHeaders(HttpMethodBase request) {
 		Map<String, String> headers = nextHeaders.get();
+		nextHeaders.set(null);
+		includeHeaders(request, headers);
+	}
+
+	static void includeHeaders(HttpMethodBase request, Map<String, String> headers) {
 		if (headers != null) {
 			for(Entry<String,String> e : headers.entrySet())
 				request.addRequestHeader(e.getKey(), e.getValue());
-			headers.clear();
 		}
 	}
 
