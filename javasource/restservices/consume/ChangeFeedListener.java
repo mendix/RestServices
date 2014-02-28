@@ -33,10 +33,11 @@ public class ChangeFeedListener {
 	private String onDeleteMF;
 	private FollowChangesState state;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
-	private volatile boolean cancelled = false;
+	volatile boolean cancelled = false;
 	private Map<String, String> headers;
 	private long	timeout;
 	private volatile GetMethod currentRequest;
+	private Thread listenerThread;
 	
 	
 	//TODO: make status enabled in the UI
@@ -61,7 +62,10 @@ public class ChangeFeedListener {
 		RestConsumer.nextHeaders.set(null);
 		
 		///TODO: clean this up, one thread should suffice, make sure no httpclient retries are used, or that only that is used..
-		(new Thread() {
+		this.listenerThread = (new Thread() {
+			
+			private long nextRetryTime = 10000;
+			@Override
 			public void run() {
 				while(!cancelled) {
 					try {
@@ -69,20 +73,25 @@ public class ChangeFeedListener {
 					}
 					catch (Exception e)
 					{
-						RestServices.LOG.error("Failed to setup follow stream for " + getChangesRequestUrl(true) + ", retrying in 10. " + e.getMessage());//, e);
+						RestServices.LOG.error("Failed to setup follow stream for " + getChangesRequestUrl(true) + ", retrying in " + nextRetryTime + "ms: " + e.getMessage());//, e);
 						try {
-							Thread.sleep(10000);
+							Thread.sleep(nextRetryTime);
+							if (nextRetryTime < 60*60*1000)
+								nextRetryTime *= 1.3;
 						} catch (InterruptedException e1) {
 							cancelled = true;
 						} //Retry each 10 seconds
 					}
 				}
 			}
-		}).start();
+		});
+		
+		listenerThread.setName("REST consume thread " + url);
+		listenerThread.start();
 		return this;
 	}
 
-	private void startConnection() throws IOException,
+	void startConnection() throws IOException,
 			HttpException {
 		String requestUrl = getChangesRequestUrl(true);
 		
@@ -189,6 +198,8 @@ public class ChangeFeedListener {
 		cancelled = true;
 		if (this.currentRequest != null)
 			this.currentRequest.abort();
+		else if (!this.listenerThread.isInterrupted()) //It might be waiting
+			this.listenerThread.interrupt();
 	}
 
 	public static synchronized void follow(final String collectionUrl, final String updateMicroflow,
