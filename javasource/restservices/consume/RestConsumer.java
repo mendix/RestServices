@@ -464,7 +464,6 @@ public class RestConsumer {
 	
 	public static void addCredentialsToNextRequest(String username,
 			String password) {
-		client.getParams().setAuthenticationPreemptive(true);
 		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));
 	}
 
