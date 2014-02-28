@@ -161,7 +161,6 @@ public class ChangeManager {
 			else { //expired
 				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
 				unregisterListener(lpsession);
-				rsr.endDoc();
 			}
 	}
 
