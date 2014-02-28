@@ -83,16 +83,25 @@ public class RestServiceHandler extends RequestHandler{
 		RestServiceRequest rsr = new RestServiceRequest(request, response);
 		try {
 			PublishedService service = null;
+			PublishedMicroflow mf = null;
 			if (parts.length > 0) {
 				service = RestServices.getService(parts[0]);
-				if (service == null) 
+				mf = RestServices.getPublishedMicroflow(parts[0]);
+				if (service == null && mf == null) 
 					throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 			}
 
-			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticateService(service, getSessionFromRequest(req)))
+			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticate(service.getRequiredRole(), getSessionFromRequest(req))){
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+			}
+			else if (mf != null && !rsr.authenticate(mf.getRequiredRole(), getSessionFromRequest(req))) {
+				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+			}
 			
-			dispatch(method, parts, rsr, service);
+			if (mf != null)
+				mf.execute(rsr);
+			else
+				dispatch(method, parts, rsr, service);
 			
 			if (rsr.getContext() != null && rsr.getContext().isInTransaction())
 				rsr.getContext().endTransaction();

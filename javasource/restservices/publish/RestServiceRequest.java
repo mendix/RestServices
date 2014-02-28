@@ -39,8 +39,8 @@ public class RestServiceRequest {
 		}
 	}
 
-	boolean authenticateService(PublishedService service, ISession existingSession) {
-		if (service.isWorldReadable()) {
+	boolean authenticate(String role, ISession existingSession) {
+		if ("*".equals(role)) {
 			this.context = Core.createSystemContext();
 			return true;
 		}
@@ -82,7 +82,7 @@ public class RestServiceRequest {
 				session = existingSession;
 				
 			//session found?
-			if (session != null && session.getUser() != null && session.getUser().getUserRoleNames().contains(service.getRequiredRole())) {
+			if (session != null && session.getUser() != null && session.getUser().getUserRoleNames().contains(role)) {
 				this.context = session.createContext().getSudoContext();
 				this.activeSession = session;
 				return true;
@@ -93,9 +93,6 @@ public class RestServiceRequest {
 			RestServices.LOG.warn("Failed to authenticate '" + username + "'" + e.getMessage(), e);
 		}
 		
-		setStatus(401);
-		response.setHeader("WWW-Authenticate", "Basic realm=\"" + service.getName() + "\"");
-		write("Unauthorized");
 		return false;
 	}
 

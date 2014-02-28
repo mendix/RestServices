@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 
 import com.mendix.core.Core;
@@ -64,7 +65,7 @@ public class PublishedMicroflow {
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
 		this.isReturnTypeString = returnTypeFromMF.getType() == DataTypeEnum.String; 
 		if (!isReturnTypeString) {
-			if (!returnTypeFromMF.isMendixObject() || !returnTypeFromMF.isList())
+			if (!returnTypeFromMF.isMendixObject() && !returnTypeFromMF.isList())
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a String, List or Object type");
 			if (returnTypeFromMF.isMendixObject() || returnTypeFromMF.isList()){
 				this.returnType = returnTypeFromMF.getObjectType();
@@ -83,7 +84,7 @@ public class PublishedMicroflow {
 			
 			if (rsr.getContentType() == ContentType.JSON) { 
 				String body = IOUtils.toString(rsr.request.getInputStream());
-				data = new JSONObject(body);
+				data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 			}
 			else
 				data = new JSONObject();
@@ -116,6 +117,10 @@ public class PublishedMicroflow {
 	}
 
 	public String getName() {
-		return microflowname.split("\\.")[0];
+		return microflowname.split("\\.")[1];
+	}
+
+	public String getRequiredRole() {
+		return securityRole;
 	}
 }
