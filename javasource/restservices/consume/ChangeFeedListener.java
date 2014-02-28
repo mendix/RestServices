@@ -140,8 +140,12 @@ public class ChangeFeedListener {
 	
 	void processChange(JSONObject instr) throws Exception {
 		IContext c = Core.createSystemContext();
+
+		long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
+
+		RestServices.LOG.info("Receiving update for " + url + " #" + revision + " object: '" + instr.getString("key") + "'"); 
+		
 		//TODO: use constants
-		//TODO: store revision
 		if (instr.getBoolean("deleted")) {
 			Map<String, String> args = Utils.getArgumentTypes(onDeleteMF);
 			if (args.size() != 1 || !"String".equals(args.values().iterator().next()))
@@ -159,7 +163,6 @@ public class ChangeFeedListener {
 			Core.execute(c, onUpdateMF, ImmutableMap.of(Utils.getArgumentTypes(onUpdateMF).keySet().iterator().next(), (Object) target));
 		}
 		
-		long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
 		
 		if (revision <= state.getRevision()) 
 			RestServices.LOG.warn("Received revision (" + revision + ") is smaller as latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");

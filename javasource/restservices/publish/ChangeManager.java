@@ -10,16 +10,6 @@ import javax.servlet.AsyncContext;
 import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 
-import com.mendix.core.Core;
-import com.mendix.core.CoreException;
-import com.mendix.m2ee.api.IMxRuntimeResponse;
-import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
-import com.sun.xml.fastinfoset.stax.events.Util;
-
-import communitycommons.XPath;
-import communitycommons.XPath.IBatchProcessor;
-
 import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceDefinition;
@@ -29,10 +19,19 @@ import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
 
+import com.mendix.core.Core;
+import com.mendix.core.CoreException;
+import com.mendix.m2ee.api.IMxRuntimeResponse;
+import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.sun.xml.fastinfoset.stax.events.Util;
+import communitycommons.XPath;
+import communitycommons.XPath.IBatchProcessor;
+
 public class ChangeManager {
 	
 	private PublishedService service;
-	final private List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
+	private final List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
 	private volatile ServiceObjectIndex serviceObjectIndex;
 	private volatile boolean isRebuildingIndex = false;
 	
@@ -126,6 +125,9 @@ public class ChangeManager {
 	private void serveChangesFeed(RestServiceRequest rsr, long since, long maxDurationSeconds) throws IOException, CoreException {
 			//Continuation continuation = ContinuationSupport.getContinuation(rsr.request);
 				
+			if (!rsr.request.isAsyncSupported())
+				throw new IllegalStateException("Async is not supported :(. Cannot serve REST feed");
+			
 			if (rsr.request.getAttribute("lpsession") == null) {	
 				// - this request just arrived (first branch) -> sleep until message arrive
 				if (RestServices.LOG.isDebugEnabled())
@@ -136,7 +138,7 @@ public class ChangeManager {
 				
 				if (writeChanges(rsr, Core.createSystemContext(), since)) {
 					//special case, if there where pending changes and the timeout is negative, e.g., return ASAP, finish the request now. 
-					if (since < 0) {
+					if (maxDurationSeconds < 0) {
 						rsr.endDoc();
 						return;
 					}
@@ -146,7 +148,7 @@ public class ChangeManager {
 				
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
-				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0);
+				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0, this);
 				longPollSessions.add(lpsession);
 				rsr.request.setAttribute("lpsession", lpsession);
 				
@@ -156,11 +158,16 @@ public class ChangeManager {
 					asyncContext.setTimeout(Math.abs(maxDurationSeconds) * 1000); 
 			}
 			
-			else { //expired or completed
+			else { //expired
 				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
-				longPollSessions.remove(lpsession);
+				unregisterListener(lpsession);
 				rsr.endDoc();
 			}
+	}
+
+	public void unregisterListener(ChangeFeedSubscriber lpsession)
+	{
+		longPollSessions.remove(lpsession);
 	}
 
 	public void serveChanges(RestServiceRequest rsr, boolean asFeed) throws IOException, CoreException, RestPublishException {
@@ -196,8 +203,8 @@ public class ChangeManager {
 			try {
 				s.addInstruction(json);
 			} catch (Exception e) {
-				RestServices.LOG.warn("Failed to publish update to some client: " + json);
-				longPollSessions.remove(s);
+				RestServices.LOG.warn("Failed to publish update to some client: " + json, e);
+				unregisterListener(s);
 				s.complete();
 			}
 		}

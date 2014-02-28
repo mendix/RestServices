@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.servlet.AsyncContext;
+import javax.servlet.ServletOutputStream;
 
 import org.json.JSONObject;
 
@@ -20,10 +21,12 @@ class ChangeFeedSubscriber {
 	
 	final private AsyncContext continuation;
 	private boolean completeAfterFirst;
+	private ChangeManager	changeManager;
 	
-	public ChangeFeedSubscriber(AsyncContext asyncContext, boolean completeAfterFirst) {
+	public ChangeFeedSubscriber(AsyncContext asyncContext, boolean completeAfterFirst, ChangeManager changeManager) {
 		this.continuation = asyncContext;
 		this.completeAfterFirst = completeAfterFirst;
+		this.changeManager = changeManager;
 	}
 
 	public void addInstruction(JSONObject json) 
@@ -50,8 +53,13 @@ class ChangeFeedSubscriber {
 		JSONObject instr = null;
 		
 		try {
-			while(null != (instr = pendingInstructions.poll())) 
-				continuation.getResponse().getOutputStream().write(instr.toString().getBytes(RestServices.UTF8));
+			
+			while(null != (instr = pendingInstructions.poll())) { 
+				RestServices.LOG.debug("Publishing " + instr);
+				ServletOutputStream out = continuation.getResponse().getOutputStream();
+				out.write("\r\n".getBytes(RestServices.UTF8));
+				out.write(instr.toString().getBytes(RestServices.UTF8));
+			}
 			continuation.getResponse().flushBuffer();
 			
 			if (completeAfterFirst) //return ASAP
@@ -76,6 +84,7 @@ class ChangeFeedSubscriber {
 		catch (Throwable e) {
 			RestServices.LOG.warn("Failed to complete " + id + ": " + e.getMessage(), e);
 		}
+		changeManager.unregisterListener(this);
 	}
 }
 
