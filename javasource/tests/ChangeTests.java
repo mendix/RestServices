@@ -174,18 +174,18 @@ public class ChangeTests extends TestBase{
 		try {
 			t2 = XPath.create(c2, TaskCopy.class)
 				.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+				.eq(TaskCopy.MemberNames.Description, "milk")
 				.firstOrWait(1000);
 			Assert.assertTrue(t2 != null);
-			Assert.assertEquals("milk", t2.getDescription());
 			
 			t1.setDescription("karnemilk");
 			publishTask(c, t1, false);
 			
 			t2 = XPath.create(c2, TaskCopy.class)
 					.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+					.eq(TaskCopy.MemberNames.Description, "karnemilk")
 					.firstOrWait(1000);
 			Assert.assertTrue(t2 != null);
-			Assert.assertEquals("karnemilk", t2.getDescription());
 				
 			Thread.sleep(3 * Math.abs(timeout) * 1000); //initial request is over now
 			
@@ -194,9 +194,9 @@ public class ChangeTests extends TestBase{
 			
 			t2 = XPath.create(c2, TaskCopy.class)
 					.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+					.eq(TaskCopy.MemberNames.Description, "twix")
 					.firstOrWait(1000);
 			Assert.assertTrue(t2 != null);
-			Assert.assertEquals("twix", t2.getDescription());
 		}
 		finally {
 			ChangeFeedListener.unfollow(baseUrl);

@@ -93,7 +93,13 @@ public class Utils {
 	}
 
 	public static Map<String, String> getArgumentTypes(String mf) {
-		Map<String, IDataType> knownArgs = Core.getInputParameters(mf);
+		Map<String, IDataType> knownArgs = null;
+		try {
+			knownArgs = Core.getInputParameters(mf);
+		}
+		catch(IllegalArgumentException e) {
+			//ignore, mf does not exist.
+		}
 		if (knownArgs == null || null == Core.getReturnType(mf)) //known args is usually empty map for non existing microflow :S.
 			throw new IllegalArgumentException("Unknown microflow");
 		

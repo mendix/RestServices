@@ -80,7 +80,7 @@ public class ConsistencyChecker {
 	}
 
 	private static void checkSource(ServiceDefinition def, List<String> errors) {
-		if (Core.getMetaObject(def.getSourceEntity()) == null)
+		if (def.getSourceEntity() == null || Core.getMetaObject(def.getSourceEntity()) == null)
 			errors.add("Invalid source entity");
 		else {
 			if (!Core.getMetaObject(def.getSourceEntity()).isPersistable())

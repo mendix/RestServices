@@ -33,7 +33,7 @@ public class LoadService extends UserAction<Boolean>
 		this.def = __def == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __def);
 
 		// BEGIN USER CODE
-		RestServiceHandler.loadConfig(def);
+		RestServiceHandler.loadConfig(def, true);
 		return true;
 		// END USER CODE
 	}

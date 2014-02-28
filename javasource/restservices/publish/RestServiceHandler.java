@@ -41,19 +41,28 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private static void loadConfig(IContext context) throws CoreException {
-		for (ServiceDefinition def : XPath.create(context, ServiceDefinition.class).all())
-			loadConfig(def);
+		for (ServiceDefinition def : XPath.create(context, ServiceDefinition.class).all()) {
+			loadConfig(def, false);
+		}
 	}
 	
-	public static void loadConfig(ServiceDefinition def) {
+	public static void loadConfig(ServiceDefinition def, boolean throwOnFailure) {
 		if (!started)
 			return;
 		
-		String errors = ConsistencyChecker.check(def);
+		String errors = null;
+		try {
+			ConsistencyChecker.check(def);
+		}
+		catch(Exception e) {
+			errors = "Failed to run consistency checks: " + e.getMessage();
+		}
+		
 		if (errors != null) {
 			String msg = "Failed to load service '" + def.getName() + "': \n" + errors;
 			RestServices.LOG.error(msg);
-			throw new IllegalStateException(msg);
+			if (throwOnFailure)
+				throw new IllegalStateException(msg);
 		}
 		else {
 			RestServices.LOG.info("Reloading definition of service '" + def.getName() + "'");
