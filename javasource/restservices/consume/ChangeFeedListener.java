@@ -104,30 +104,32 @@ public class ChangeFeedListener {
 		
 		RestConsumer.includeHeaders(get, headers);
 		int status = RestConsumer.client.executeMethod(get);
-		if (status != IMxRuntimeResponse.OK)
-			throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
-
-		InputStream inputStream = get.getResponseBodyAsStream();
-		
-		JSONTokener jt = new JSONTokener(inputStream);
-		JSONObject instr = null;
-			
 		try {
-			while(true) {
-				instr = new JSONObject(jt);
-				
-				//TODO: should continue on exception in processChange and just notify about the missed change?
-				processChange(instr);
+			if (status != IMxRuntimeResponse.OK)
+				throw new RuntimeException("Failed to setup stream to " + url +  ", status: " + status);
+
+			InputStream inputStream = get.getResponseBodyAsStream();
+		
+			JSONTokener jt = new JSONTokener(inputStream);
+			JSONObject instr = null;
+			
+			try {
+				while(true) {
+					instr = new JSONObject(jt);
+					
+					//TODO: should continue on exception in processChange and just notify about the missed change?
+					processChange(instr);
+				}
 			}
-		}
-		catch(InterruptedException e2) {
-			cancelled = true;
-			RestServices.LOG.warn("Changefeed interrupted", e2);
-		}
-		catch(Exception e) {
-			//Not graceful disconnected?
-			if (!cancelled && !(jt.end() && e instanceof JSONException))
-				throw new RuntimeException(e);
+			catch(InterruptedException e2) {
+				cancelled = true;
+				RestServices.LOG.warn("Changefeed interrupted", e2);
+			}
+			catch(Exception e) {
+				//Not graceful disconnected?
+				if (!cancelled && !(jt.end() && e instanceof JSONException))
+					throw new RuntimeException(e);
+			}
 		}
 		finally {
 			get.releaseConnection();

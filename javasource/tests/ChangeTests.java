@@ -149,19 +149,17 @@ public class ChangeTests extends TestBase{
 	
 	@Test
 	public void testChangesFeedTimeout() throws Exception {
-		testChangesFeed(10);
+		testChangesFeed(2);
 	}
 	
 	@Test
 	public void testChangesFeedTimeoutOrAutoReconnect() throws Exception {
-		testChangesFeed(-10);
+		testChangesFeed(-2);
 	}
 	
 	public void testChangesFeed(long timeout) throws Exception {
 		IContext c = Core.createSystemContext();
 		IContext c2 = Core.createSystemContext();
-
-		XPath.create(c, FollowChangesState.class).contains(FollowChangesState.MemberNames.CollectionUrl, baseUrl).deleteAll();
 
 		def.setEnableChangeTracking(true);
 		def.commit();
@@ -170,6 +168,7 @@ public class ChangeTests extends TestBase{
 		TaskCopy t2;
 		publishTask(c, t1, false);
 
+		ChangeFeedListener.resetState(baseUrl);
 		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, timeout);
 		try {
 			t2 = XPath.create(c2, TaskCopy.class)
@@ -213,7 +212,8 @@ public class ChangeTests extends TestBase{
 		Task t1 = createTask(c, "test", true);
 		
 		//listen before feed is enabled
-		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, 2);
+		ChangeFeedListener.resetState(baseUrl);
+		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, 5);
 			
 		Thread.sleep(25000);
 		
