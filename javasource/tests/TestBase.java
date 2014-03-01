@@ -5,8 +5,11 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import restservices.RestServices;
+import restservices.consume.ChangeFeedListener;
+import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.FollowChangesState;
+import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
 import restservices.proxies.ServiceDefinition;
@@ -58,6 +61,7 @@ public class TestBase {
 			XPath.create(Core.createSystemContext(), User.class).eq(User.MemberNames.Name, username).deleteAll();
 			username = null;
 		}
+		ChangeFeedListener.unfollow(baseUrl);
 	}
 	
 	String getTestUser() throws CoreException {
@@ -103,5 +107,14 @@ public class TestBase {
 		}
 	}
 	
+	protected void assertErrorcode(IContext context, HttpMethod method, String url, int code) throws Exception {
+		try {
+			RestConsumer.request(context, method, url, null, null, false);
+			Assert.fail();
+		}
+		catch(RestConsumeException e) {
+			Assert.assertEquals(code, e.getStatus()); //Method  not allowed
+		}
+	}
 
 }

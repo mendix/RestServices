@@ -15,7 +15,6 @@ class ChangeFeedSubscriber {
 	
 	static long nextId = 1L;
 	private final String id = "FeedRequest#" + nextId++;  
-	private volatile boolean inSync = false;
 	
 	final private LinkedBlockingQueue<JSONObject> pendingInstructions = new LinkedBlockingQueue<JSONObject>(RestServices.MAXPOLLQUEUE_LENGTH);
 	
@@ -37,14 +36,7 @@ class ChangeFeedSubscriber {
 		if (!pendingInstructions.offer(json))
 			throw new RestServiceRuntimeException(this.id + " dropped message; maximum queue size exceeded");
 			
-		//schedule continuations async so we might serve multiple instructions at the same time
-		if (inSync)
-			writePendingChanges();
-	}
-
-	private boolean isEmpty()
-	{
-		return pendingInstructions.isEmpty();
+		writePendingChanges();
 	}
 
 	private void writePendingChanges() {
@@ -67,14 +59,6 @@ class ChangeFeedSubscriber {
 		} catch (IOException e) {
 			throw new RestServiceRuntimeException("Failed to write changes to" + id, e);
 		}
-	}
-
-
-	void markInSync() {
-		this.inSync  = true;
-		
-		if (!this.isEmpty())
-			this.writePendingChanges();
 	}
 
 	void complete() {

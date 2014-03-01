@@ -84,6 +84,9 @@ public class ChangeManager {
 
 	private boolean writeChanges(final RestServiceRequest rsr, IContext c,
 			long since) throws CoreException {
+		if (since < 0)
+			throw new IllegalArgumentException("Since parameter should be positive");
+		
 		final AtomicBoolean something = new AtomicBoolean(false);
 		
 		XPath.create(c, ObjectState.class)
@@ -127,6 +130,8 @@ public class ChangeManager {
 				
 			if (!rsr.request.isAsyncSupported())
 				throw new IllegalStateException("Async is not supported :(. Cannot serve REST feed");
+			if (since < -1)
+				throw new IllegalArgumentException("Since parameter should be positive or -1. ");
 			
 			if (rsr.request.getAttribute("lpsession") == null) {	
 				// - this request just arrived (first branch) -> sleep until message arrive
@@ -136,7 +141,7 @@ public class ChangeManager {
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
 				
-				if (writeChanges(rsr, Core.createSystemContext(), since)) {
+				if (since != -1 && writeChanges(rsr, Core.createSystemContext(), since)) {
 					//special case, if there where pending changes and the timeout is negative, e.g., return ASAP, finish the request now. 
 					if (maxDurationSeconds < 0) {
 						rsr.endDoc();
@@ -149,11 +154,11 @@ public class ChangeManager {
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
 				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0, this);
+
+				//TODO: fix synchronization issue: changes which is pushed between 'writeChanges' and the next line are lost for this client
 				longPollSessions.add(lpsession);
 				rsr.request.setAttribute("lpsession", lpsession);
 				
-				lpsession.markInSync();
-	
 				if (maxDurationSeconds != 0L)
 					asyncContext.setTimeout(Math.abs(maxDurationSeconds) * 1000); 
 			}
@@ -305,7 +310,7 @@ public class ChangeManager {
 		service.getChangeManager().publishUpdateHelper(context, source, checkConstraint);
 	}
 
-	private void publishUpdateHelper(IContext context, IMendixObject source,
+	void publishUpdateHelper(IContext context, IMendixObject source,
 			boolean checkConstraint) {
 		try {
 			//Check if publishable

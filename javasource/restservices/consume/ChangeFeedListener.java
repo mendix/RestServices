@@ -116,6 +116,7 @@ public class ChangeFeedListener {
 			while(true) {
 				instr = new JSONObject(jt);
 				
+				//TODO: should continue on exception in processChange and just notify about the missed change?
 				processChange(instr);
 			}
 		}

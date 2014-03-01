@@ -13,6 +13,7 @@ import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
+import restservices.util.Utils;
 import tests.proxies.CTaskView;
 import tests.proxies.Task;
 
@@ -352,6 +353,61 @@ public class BasicTests extends TestBase {
 			RestServices.BATCHSIZE = bs;
 		}
 	}
+
+	@Test
+	public void testComplexKey() throws Exception {
+		IContext c = Core.createSystemContext();
+		def.setSourceKeyAttribute("Description");
+		def.setUseStrictVersioning(false);
+		def.setEnableCreate(true);
+		def.setEnableUpdate(true);
+		def.setEnableDelete(true);
+		def.setEnableGet(true);
+		def.setEnableListing(true);
+		def.commit();
+		
+		String key = "http://www.nu.nl/bla?q=3&param=value;  !@#$%^&*()_-+={}|[]\"\\:;\'<>?,./~`\n\r\t\b\fENDOFKEY";
+		String enc = Utils.urlEncode(key);
+		
+		CTaskView t = new CTaskView(c);
+		t.setDescription(key);
+		
+		String assignedKey = RestConsumer.postObject(c, baseUrl, t.getMendixObject(), false).getResponseBody();
+		
+		Assert.assertEquals(key, assignedKey);
+		//GET with wrong key
+		//assertErrorcode(c, HttpMethod.GET, baseUrl + key, 404);
+		
+		//GET with correct key
+		CTaskView copy = new CTaskView(c);
+		RestConsumer.getObject(c, baseUrl + enc, null, copy.getMendixObject());
+		Assert.assertEquals(key, copy.getDescription());
+		
+		//LIST
+		JSONArray ar = new JSONArray(RestConsumer.request(c, HttpMethod.GET, baseUrl, null, null, false).getResponseBody());
+		Assert.assertEquals(1, ar.length());
+		Assert.assertEquals(baseUrl + enc, ar.getString(0));
+		
+		//PUT
+		t.setCompleted(true);
+		RestConsumer.putObject(c, baseUrl + enc, t.getMendixObject(), null);
+		
+		RestConsumer.getObject(c, baseUrl + enc, null, copy.getMendixObject());
+		Assert.assertEquals(true, copy.getCompleted());
+		Assert.assertEquals(key, copy.getDescription());
+		
+		//count, there should still be one
+		ar = new JSONArray(RestConsumer.request(c, HttpMethod.GET, baseUrl, null, null, false).getResponseBody());
+		Assert.assertEquals(1, ar.length());
+		
+		//DELETE
+		RestConsumer.deleteObject(c, baseUrl + enc, null);
+		
+		//count
+		ar = new JSONArray(RestConsumer.request(c, HttpMethod.GET, baseUrl, null, null, false).getResponseBody());
+		Assert.assertEquals(0, ar.length());
+	}
+
 
 	
 }

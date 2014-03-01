@@ -204,4 +204,34 @@ public class ChangeTests extends TestBase{
 		
 		
 	}
+	
+	@Test
+	public void testAutoReconnect() throws Exception {
+		IContext c = Core.createSystemContext();
+		assertErrorcode(c, HttpMethod.GET, baseUrl + "changes/feed", 405);
+		
+		Task t1 = createTask(c, "test", true);
+		
+		//listen before feed is enabled
+		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, 2);
+			
+		Thread.sleep(25000);
+		
+		Object t2 = XPath.create(c, TaskCopy.class)
+		.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+		.eq(TaskCopy.MemberNames.Description, "test")
+		.firstOrWait(1000);
+		Assert.assertNull(t2);
+		
+		def.setEnableChangeTracking(true);
+		def.commit();
+		
+		t2 = XPath.create(c, TaskCopy.class)
+		.eq(TaskCopy.MemberNames.Nr, t1.getNr())
+		.eq(TaskCopy.MemberNames.Description, "test")
+		.firstOrWait(20000);
+		
+		Assert.assertNotNull(t2);
+	
+	}
 }

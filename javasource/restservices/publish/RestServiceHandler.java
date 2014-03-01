@@ -2,6 +2,8 @@ package restservices.publish;
 
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -82,6 +84,14 @@ public class RestServiceHandler extends RequestHandler{
 
 		String method = request.getMethod();
 		String requestStr =  method + " " + path;
+		URL u;
+		try {
+			u = new URL(request.getRequestURL().toString());
+		} catch (MalformedURLException e1) {
+			throw new IllegalStateException(e1);
+		}
+		path = u.getPath().substring(1 + RestServices.HANDLERPATH.length()); //Path which is passed to this request is already decode and therefor useless...
+		
 		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
 
 		response.setCharacterEncoding(RestServices.UTF8);

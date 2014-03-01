@@ -12,7 +12,7 @@ import restservices.util.Utils;
 public class ServiceDescriber {
 
 	
-	private static final String SINCEPARAM_HELPTEXT = "Number, defaulting to zero. Each change on the server side is assigned an unique, incremental number. Clients should keep track of the highest numbered change they already processed, to optimize the sync process";
+	private static final String SINCEPARAM_HELPTEXT = "Number, defaulting to zero. Each change on the server side is assigned an unique, incremental number. Clients should keep track of the highest numbered change they already processed, to optimize the sync process. For feeds, since '-1' can be used to indicate that past revisions can be skipped and the feed should only push new changes. ";
 
 	public static void serveServiceOverview(RestServiceRequest rsr) {
 		rsr.startDoc();
