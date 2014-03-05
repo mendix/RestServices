@@ -14,6 +14,7 @@ import org.json.JSONTokener;
 
 import restservices.RestServices;
 import restservices.proxies.FollowChangesState;
+import restservices.proxies.TrackingState;
 import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
 
@@ -38,6 +39,7 @@ public class ChangeFeedListener {
 	private long	timeout;
 	private volatile GetMethod currentRequest;
 	private Thread listenerThread;
+	private volatile boolean isConnected = false;
 	
 	
 	//TODO: make status enabled in the UI
@@ -114,6 +116,7 @@ public class ChangeFeedListener {
 			JSONObject instr = null;
 			
 			try {
+				isConnected  = true;
 				while(true) {
 					instr = new JSONObject(jt);
 					
@@ -132,6 +135,7 @@ public class ChangeFeedListener {
 			}
 		}
 		finally {
+			isConnected = false;
 			get.releaseConnection();
 		}
 	}
@@ -212,7 +216,7 @@ public class ChangeFeedListener {
 	
 	public static synchronized void unfollow(String collectionUrl) {
 		if (activeListeners.containsKey(collectionUrl))
-			activeListeners.remove(collectionUrl).close();
+			activeListeners.get(collectionUrl).close();
 	}
 	
 	public static synchronized void fetch(String collectionUrl, String updateMicroflow, String deleteMicroflow) throws Exception {
@@ -223,5 +227,14 @@ public class ChangeFeedListener {
 		if (activeListeners.containsKey(collectionUrl))
 			throw new IllegalStateException("Cannot reset state for collection '" + collectionUrl + "', there is an active listener. Please unfollow first");
 		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl, collectionUrl).deleteAll();
+	}
+
+	public static TrackingState getFeedState(String collectionUrl) {
+		ChangeFeedListener feed = activeListeners.get(collectionUrl);
+		if (feed == null)
+			return TrackingState.Paused;
+		if (!feed.cancelled && feed.isConnected)
+			return TrackingState.Tracking;
+		return TrackingState.Connecting;
 	}
 }

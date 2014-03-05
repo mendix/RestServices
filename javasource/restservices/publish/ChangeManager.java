@@ -443,4 +443,8 @@ public class ChangeManager {
 			s.complete();
 		}
 	}
+
+	public long getNrOfConnections() {
+		return longPollSessions.size();
+	}
 }
