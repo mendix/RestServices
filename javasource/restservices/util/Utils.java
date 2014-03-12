@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.codec.digest.DigestUtils;
 
 import restservices.RestServices;
@@ -147,6 +149,10 @@ public class Utils {
 
 	public static String nullToEmpty(String statusText) {
 		return statusText == null ? "" : statusText;
+	}
+
+	public static String getRequestUrl(HttpServletRequest request) {
+		return request.getRequestURL().toString() + (Utils.isEmpty(request.getQueryString()) ? "" : "?" + request.getQueryString());
 	}
 
 	

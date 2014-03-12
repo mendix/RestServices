@@ -1,12 +1,16 @@
 package restservices.publish;
 
 import org.apache.commons.httpclient.HttpStatus;
+import org.json.JSONObject;
+
+import com.mendix.core.Core;
 
 import communitycommons.StringUtils;
 
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestServiceRequest.ContentType;
+import restservices.util.JSONSchemaBuilder;
 import restservices.util.Utils;
 
 public class ServiceDescriber {
@@ -94,9 +98,13 @@ public class ServiceDescriber {
 				endEndpoint();
 			}
 			if (def.getEnableGet()) {
-				startEndpoint("GET", "<" + def.getSourceKeyAttribute() + ">", "Returns the object specified by the URL, which is retrieved from the database by using the given key.");
+				startEndpoint("GET", "&lt;" + def.getSourceKeyAttribute() + "&gt;", "Returns the object specified by the URL, which is retrieved from the database by using the given key.");
 				addEndpointParam(RestServices.IFNONEMATCH_HEADER + " (header)", "If the current version of the object matches the ETag provided by this optional header, status 304 NOT MODIFIED will be returned instead of returning the whole objects. This header can be used for caching / performance optimization");
 				addContentType();
+				
+				JSONObject schema = JSONSchemaBuilder.build(Core.getReturnType(def.getOnPublishMicroflow()));
+				addEndpointParam("(request body)", schema);
+				
 				endEndpoint();
 			}
 			if (def.getEnableChangeTracking()) {
@@ -155,9 +163,12 @@ public class ServiceDescriber {
 		addEndpointParam("contenttype (param) or " + RestServices.ACCEPT_HEADER + " (header)", "Either 'json', 'html' or 'xml'. If the header is used, one of those three values is extracted from the headers. This parameter is used to determine the output type. This results in an HTML represention in browsers (unless overriden using the param) and Json or XML data for non-browser clients.");
 	}
 
-	private void addEndpointParam(String param, String description) {
-		if (isHTML)
-			rsr.write("<tr><td>" + param + "</td><td>" + description + "</td></tr>");
+	private void addEndpointParam(String param, Object description) {
+		if (isHTML) {
+			rsr.write("<tr><td>" + param + "</td><td>"); 
+			rsr.datawriter.value(description);
+			rsr.write("</td></tr>");
+		}
 		else
 			rsr.datawriter.object().key("name").value(param).key("description").value(description).endObject();
 	}
