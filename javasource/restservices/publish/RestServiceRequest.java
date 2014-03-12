@@ -147,7 +147,7 @@ public class RestServiceRequest {
 
 
 	public void endHTMLDoc() {
-		String url = request.getRequestURL().toString() + (Utils.isEmpty(request.getQueryString()) ? "" : "?" + request.getQueryString());
+		String url = Utils.getRequestUrl(request);
 		this.write("<p><center><small>View as: <a href='")
 			.write(Utils.appendParamToUrl(url, "contenttype", "xml"))
 			.write("'>XML</a> <a href='")
