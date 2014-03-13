@@ -12,7 +12,6 @@ package restservices.actions;
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.PublishedService;
-
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 

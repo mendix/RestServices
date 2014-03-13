@@ -17,6 +17,7 @@ import communitycommons.XPath;
 
 import restservices.RestServices;
 import restservices.publish.RestServiceRequest.ContentType;
+import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
@@ -122,5 +123,21 @@ public class PublishedMicroflow {
 
 	public String getRequiredRole() {
 		return securityRole;
+	}
+
+	public void serveDescription(RestServiceRequest rsr) {
+		rsr.startDoc();
+		
+		if (rsr.getContentType() == ContentType.HTML)
+			rsr.write("<h1>Operation '").write(getName()).write("'</h1>");
+		
+		rsr.datawriter.object()
+			.key("name").value(getName())
+			.key("url").value(RestServices.getServiceUrl(getName()))
+			.key("arguments").value(JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname)))
+			.key("result").value(JSONSchemaBuilder.build(Core.getReturnType(microflowname)))
+			.endObject();
+		
+		rsr.endDoc();
 	}
 }
