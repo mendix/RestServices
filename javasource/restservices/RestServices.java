@@ -17,7 +17,9 @@ public class RestServices {
 	
 	public static int BATCHSIZE = 1000;
 
-	public static ILogNode LOG = Core.getLogger("Rest");//TODO: split in consume and publish node
+	public static ILogNode LOGPUBLISH = Core.getLogger("RestPublish");
+	public static ILogNode LOGCONSUME = Core.getLogger("RestConsume");
+	public static ILogNode LOGUTIL = Core.getLogger("RestUtil");
 	
 	public static final String VERSION = "1.0.0";
 	
@@ -112,7 +114,7 @@ public class RestServices {
 		else {
 			//TODO: make sure it is unregistered
 		}
-		LOG.info("Registered data service '" + def.getName() + "'");
+		LOGPUBLISH.info("Registered data service '" + def.getName() + "'");
 	}
 
 	public static PublishedService getService(String name) {
@@ -131,7 +133,7 @@ public class RestServices {
 
 	public static void registerPublishedMicroflow(PublishedMicroflow s) {
 		microflowServices.put(s.getName(), s);
-		LOG.info("Registered microflow service '" + s.getName() + "'");
+		LOGPUBLISH.info("Registered microflow service '" + s.getName() + "'");
 	}
 	
 	public static PublishedMicroflow getPublishedMicroflow(String name) {

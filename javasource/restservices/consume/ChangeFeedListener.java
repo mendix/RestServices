@@ -75,7 +75,7 @@ public class ChangeFeedListener {
 					}
 					catch (Exception e)
 					{
-						RestServices.LOG.error("Failed to setup follow stream for " + getChangesRequestUrl(true) + ", retrying in " + nextRetryTime + "ms: " + e.getMessage());//, e);
+						RestServices.LOGCONSUME.error("Failed to setup follow stream for " + getChangesRequestUrl(true) + ", retrying in " + nextRetryTime + "ms: " + e.getMessage());//, e);
 						try {
 							Thread.sleep(nextRetryTime);
 							if (nextRetryTime < 60*60*1000)
@@ -126,7 +126,7 @@ public class ChangeFeedListener {
 			}
 			catch(InterruptedException e2) {
 				cancelled = true;
-				RestServices.LOG.warn("Changefeed interrupted", e2);
+				RestServices.LOGCONSUME.warn("Changefeed interrupted", e2);
 			}
 			catch(Exception e) {
 				//Not graceful disconnected?
@@ -172,7 +172,7 @@ public class ChangeFeedListener {
 
 		long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
 
-		RestServices.LOG.info("Receiving update for " + url + " #" + revision + " object: '" + instr.getString("key") + "'"); 
+		RestServices.LOGCONSUME.info("Receiving update for " + url + " #" + revision + " object: '" + instr.getString("key") + "'"); 
 		
 		//TODO: use constants
 		if (instr.getBoolean("deleted")) {
@@ -192,9 +192,8 @@ public class ChangeFeedListener {
 			Core.execute(c, onUpdateMF, ImmutableMap.of(Utils.getArgumentTypes(onUpdateMF).keySet().iterator().next(), (Object) target));
 		}
 		
-		
 		if (revision <= state.getRevision()) 
-			RestServices.LOG.warn("Received revision (" + revision + ") is smaller as latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
+			RestServices.LOGCONSUME.warn("Received revision (" + revision + ") is smaller as latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
 		
 		state.setRevision(revision);
 		state.commit();

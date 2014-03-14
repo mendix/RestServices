@@ -69,8 +69,8 @@ public class ChangeManager {
 		/* store the update*/
 		long rev = getNextRevisionId();
 		
-		if (RestServices.LOG.isDebugEnabled())
-			RestServices.LOG.debug("Updated: " + objectState.getkey() + " to revision " + rev);
+		if (RestServices.LOGPUBLISH.isDebugEnabled())
+			RestServices.LOGPUBLISH.debug("Updated: " + objectState.getkey() + " to revision " + rev);
 		
 		objectState.setetag(eTag);
 		objectState.setdeleted(deleted);
@@ -135,8 +135,8 @@ public class ChangeManager {
 			
 			if (rsr.request.getAttribute("lpsession") == null) {	
 				// - this request just arrived (first branch) -> sleep until message arrive
-				if (RestServices.LOG.isDebugEnabled())
-					RestServices.LOG.debug("New continuation on " + rsr.request.getPathInfo());
+				if (RestServices.LOGPUBLISH.isDebugEnabled())
+					RestServices.LOGPUBLISH.debug("New continuation on " + rsr.request.getPathInfo());
 	
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
@@ -207,7 +207,7 @@ public class ChangeManager {
 			try {
 				s.addInstruction(json);
 			} catch (Exception e) {
-				RestServices.LOG.warn("Failed to publish update to some client: " + json, e);
+				RestServices.LOGPUBLISH.warn("Failed to publish update to some client: " + json, e);
 				unregisterListener(s);
 				s.complete();
 			}
@@ -274,7 +274,7 @@ public class ChangeManager {
 		PublishedService service = RestServices.getServiceForEntity(source.getType());
 		
 		if (!service.def.getEnableChangeTracking()) {
-			RestServices.LOG.warn("Skipped publishing delete, changetracking is not enabled for service " + service.getName());
+			RestServices.LOGPUBLISH.warn("Skipped publishing delete, changetracking is not enabled for service " + service.getName());
 			return;
 		}
 		
@@ -282,7 +282,7 @@ public class ChangeManager {
 	
 			String key = service.getKey(context, source);
 			if (!Utils.isValidKey(key)) {
-				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
+				RestServices.LOGPUBLISH.warn("No valid key for object " + source + "; skipping updates");
 				return;
 			}
 				
@@ -304,7 +304,7 @@ public class ChangeManager {
 		PublishedService service = RestServices.getServiceForEntity(source.getType());
 		
 		if (!service.def.getEnableChangeTracking()) {
-			RestServices.LOG.warn("Skipped publishing update, changetracking is not enabled for service " + service.getName());
+			RestServices.LOGPUBLISH.warn("Skipped publishing update, changetracking is not enabled for service " + service.getName());
 			return;
 		}	
 		service.getChangeManager().publishUpdateHelper(context, source, checkConstraint);
@@ -321,7 +321,7 @@ public class ChangeManager {
 			
 			String key = service.getKey(context, source);
 			if (!Utils.isValidKey(key)) {
-				RestServices.LOG.warn("No valid key for object " + source + "; skipping updates");
+				RestServices.LOGPUBLISH.warn("No valid key for object " + source + "; skipping updates");
 				return;
 			}
 				
@@ -353,8 +353,8 @@ public class ChangeManager {
 		
 		try {
 			final IContext context = Core.createSystemContext();
-			RestServices.LOG.info(service.getName() + ": Initializing change log. This might take a while...");
-			RestServices.LOG.info(service.getName() + ": Initializing change log. Marking old index dirty...");
+			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. This might take a while...");
+			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. Marking old index dirty...");
 			
 			//int NR_OF_BATCHES = 8;
 			
@@ -373,7 +373,7 @@ public class ChangeManager {
 					}
 				});
 			
-			RestServices.LOG.info(service.getName() + ": Initializing change log. Marking old index dirty... DONE. Rebuilding index for existing objects...");
+			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. Marking old index dirty... DONE. Rebuilding index for existing objects...");
 			
 			/** 
 			 * Republish all known objects, if they are part of the constraint (won' t result in an update if nothing actually changed)
@@ -386,12 +386,12 @@ public class ChangeManager {
 					public void onItem(IMendixObject item, long offset,
 							long total) throws Exception {
 						if (offset % 100 == 0)
-							RestServices.LOG.info("Initialize change long for object " + offset + " of " + total);
+							RestServices.LOGPUBLISH.info("Initialize change long for object " + offset + " of " + total);
 						publishUpdateHelper(context, item, false); 
 					}
 				});
 			
-			RestServices.LOG.info(service.getName() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
+			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
 
 			/**
 			 * Everything that is marked dirty, is either deleted earlier and shouldn' t be dirty, or should be deleted now. 
@@ -419,7 +419,7 @@ public class ChangeManager {
 			serviceObjectIndex.set_indexversion(calculateIndexVersion(service.def));
 			serviceObjectIndex.commit();
 			
-			RestServices.LOG.info(service.getName() + ": Initializing change log. DONE");
+			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. DONE");
 		}
 		finally {
 			isRebuildingIndex = false;

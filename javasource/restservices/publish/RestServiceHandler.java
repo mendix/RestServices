@@ -62,12 +62,12 @@ public class RestServiceHandler extends RequestHandler{
 		
 		if (errors != null) {
 			String msg = "Failed to load service '" + def.getName() + "': \n" + errors;
-			RestServices.LOG.error(msg);
+			RestServices.LOGPUBLISH.error(msg);
 			if (throwOnFailure)
 				throw new IllegalStateException(msg);
 		}
 		else {
-			RestServices.LOG.info("Reloading definition of service '" + def.getName() + "'");
+			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
 			PublishedService service = new PublishedService(def);
 			RestServices.registerService(service.getName(), service);
 		}
@@ -97,7 +97,8 @@ public class RestServiceHandler extends RequestHandler{
 		response.setCharacterEncoding(RestServices.UTF8);
 		response.setHeader("Expires", "-1");
 
-		RestServices.LOG.info("incoming request: " + requestStr);
+		if (RestServices.LOGPUBLISH.isDebugEnabled())
+			RestServices.LOGPUBLISH.debug("incoming request: " + Utils.getRequestUrl(request));
 	
 		RestServiceRequest rsr = new RestServiceRequest(request, response);
 		try {
@@ -129,11 +130,11 @@ public class RestServiceHandler extends RequestHandler{
 			if (rsr.getContext() != null && rsr.getContext().isInTransaction())
 				rsr.getContext().endTransaction();
 			
-			if (RestServices.LOG.isDebugEnabled())
-				RestServices.LOG.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
+			if (RestServices.LOGPUBLISH.isDebugEnabled())
+				RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
 		}
 		catch(RestPublishException rre) {
-			RestServices.LOG.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
+			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
 			rollback(rsr);
 			
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
@@ -142,11 +143,11 @@ public class RestServiceHandler extends RequestHandler{
 			rollback(rsr);
 			Throwable cause = ExceptionUtils.getRootCause(e);
 			if (cause instanceof WebserviceException) {
-				RestServices.LOG.warn("Invalid request " + requestStr + ": " +cause.getMessage());
+				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
 				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage());
 			}
 			else { 
-				RestServices.LOG.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
+				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
 				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
 			}
 		}

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -84,7 +85,7 @@ public class PublishedService {
 			return results.size() == 0 ? null : results.get(0);
 		}
 		catch(CoreRuntimeException e) {
-			RestServices.LOG.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
+			RestServices.LOGPUBLISH.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
 			return null;
 		}
 	}
@@ -320,10 +321,11 @@ public class PublishedService {
 		IMendixObject target = getObjectByKey(context, key);
 		
 		if (!Utils.isValidKey(key))
-			rsr.setStatus(404);
+			rsr.setStatus(HttpStatus.SC_NOT_FOUND);
 		else if (target == null) {
 			if (keyExists(rsr.getContext(), key)){
-				rsr.setStatus(400); //TODO: use http status, should be 401?
+				//key exists, but this user cannot access it. 
+				rsr.setStatus(HttpStatus.SC_FORBIDDEN);
 				rsr.close();
 				return;
 			}
@@ -333,8 +335,7 @@ public class PublishedService {
 			
 			target = Core.instantiate(context, getSourceEntity());
 			target.setValue(context, getKeyAttribute(), key);
-			rsr.setStatus(201);
-			
+			rsr.setStatus(HttpStatus.SC_CREATED);
 		}
 		else {
 			//already existing target

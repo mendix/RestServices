@@ -40,7 +40,7 @@ public class JsonSerializer {
 			return null;
 		
 		if (alreadySeen.contains(id.toLong())) {
-			RestServices.LOG.warn("ID already seen: " + id.toLong() + ", skipping serialization");
+			RestServices.LOGUTIL.warn("ID already seen: " + id.toLong() + ", skipping serialization");
 			return null;
 		}
 		alreadySeen.add(id.toLong());
@@ -50,13 +50,13 @@ public class JsonSerializer {
 		
 			PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
 			if (service == null) {
-				RestServices.LOG.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
+				RestServices.LOGUTIL.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
 				return null;
 			}
 		
-			IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
+			IMendixObject obj = Core.retrieveId(context, id); //Optimize: for refset use retrieve ids
 			if (obj == null) {
-				RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
+				RestServices.LOGUTIL.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
 				return null;
 			}
 			if (Utils.isValidKey(service.getKey(context, obj)))
@@ -66,9 +66,9 @@ public class JsonSerializer {
 		}
 		
 		/* Non persistable object, write the object itself */
-		IMendixObject obj = Core.retrieveId(context, id); //TODO: inefficient, especially for refsets, use retrieveIds?
+		IMendixObject obj = Core.retrieveId(context, id); //Optimize: for refset use retrieve ids 
 		if (obj == null) {
-			RestServices.LOG.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
+			RestServices.LOGUTIL.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
 			return null;
 		}
 		return writeMendixObjectToJson(context, obj, alreadySeen);

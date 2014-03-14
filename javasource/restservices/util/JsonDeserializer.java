@@ -89,8 +89,8 @@ public class JsonDeserializer {
 				targetattr = target.getMetaObject().getModuleName() + "._" + attr;
 			
 			if (targetattr == null) {
-				if (RestServices.LOG.isDebugEnabled())
-					RestServices.LOG.debug("Skipping attribute '" + attr + "', not found in targettype: '" + target.getType() + "'");
+				if (RestServices.LOGUTIL.isDebugEnabled())
+					RestServices.LOGUTIL.debug("Skipping attribute '" + attr + "', not found in targettype: '" + target.getType() + "'");
 				continue;
 			}
 			

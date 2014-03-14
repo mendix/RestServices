@@ -112,7 +112,7 @@ public class RestConsumer {
 					method, url, 
 					status, HttpStatus.getStatusText(status), 
 					eTag, 
-					RestServices.LOG.isDebugEnabled() || status != 200  ? body : "(omitted)");
+					RestServices.LOGCONSUME.isDebugEnabled() || status != 200  ? body : "(omitted)");
 		}
 
 		public String getETag() {
@@ -162,8 +162,8 @@ public class RestConsumer {
 	private static HttpResponseData doRequest(String method, String url,
 			Map<String, String> requestHeaders, HttpMethodParams params,
 			RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
-		if (RestServices.LOG.isDebugEnabled())
-			RestServices.LOG.debug("Fetching '" + url + "'..");
+		if (RestServices.LOGCONSUME.isDebugEnabled())
+			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
 		
 		HttpMethodBase request;
 		
@@ -203,7 +203,7 @@ public class RestConsumer {
 			else if (instream != null)
 				response.setBody(IOUtils.toString(instream));
 				
-			RestServices.LOG.info(response);
+			RestServices.LOGCONSUME.info(response);
 			
 			return response;
 		}

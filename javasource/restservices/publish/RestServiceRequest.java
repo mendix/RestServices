@@ -91,7 +91,7 @@ public class RestServiceRequest {
 
 		}
 		catch(Exception e) {
-			RestServices.LOG.warn("Failed to authenticate '" + username + "'" + e.getMessage(), e);
+			RestServices.LOGPUBLISH.warn("Failed to authenticate '" + username + "'" + e.getMessage(), e);
 		}
 		
 		return false;

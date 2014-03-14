@@ -30,8 +30,8 @@ class ChangeFeedSubscriber {
 
 	public void addInstruction(JSONObject json) 
 	{
-		if (RestServices.LOG.isDebugEnabled())
-			RestServices.LOG.debug(this.id + " received instruction " + json.toString());
+		if (RestServices.LOGPUBLISH.isDebugEnabled())
+			RestServices.LOGPUBLISH.debug(this.id + " received instruction " + json.toString());
 		
 		if (!pendingInstructions.offer(json))
 			throw new RestServiceRuntimeException(this.id + " dropped message; maximum queue size exceeded");
@@ -47,7 +47,7 @@ class ChangeFeedSubscriber {
 		try {
 			
 			while(null != (instr = pendingInstructions.poll())) { 
-				RestServices.LOG.debug("Publishing " + instr);
+				RestServices.LOGPUBLISH.debug("Publishing " + instr);
 				ServletOutputStream out = continuation.getResponse().getOutputStream();
 				out.write("\r\n".getBytes(RestServices.UTF8));
 				out.write(instr.toString().getBytes(RestServices.UTF8));
@@ -66,7 +66,7 @@ class ChangeFeedSubscriber {
 			this.continuation.complete(); 
 		}
 		catch (Throwable e) {
-			RestServices.LOG.warn("Failed to complete " + id + ": " + e.getMessage(), e);
+			RestServices.LOGPUBLISH.warn("Failed to complete " + id + ": " + e.getMessage(), e);
 		}
 		changeManager.unregisterListener(this);
 	}
