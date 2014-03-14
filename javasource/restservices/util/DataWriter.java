@@ -74,7 +74,7 @@ public class DataWriter {
 		if (mode == JSON)
 			write("{");
 		else if (mode == HTML)
-			write("\n<table>");
+			write("\n<table class=\"table-nested-").write(states.size() % 4 == 0 ? "even" : "odd").write("\">");
 		
 		return this;
 	}
@@ -185,7 +185,8 @@ public class DataWriter {
 		}
 		else {
 			object();
-			for(String key : JSONObject.getNames(json))
+			String[] names = JSONObject.getNames(json); //MWE json bug, empty object returns null instead of empty array...
+			if (names != null) for(String key : names)
 				key(key).value(json.get(key));
 			endObject();
 		}

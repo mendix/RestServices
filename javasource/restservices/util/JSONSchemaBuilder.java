@@ -20,6 +20,7 @@ public class JSONSchemaBuilder {
 	private int typeCounter = 1;
 	private HashMap<String, String> typeMap;
 	private JSONObject definitions;
+	private boolean hasReferenceToRoot = false;
 	
 	private JSONSchemaBuilder(IMetaObject meta) {
 		this.baseObject = meta;
@@ -32,11 +33,21 @@ public class JSONSchemaBuilder {
 		this.result.put("$schema", "http://json-schema.org/draft-04/schema#");
 		
 		this.definitions = new JSONObject();
-		this.result.put("definitions", definitions);
 		
 		buildTypeDefinition(baseObject);
 		
-		this.result.put("$ref", "#/definitions/type1");
+		if (hasReferenceToRoot)
+			this.result.put("$ref", "#/definitions/type1");
+		else {
+			JSONObject roottype = (JSONObject) this.definitions.remove("type1");
+			for(String key : JSONObject.getNames(roottype))
+				result.put(key, roottype.get(key));
+		}
+
+		//only add definitions if there are any types left. 
+		if (definitions.keys().hasNext())
+			this.result.put("definitions", definitions);
+		
 		return result;
 	}
 	
@@ -85,18 +96,22 @@ public class JSONSchemaBuilder {
 		else {
 			buildTypeDefinition(child); //make sure the type is available in the schema
 			type = new JSONObject().put("$ref", "#/definitions/" + typeMap.get(child.getName()));
+			if ("type1".equals(type))
+				hasReferenceToRoot  = true;
 		}
 
 		//assoc should be included?
 		if (type == null)
 			return null;
 		
-		//make sure null refs are supported
-		type = orNull(type);
 		
 		//make sure referencesets require arrays
 		if (assoc.getType() == AssociationType.REFERENCESET)
 			type = new JSONObject().put("type", "array").put("items", type);
+		
+		//make sure null refs are supported
+		else /* not a refset */
+			type = orNull(type);
 		
 		return type;
 	}
@@ -119,7 +134,7 @@ public class JSONSchemaBuilder {
 			return orNull(new JSONObject().put("type", "string")); //TODO: use enum from the meta model!
 		case HashString:
 		case String:
-			return orNull(new JSONObject().put("type", "string"));
+			return /*orNull*/(new JSONObject().put("type", "string")); //MWE: is it allowed to pass 'null' as string value, probably not, although it is semantically the same as not passing a value...
 		default:
 			throw new IllegalStateException("Unspported primitive type:  " + type);
 		}
