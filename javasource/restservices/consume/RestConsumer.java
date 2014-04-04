@@ -60,10 +60,6 @@ public class RestConsumer {
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
     static	HttpClient client = new HttpClient(connectionManager);
     
-	//TODO: connectionpool
-	
-	
-	//TODO: use this class in exception handling as well
 	public static class HttpResponseData{
 		private int status;
 		private String body = null;

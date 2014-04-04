@@ -14,7 +14,7 @@ public class DataWriter {
 	private static class State {
 		public State()
 		{
-			// TODO Auto-generated constructor stub
+			// empty constructor
 		}
 		boolean hasSomething = false;
 		boolean isArray = false;

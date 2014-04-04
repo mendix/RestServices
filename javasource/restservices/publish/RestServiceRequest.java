@@ -5,6 +5,8 @@ import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.http.HttpStatus;
+
 import restservices.RestServices;
 import restservices.util.DataWriter;
 import restservices.util.Utils;
@@ -46,7 +48,6 @@ public class RestServiceRequest {
 			return true;
 		}
 
-		//TODO: constants
 		String authHeader = request.getHeader(RestServices.HEADER_AUTHORIZATION);
 		String username = null;
 		String password = null;
@@ -64,7 +65,7 @@ public class RestServiceRequest {
 			if (username != null) {
 				session = Core.login(username, password);
 				if (session == null) {
-					setStatus(401);
+					setStatus(HttpStatus.SC_UNAUTHORIZED);
 					write("Invalid credentials");
 					return false;
 				}

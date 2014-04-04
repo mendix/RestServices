@@ -5,6 +5,8 @@ import java.util.HashMap;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
+import restservices.RestServices;
+
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
@@ -64,14 +66,12 @@ public class JSONSchemaBuilder {
 		JSONObject properties = new JSONObject();
 		def.put("properties", properties);
 		
-		//TODO: sort primitives
 		for(IMetaPrimitive prim : meta.getMetaPrimitives()) {
 			JSONObject type = primitiveToJSONType(prim.getType());
 			if (type != null)
 				properties.put(prim.getName(), type);
 		}
 		
-		//TODO: sort assocs
 		for(IMetaAssociation assoc : meta.getMetaAssociationsParent()) {
 			JSONObject type = associationToJSONType(assoc);
 			if (type != null)
@@ -86,12 +86,14 @@ public class JSONSchemaBuilder {
 		
 		//some kind of foreign key
 		if (child.isPersistable()) {
-			//TODO: only if there is an service;
-			type = new JSONObject()
-				.put("type", "string")
-				.put("title", String.format("Reference to a(n) '%s'", child.getName()));
+			//only if there is a service available for that type;
+			if (RestServices.getServiceForEntity(child.getName()) != null ) {
+				type = new JSONObject()
+					.put("type", "string")
+					.put("title", String.format("Reference to a(n) '%s'", child.getName()));
+			}
 		}
-		
+			
 		//persistent object, describe this object in the service as well
 		else {
 			buildTypeDefinition(child); //make sure the type is available in the schema

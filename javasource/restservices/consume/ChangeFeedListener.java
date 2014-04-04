@@ -17,6 +17,7 @@ import restservices.proxies.FollowChangesState;
 import restservices.proxies.TrackingState;
 import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
+import static restservices.RestServices.*;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +30,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import communitycommons.XPath;
 
 public class ChangeFeedListener {
+
 	private String url;
 	private String onUpdateMF;
 	private String onDeleteMF;
@@ -42,7 +44,6 @@ public class ChangeFeedListener {
 	private volatile boolean isConnected = false;
 	
 	
-	//TODO: make status enabled in the UI
 	private ChangeFeedListener(String collectionUrl, String onUpdateMF, String onDeleteMF, long timeout) throws Exception {
 		this.url = collectionUrl;
 		this.onUpdateMF = onUpdateMF;
@@ -51,7 +52,7 @@ public class ChangeFeedListener {
 		this.state = XPath.create(Core.createSystemContext(), FollowChangesState.class).findOrCreate(FollowChangesState.MemberNames.CollectionUrl, url);
 	}
 	
-	public ChangeFeedListener follow() throws HttpException, IOException {
+	public ChangeFeedListener follow() {
 		synchronized (activeListeners) {
 			if (activeListeners.containsKey(url))
 				throw new IllegalStateException("Already listening to " + url);
@@ -63,7 +64,6 @@ public class ChangeFeedListener {
 		headers = RestConsumer.nextHeaders.get();
 		RestConsumer.nextHeaders.set(null);
 		
-		///TODO: clean this up, one thread should suffice, make sure no httpclient retries are used, or that only that is used..
 		this.listenerThread = (new Thread() {
 			
 			private long nextRetryTime = 10000;
@@ -100,10 +100,6 @@ public class ChangeFeedListener {
 		GetMethod get = this.currentRequest = new GetMethod(requestUrl);
 		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
 		
-		//DefaultHttpRequestRetryHandler retryhandler = new DefaultHttpRequestRetryHandler(10, true);
-		//get.setParameter(HttpMethodParams.RETRY_HANDLER, retryhandler);
-		//TODO: auto retry
-		
 		RestConsumer.includeHeaders(get, headers);
 		int status = RestConsumer.client.executeMethod(get);
 		try {
@@ -120,7 +116,6 @@ public class ChangeFeedListener {
 				while(true) {
 					instr = new JSONObject(jt);
 					
-					//TODO: should continue on exception in processChange and just notify about the missed change?
 					processChange(instr);
 				}
 			}
@@ -141,12 +136,10 @@ public class ChangeFeedListener {
 	}
 
 	public String getChangesRequestUrl(boolean useFeed) {
-		//TODO: use constants
-		
 		return Utils.appendParamToUrl(Utils.appendParamToUrl(
-			Utils.appendSlashToUrl(url) + "changes/" + (useFeed ? "feed" : "list"),
-			"since", String.valueOf((long) state.getRevision())),
-			"timeout", String.valueOf(timeout));
+			Utils.appendSlashToUrl(url) + PATH_CHANGES + "/" + (useFeed ? PATH_FEED : PATH_LIST),
+			PARAM_SINCE, String.valueOf((long) state.getRevision())),
+			PARAM_TIMEOUT, String.valueOf(timeout));
 	}
 
 	void fetch() throws IOException, Exception {
@@ -170,16 +163,15 @@ public class ChangeFeedListener {
 	void processChange(JSONObject instr) throws Exception {
 		IContext c = Core.createSystemContext();
 
-		long revision = instr.getLong("rev"); //TODO: doublecheck this context remains valid..
+		long revision = instr.getLong(CHANGE_REV); 
 
-		RestServices.LOGCONSUME.info("Receiving update for " + url + " #" + revision + " object: '" + instr.getString("key") + "'"); 
+		RestServices.LOGCONSUME.info("Receiving update for " + url + " #" + revision + " object: '" + instr.getString(CHANGE_KEY) + "'"); 
 		
-		//TODO: use constants
-		if (instr.getBoolean("deleted")) {
+		if (instr.getBoolean(CHANGE_DELETED)) {
 			Map<String, String> args = Utils.getArgumentTypes(onDeleteMF);
 			if (args.size() != 1 || !"String".equals(args.values().iterator().next()))
 				throw new RuntimeException(onDeleteMF + " should have one argument of type string");
-			Core.execute(c, onDeleteMF, ImmutableMap.of(args.keySet().iterator().next(), (Object) instr.getString("key")));
+			Core.execute(c, onDeleteMF, ImmutableMap.of(args.keySet().iterator().next(), (Object) instr.getString(CHANGE_KEY)));
 		}
 		else {
 			IDataType type = Utils.getFirstArgumentType(onUpdateMF);
@@ -187,7 +179,7 @@ public class ChangeFeedListener {
 				throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
 
 			IMendixObject target = Core.instantiate(c, type.getObjectType());
-			JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
+			JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject(CHANGE_DATA), target, true);
 			Core.commit(c, target);
 			Core.execute(c, onUpdateMF, ImmutableMap.of(Utils.getArgumentTypes(onUpdateMF).keySet().iterator().next(), (Object) target));
 		}

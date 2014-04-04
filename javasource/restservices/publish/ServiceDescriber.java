@@ -39,23 +39,6 @@ public class ServiceDescriber {
 	private ServiceDefinition def;
 	private boolean isHTML;
 	
-/*	//TODO: replace with something recursive
-	public Map<String, String> getPublishedMembers() {
-		Map<String, String> res = new HashMap<String, String>();
- 		for(IMetaPrimitive prim : this.getPublishMetaEntity().getMetaPrimitives())
- 
-			res.put(prim.getName(), prim.getType().toString());
-		for(IMetaAssociation assoc : this.getPublishMetaEntity().getMetaAssociationsParent()) {
-			PublishedService service = RestServices.getServiceForEntity(assoc.getChild().getName());
-			if (service == null)
-				continue;
-			String name = Utils.getShortMemberName(assoc.getName());
-			String type = assoc.getType() == AssociationType.REFERENCESET ? "[" + service.getServiceUrl() + "]" : service.getServiceUrl();
-			res.put(name,  type);
-		}
-		return res;
-	}
-*/
 	public ServiceDescriber(RestServiceRequest rsr, ServiceDefinition def) {
 		this.rsr = rsr;
 		this.def = def;

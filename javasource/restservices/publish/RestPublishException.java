@@ -2,7 +2,6 @@ package restservices.publish;
 
 import org.apache.http.HttpStatus;
 
-//TODO: rename to ServiceException 
 public class RestPublishException extends Exception {
 	/**
 	 * 

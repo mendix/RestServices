@@ -33,7 +33,6 @@ public class ServiceTest extends TestBase {
 		RestConsumer.request(c, HttpMethod.POST, url, input.getMendixObject(), output.getMendixObject(), false);
 		Assert.assertEquals("Yuuluu", output.getresult());
 
-/* TODO:	
 		output = new ReplaceOut(c);
 		RestConsumer.request(c, HttpMethod.GET, url, input.getMendixObject(), output.getMendixObject(), false);
 		Assert.assertEquals("Yuuluu", output.getresult());
@@ -47,6 +46,5 @@ public class ServiceTest extends TestBase {
 		output = new ReplaceOut(c);
 		RestConsumer.request(c, HttpMethod.GET, url, input.getMendixObject(), output.getMendixObject(), true);
 		Assert.assertEquals("Yuuluu", output.getresult());
-*/
 	}
 }

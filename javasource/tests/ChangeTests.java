@@ -145,8 +145,6 @@ public class ChangeTests extends TestBase{
 		}
 	}
 	
-	//TODO: add low level tests to see whether request is aborted at the proper times. 
-	
 	@Test
 	public void testChangesFeedTimeout() throws Exception {
 		testChangesFeed(2);

@@ -33,16 +33,19 @@ public class Utils {
 	}
 
 	public static boolean isUrl(String url) {
-		//a bit naive maybe.... //TODO:
+		//a bit naive maybe.... 
 		return url != null && (url.startsWith("http://") || url.startsWith("https://"));
 	}
 
 	public static String getKeyFromUrl(String url) {
-		int i = url.lastIndexOf('/'); //TODO: naive as well...
+		int i = url.lastIndexOf('/'); 
 		if (i == -1 || i == url.length() -1)
 			throw new RuntimeException("Not a key containing url: " + url);
 		String key = url.substring(i + 1);
 		i = key.indexOf('?');
+		if (i > -1)
+			key = key.substring(0, i);
+		i = key.indexOf('#');
 		if (i > -1)
 			key = key.substring(0, i);
 		return key;
@@ -83,7 +86,7 @@ public class Utils {
 	}
 
 	public static boolean isValidKey(String key) {
-		return key != null && !key.trim().isEmpty() && key.length() > 0 && key.length() < 400; //TODO: bit arbitrary
+		return key != null && !key.trim().isEmpty() && key.length() > 0 && key.length() < 400; //MWE: warn: magic number!
 	}
 
 	public static boolean isEmpty(String value) {

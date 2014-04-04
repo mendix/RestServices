@@ -34,8 +34,6 @@ public class PublishedMicroflow {
 	private String securityRole;
 
 	public PublishedMicroflow(String microflowname, String securityRole) throws CoreException{
-		//TODO: post only param
-		//TODO: documentation param for meta info
 		this.microflowname = microflowname;
 		this.securityRole = securityRole;
 		this.consistencyCheck();
