@@ -86,10 +86,7 @@ public class PublishedMicroflow {
 				data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 			}
 			else
-				data = new JSONObject();
-
-			for (String param : rsr.request.getParameterMap().keySet())
-				data.put(param, rsr.request.getParameter(param));
+				data = RestServiceHandler.requestParamsToJsonMap(rsr);
 			
 			JsonDeserializer.readJsonDataIntoMendixObject(rsr.getContext(), data, argO, false);
 			args.put(argName, argO);

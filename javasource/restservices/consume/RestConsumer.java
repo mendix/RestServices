@@ -267,12 +267,12 @@ public class RestConsumer {
 					
 					//TODO: store revision
 	
-					if (instr.getBoolean("deleted")) {
-						Core.execute(c, onDeleteMF, instr.getString("key"));
+					if (instr.getBoolean(RestServices.CHANGE_DELETED)) {
+						Core.execute(c, onDeleteMF, instr.getString(RestServices.CHANGE_KEY));
 					}
 					else {
 						IMendixObject target = Core.instantiate(c, type.getObjectType());
-						JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject("data"), target, true);
+						JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject(RestServices.CHANGE_DATA), target, true);
 						Core.execute(c, onUpdateMF, target);
 					}
 				}
@@ -408,7 +408,7 @@ public class RestConsumer {
 			requestEntity = new InputStreamRequestEntity(Core.getFileDocumentContent(context, source));
 		}
 		else if (source != null && asFormData && isFileSource) {
-			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, "multipart/form-data");
+			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.MULTIPART_FORM_DATA);
 			
 			String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
 			
@@ -416,7 +416,7 @@ public class RestConsumer {
 			requestEntity = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, params);
 		}
 		else if (asFormData && !isFileSource)
-			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, "application/x-www-form-urlencoded");
+			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.APPLICATION_X_WWW_FORM_URLENCODED);
 		else if (data != null)
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.TEXTJSON, RestServices.UTF8);
 		

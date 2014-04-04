@@ -160,6 +160,13 @@ public class RestServiceHandler extends RequestHandler{
 		return "GET".equals(method) && parts.length == 1 && rsr.request.getParameter(RestServices.PARAM_ABOUT) != null;
 	}
 
+	public static JSONObject requestParamsToJsonMap(RestServiceRequest rsr) {
+		JSONObject data = new JSONObject();
+		for (String param : rsr.request.getParameterMap().keySet())
+			data.put(param, rsr.request.getParameter(param));
+		return data;
+	}
+	
 	private void rollback(RestServiceRequest rsr) {
 		if (rsr != null && rsr.getContext() != null && rsr.getContext().isInTransaction())
 			rsr.getContext().rollbackTransAction();
@@ -216,9 +223,16 @@ public class RestServiceHandler extends RequestHandler{
 			}
 			else if ("POST".equals(method)) {
 				handled = true;
-				String body = IOUtils.toString(rsr.request.getInputStream());
-				//TODO: support form encoded as wel!
-				service.servePost(rsr, new JSONObject(body));
+				JSONObject data;
+				if (RestServices.APPLICATION_X_WWW_FORM_URLENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
+					data = requestParamsToJsonMap(rsr);
+				}
+				//TODO: support multipart?
+				else {
+					String body = IOUtils.toString(rsr.request.getInputStream());
+					data = new JSONObject(body);
+				}
+				service.servePost(rsr, data);
 			}
 			break;
 		case 2:
