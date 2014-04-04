@@ -15,6 +15,7 @@ import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceDefinition;
 import restservices.proxies.ServiceObjectIndex;
 import restservices.publish.RestPublishException.RestExceptionType;
+import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
@@ -24,6 +25,7 @@ import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.sun.xml.fastinfoset.stax.events.Util;
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
@@ -432,8 +434,14 @@ public class ChangeManager {
 	 * @return
 	 */
 	private String calculateIndexVersion(ServiceDefinition def) {
+		IMetaObject returnType = Core.getMetaObject(Core.getReturnType(def.getOnPublishMicroflow()).getObjectType());
+		JSONObject exporttype = JSONSchemaBuilder.build(returnType);
+		
 		return StringUtils.join(new String[] {
-			def.getSourceEntity(), def.getSourceKeyAttribute(), def.getSourceConstraint()
+			def.getSourceEntity(), 
+			def.getSourceKeyAttribute(), 
+			def.getSourceConstraint(),
+			exporttype.toString()
 		},";");
 	}
 
