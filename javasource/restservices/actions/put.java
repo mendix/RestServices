@@ -20,21 +20,19 @@ public class put extends UserAction<IMendixObject>
 {
 	private String url;
 	private IMendixObject dataObject;
-	private String optEtag;
 
-	public put(String url, IMendixObject dataObject, String optEtag)
+	public put(String url, IMendixObject dataObject)
 	{
 		super();
 		this.url = url;
 		this.dataObject = dataObject;
-		this.optEtag = optEtag;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.putObject(getContext(), url, dataObject, optEtag).getMendixObject();
+		return RestConsumer.putObject(getContext(), url, dataObject, null).getMendixObject();
 		// END USER CODE
 	}
 

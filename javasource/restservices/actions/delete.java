@@ -19,20 +19,18 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class delete extends UserAction<IMendixObject>
 {
 	private String resourceUrl;
-	private String optEtag;
 
-	public delete(String resourceUrl, String optEtag)
+	public delete(String resourceUrl)
 	{
 		super();
 		this.resourceUrl = resourceUrl;
-		this.optEtag = optEtag;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.deleteObject(getContext(), resourceUrl, optEtag).getMendixObject();
+		return RestConsumer.deleteObject(getContext(), resourceUrl, null).getMendixObject();
 		// END USER CODE
 	}
 
