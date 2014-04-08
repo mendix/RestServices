@@ -1,6 +1,8 @@
 # Rest Services
 
-Welcome to the Mendix Rest Services module. This module can be used as toolkit if you want to achieve one of the following three purposes:
+![RestServices](images/logo.png) 
+
+Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
 1. Consume JSON REST based services
 2. Publish data or microflows through REST API's
@@ -23,7 +25,7 @@ This method returns a `RequestResult` object if the service responds with HTTP r
 ## The `RequestResult` object
 Most REST operations return a `RequestResult` object which contains the meta information of a response. An instance contains the following fields:
 
-* `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [http://en.wikipedia.org/wiki/HTTP_ETag](Etags)
+* `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [ETags](http://en.wikipedia.org/wiki/HTTP_ETag)
 * `RawResponseCode` idem, but as HTTP status code. Either '200' or '304'. 
 * `ETag` if the response contained an `ETag` header, it is picked up and stored in this field. It can be used as optimization for any subsequent requests. 
 * `ResponseBody` the full and raw response body of the request. This field is only set if the body of the response is not yet parsed (by providing an `optResponseData` parameter for example). 
@@ -64,6 +66,32 @@ Similar to `post`. See the 'HTTP verbs' section or the specs of the service you 
 
 # Publishing REST services
 
+Publishing a REST service is pretty straight forward with this modules. The module provides publishing REST services in two flavors:
+
+1. Publishing operations, based on a single microflow. 
+2. Publishing a part of your data model, and providing a typical rest based API to retrieve, update, delete, create and even real-time sync data. 
+
+PLEASE NOT THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHSERVICES` SHOULD BE CALLED DURING STARTUP OF THE APP!
+
+## Publishing a microflow using `CreateMicroflowService`
+Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms). 
+
+A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The returntype of the microflow should again be a transient object or a String. In the latter case, the string is considered to be the raw response of the operation which is not further processed. 
+
+Publishing a microflow is as simle as calling `CreateMicroflowService` with the public name of the operation and the microflow that provides the implementation. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*
+
+## Publishing a data service
+
+### Creating a new service
+Publishing a JSON based data service with full CRUD support is pretty straightforward with the RestServices module. The easiest way to start is to connect the microflow `IVK_OpenServiceOverview` to your navigation and create a new Published Service after starting your app. 
+
+Once you have figured out the correct configuration for your data service, a best practice is to use the `GetOrCreateDataService` microflow in the startup microflow to create your service configuration. Alter and commit the properties of the resulting ServiceDefinition to update the configuration. If the configuration contains consistency errors, those will will be listed in the log of your application. 
+
+### Configuring your service
+
+
+### Using your service
+
 # Data synchronization
 
 # HTTP Verbs in Rest
@@ -72,3 +100,11 @@ Similar to `post`. See the 'HTTP verbs' section or the specs of the service you 
 
 # JSON Deserialization
 
+# Known Integrations
+
+Whe know that the RestSevices module has already been used succesfully to integrate with the following services:
+
+* Dropbox.com
+* Paydro.net
+* Postcodeapi.nu
+* Rijksmuseum.nl
