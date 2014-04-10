@@ -8,6 +8,8 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 2. Publish data or microflows through REST API's
 3. (Real time) Synchronization of data between Mendix applications
 
+# Initial setup
+
 # Consuming REST services
 
 This module is able to invoke most, if not any, REST service which is based on JSON, form-data or multipart data (that is; files). The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation. 
@@ -101,12 +103,51 @@ Once you have figured out the correct configuration for your data service, a bes
 
 ### Configuring your service
 
+You can further configure the service from either a microflow or the form in the running app by setting the following properties.
+
+#### Core configuration
+
+Property | Default value | Description
+-------- | ------------- | ----------
+Name | (required) | Public name of this service. The endpoint of the service will be *&lt;app-url&gt;/rest/&lt;name&gt;*. Example: `Tasks`
+Description | (optional) | Description of this services. Will be part of the generated meta data
+Source Entity | (required) | The entity in the data model that should be published. Should be persistable. Example: `MyModule.Task`
+Source Key Attribute | (required) | Attribute that uniquly identies an object and which will be used as external reference to this object. The attribute should not change over time. Example: `TaskID`
+Source Constraint | (optional) | XPath constraint that limits which objects are readable / writable through this service. It is possible to use the `'[%Current_User%]'` token inside this constraint, unless the *Enable Change Tracking* flag is set. Example: `[Finished = false() and MyModule.Task_Owner = '[%Current_User%]']`
+Required Role | `*` | Set this property to indicate that authentication is required to use this service. Exactly one project wide role can be specified. If set, the consumer is required to authenticate using Basic Authentication if the consumer doesn't have a normal Mendix client session. Use `*` to make the service world readable / writable.
+On Publish Microflow | (optional) | Microflow that transforms a *source object* into some transient object which (the *view*). This view will be serialized into JSON/HTML/XML when data is requested from the service. The speed of this microflow primarily determines the speed of the service as a whole. 
+On Update Microflow | (optional) | Microflow that processes incoming changes. Should have two parameters; one of same type as the *source entity*, and one which is a transient entity. The transient object will be constructed with JSON data in the incoming request. This transient object should be processed by the microflow and update the *source* object as desired. Use the `ThrowWebserviceException` method of Community Commons to signal any exceptions to the consumer. 
+On Delete Microflow | (optional) | Similar to the *On Update Microflow* but takes a String attribute as argument, that represents the *key* of the object that should be deleted
+
+#### Features
+
+Property | Default value | Description
+-------- | ------------- | ----------
+Enable GET | `true` | Allows requesting individual objects using GET at *rest/servicename/objectid*
+Enable Listing | `true` | Allows listing all available objects using GET at *rest/servicename/*
+Enable Update | `false` | Allows consumers to update existing objects using PUT or POST at *rest/servicename/objectid*
+Enable Create | `false` | Allows consumers to create new objects using POST at *rest/servicename/*
+Enable Delete | `false` | Allows consumers to remove existing objects using DELETE at *rest/servicename/objectid*
+Enable Change Tracking | `false` | See next section
+Use Automatic Change Tracking | `false` | TODO
+Use Strict Versioning | `false` | If set to true, all requests that modify data are required to provide an `if-none-match` header, to verify that the request is based on the latest known version. This way conflicting updates are detected and it is not possible to base changes on stale objects
+
+#### Enable Change Tracking
+
+The *Enable Change Tracking* property has significant impact on the behavior and internal working of the service. It introduces a cache in which the JSON representation of each objects are stored and provides the possibility to synchronize with consumers over time. See the [Data synchronisation](Data synchronisation) section for more details. Enabling change tracking has the following consequences:
+
+* Two new endpoints are created: *rest/service/changes/list* and *rest/service/changes/feed*. Both endpoints provide a list of all changes which where made to the *source* collection. The endpoints accept an `rev` parameter, which can be used to only retrieve changes which were not synced yet. The API and behavior are heavily inspired by the [CouchDB changes API](TODO). 
+* Requests are served from the cache instead of the database directly. To update an item in the cache, the model needs to call `publishUpdate` or `publishDelete`. Changes are not visible for consumers until one of these methods is called by the model. 
+* The performance of retrieving objects is improved, since they are stored in serialized form internally. 
+* If, for example, the domain model of your *source* or *view* object changes, the cache becomes stale. Most model changes are detected by the RestServices module automatically, but you can force rebuilding the complete index by invoking `RebuildServiceIndex`. 
 
 ### Using your service
 
 Responses can also be rendered as XML or HTML, depending on the Accept headers of the request. 
 
 # Data synchronization
+
+Enable change tracking
 
 # HTTP Verbs in Rest
 
