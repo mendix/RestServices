@@ -51,7 +51,6 @@ import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import communitycommons.StringUtils;
 
@@ -241,49 +240,6 @@ public class RestConsumer {
 		
 		if (response.getStatus() != HttpStatus.SC_OK)
 			throw new RestConsumeException(response.getStatus(), "Failed to start request stream on '" + url + "', expected status to be 200 OK");
-	}
-	
-
-	static void syncCollection(String collectionUrl, String onUpdateMF, String onDeleteMF) throws Exception {
-		IDataType type = Utils.getFirstArgumentType(onUpdateMF);
-		if (!type.isMendixObject())
-			throw new RuntimeException("First argument should be an Entity! " + onUpdateMF);
-
-		GetMethod get = new GetMethod(collectionUrl);
-		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
-
-		try {
-			int status = client.executeMethod(get);
-			if (status != HttpStatus.SC_OK)
-				throw new RestConsumeException(status, "Failed to start request stream on " + collectionUrl);
-			
-			InputStream in = get.getResponseBodyAsStream();
-			try {
-				JSONTokener jt = new JSONTokener(in);
-				JSONObject instr;
-				while(true) {
-					instr = new JSONObject(jt);
-					IContext c = Core.createSystemContext();
-					
-					//TODO: store revision
-	
-					if (instr.getBoolean(RestServices.CHANGE_DELETED)) {
-						Core.execute(c, onDeleteMF, instr.getString(RestServices.CHANGE_KEY));
-					}
-					else {
-						IMendixObject target = Core.instantiate(c, type.getObjectType());
-						JsonDeserializer.readJsonDataIntoMendixObject(c, instr.getJSONObject(RestServices.CHANGE_DATA), target, true);
-						Core.execute(c, onUpdateMF, target);
-					}
-				}
-			}
-			finally {
-				in.close();
-			}
-		}
-		finally {
-			get.releaseConnection();
-		}
 	}
 
 	public static void registerCredentials(String urlBasePath, String username, String password) throws MalformedURLException
