@@ -143,9 +143,12 @@ public class ChangeManager {
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
 				
-				if (since != -1 && writeChanges(rsr, Core.createSystemContext(), since)) {
-					//special case, if there where pending changes and the timeout is negative, e.g., return ASAP, finish the request now. 
-					if (maxDurationSeconds < 0) {
+				if (since != -1) {
+					//write any changes between 'since' and the latest change
+					boolean wroteSomeChanges = writeChanges(rsr, Core.createSystemContext(), since);
+
+					//special case, if there where pending changes and the timeout is negative, which means "return when there are any changes", finish the request now. 
+					if (wroteSomeChanges && maxDurationSeconds < 0) {
 						rsr.endDoc();
 						return;
 					}
@@ -155,11 +158,12 @@ public class ChangeManager {
 				
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
-				ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0, this);
+				synchronized(this) {
+					ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0, this);
 
-				//TODO: fix synchronization issue: changes which is pushed between 'writeChanges' and the next line are lost for this client
-				longPollSessions.add(lpsession);
-				rsr.request.setAttribute("lpsession", lpsession);
+					longPollSessions.add(lpsession);
+					rsr.request.setAttribute("lpsession", lpsession);
+				}
 				
 				if (maxDurationSeconds != 0L)
 					asyncContext.setTimeout(Math.abs(maxDurationSeconds) * 1000); 
@@ -216,7 +220,7 @@ public class ChangeManager {
 		}
 	}
 
-	private void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
+	synchronized private void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
 		IContext context = Core.createSystemContext();
 	
 		ServiceObjectIndex sState = getServiceObjectIndex();
