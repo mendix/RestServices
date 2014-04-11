@@ -146,11 +146,10 @@ public class PublishedService {
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
 			.eq(ObjectState.MemberNames.deleted, false)
 			.eq(ObjectState.MemberNames._dirty, false)
-			.addSortingAsc(ObjectState.MemberNames.key)
-			.append(""); //MWE: <- does nothing, but makes sure offset & limit are supported. If this gives compile error, please upgrade community commons
+			.addSortingAsc(ObjectState.MemberNames.key);
 			
 		if (offset > -1)
-			xp.offset(offset); //MWE: note that this only works on later versions of community!
+			xp.offset(offset); //MWE: note that the combination of offset/limit and batch only works in community commons 4.3.2 or higher!
 		if (limit > 0)
 			xp.limit(limit);
 		

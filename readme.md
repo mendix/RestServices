@@ -2,13 +2,15 @@
 
 ![RestServices](images/logo.png) 
 
+[GitHub](https://github.com/mweststrate/RestServices) - [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
+
 Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
 1. Consume JSON REST based services
 2. Publish data or microflows through REST API's
 3. (Real time) Synchronization of data between Mendix applications
 
-# Initial setup
+*Note: the RestServices module depends on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher*
 
 # Consuming REST services
 
