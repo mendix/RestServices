@@ -3,7 +3,7 @@ package restservices.publish;
 import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.AsyncContext;
 
@@ -84,12 +84,12 @@ public class ChangeManager {
 		publishUpdate(objectState);
 	}
 
-	private boolean writeChanges(final RestServiceRequest rsr, IContext c,
+	private ObjectState writeChanges(final RestServiceRequest rsr, IContext c,
 			long since) throws CoreException {
 		if (since < 0)
 			throw new IllegalArgumentException("Since parameter should be positive");
 		
-		final AtomicBoolean something = new AtomicBoolean(false);
+		final AtomicReference<ObjectState> lastWrittenRevision = new AtomicReference<ObjectState>();
 		
 		XPath.create(c, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex())
@@ -101,11 +101,11 @@ public class ChangeManager {
 				public void onItem(ObjectState item, long offset, long total)
 						throws Exception {
 					rsr.datawriter.value(writeObjectStateToJson(item));
-					something.set(true);
+					lastWrittenRevision.set(item);
 				}
 			});
 		
-		return something.get();
+		return lastWrittenRevision.get();
 	}
 
 	
@@ -142,23 +142,36 @@ public class ChangeManager {
 	
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
+
+				ObjectState lastWrittenChange = null;
 				
 				if (since != -1) {
 					//write any changes between 'since' and the latest change
-					boolean wroteSomeChanges = writeChanges(rsr, Core.createSystemContext(), since);
+					lastWrittenChange = writeChanges(rsr, Core.createSystemContext(), since);
 
 					//special case, if there where pending changes and the timeout is negative, which means "return when there are any changes", finish the request now. 
-					if (wroteSomeChanges && maxDurationSeconds < 0) {
+					if (lastWrittenChange != null && maxDurationSeconds < 0) {
 						rsr.endDoc();
 						return;
 					}
 				}
 				
 				rsr.response.flushBuffer();
-				
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
+				/*
+				 * This synchronized block is to make sure that a new incoming connection does not miss any changes that are
+				 * processed by this change manager between the moment the missing changes are written, and the moment that the subscriber is
+				 * actually registered. 
+				 * 
+				 * To make sure that doesn't happen, we again try to write any missing changes, but now in a synchronized block (note that processUpdate 
+				 * is also synchronized). We don't synchronize on the first 'writeChanges' call above, because initially there might be many many 
+				 * changes missing, and we don't want all consumers to block on them. 
+				 */
 				synchronized(this) {
+					if (since != -1)
+						writeChanges(rsr, Core.createSystemContext(), lastWrittenChange == null ? 0 : lastWrittenChange.getrevision());					
+					
 					ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0, this);
 
 					longPollSessions.add(lpsession);
@@ -169,7 +182,7 @@ public class ChangeManager {
 					asyncContext.setTimeout(Math.abs(maxDurationSeconds) * 1000); 
 			}
 			
-			else { //expired
+			else { //request already has an 'lpsession', so this is not the initial call, so we conclude that the continuation has expired
 				ChangeFeedSubscriber lpsession = (ChangeFeedSubscriber)rsr.request.getAttribute("lpsession");
 				unregisterListener(lpsession);
 			}
