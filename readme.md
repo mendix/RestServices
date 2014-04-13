@@ -165,3 +165,10 @@ We know that the RestSevices module has already been used successfully to integr
 * Paydro.net
 * Postcodeapi.nu
 * Rijksmuseum.nl
+
+# Development notes
+
+* Feel free to fork and send pull requests! 
+* Note that this is a GitHub repository which is based on git, in contrast to the Mendix TeamServer, which is based on SVN. So the build-in Teamserver support of the Mendix Modeler will not work for this repository! 
+* If you want to receive access to the Mendix Project in which this module is managed, feel to request me an invite! The backlog of the project is also managed there. 
+* Unit tests are defined in the *Tests* module. Those can be run in the usual way using the already included *[UnitTesting](https://appstore.mendix.com/app/Unit%20Testing)* module
