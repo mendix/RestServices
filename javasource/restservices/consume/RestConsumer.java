@@ -364,8 +364,8 @@ public class RestConsumer {
 		//register params, if its a GET request or formData format is used
 		if (source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE)) {
 			for(String key : JSONObject.getNames(data)) {
-				if (isFileSource && FileDocument.MemberNames.valueOf(key) != null) //Do not pick up default filedoc attrs!
-					continue; 
+				if (isFileSource && isFileDocAttr(key)) 
+					continue; //Do not pick up default filedoc attrs!
 				
 				Object value = data.get(key);
 				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
@@ -429,6 +429,17 @@ public class RestConsumer {
 		return response.asRequestResult(context);
 	}
 	
+	private static boolean isFileDocAttr(String key) {
+		try {
+			FileDocument.MemberNames.valueOf(key); 
+			return true;
+		}
+		catch (IllegalArgumentException e) {
+			//Ok, this is a non filedoc attr
+			return false;
+		}
+	}
+
 	public static void addCredentialsToNextRequest(String username,
 			String password) {
 		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));

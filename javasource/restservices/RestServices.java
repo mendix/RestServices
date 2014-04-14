@@ -113,7 +113,7 @@ public class RestServices {
 	}
 
 	public static String getServiceUrl(String name) {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + "/";
+		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + (microflowServices.containsKey(name) ? "" : "/");
 	}
 
 	public static void registerPublishedMicroflow(PublishedMicroflow s) {

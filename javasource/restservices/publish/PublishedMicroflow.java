@@ -21,6 +21,7 @@ import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
+import system.proxies.FileDocument;
 import system.proxies.UserRole;
 
 public class PublishedMicroflow {
@@ -58,8 +59,8 @@ public class PublishedMicroflow {
 			this.argName = Utils.getArgumentTypes(microflowname).keySet().iterator().next();
 		}
 		
-		if (Core.getMetaObject(argType).isPersistable())
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a single object as input argument");
+		if (Core.getMetaObject(argType).isPersistable() && !Core.isSubClassOf(FileDocument.entityName, argType))
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
 		
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
 		this.isReturnTypeString = returnTypeFromMF.getType() == DataTypeEnum.String; 
@@ -68,8 +69,8 @@ public class PublishedMicroflow {
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a String, List or Object type");
 			if (returnTypeFromMF.isMendixObject() || returnTypeFromMF.isList()){
 				this.returnType = returnTypeFromMF.getObjectType();
-				if (Core.getMetaObject(this.returnType).isPersistable())
-					throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a non-persistable object");
+				if (Core.getMetaObject(this.returnType).isPersistable()  && !Core.isSubClassOf(FileDocument.entityName, this.returnType))
+					throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a non-persistable object or a file document");
 			}
 		}
 	}

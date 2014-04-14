@@ -82,8 +82,6 @@ public class JsonSerializer {
 		if (view == null)
 			throw new IllegalArgumentException("Mendix to JSON conversion expects an object");
 		
-		if (view.getMetaObject().isPersistable())
-			throw new IllegalArgumentException("Mendix to JSON conversion expects a transient object as source object");
 		JSONObject res = new JSONObject();
 		
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
@@ -131,6 +129,7 @@ public class JsonSerializer {
 					target.put(memberName, (((Date)value).getTime()));
 				break;
 			case Binary:
+				break;
 			default: 
 				throw new IllegalStateException("Not supported Mendix Membertype for member " + memberName);
 			}
