@@ -79,14 +79,17 @@ public class PublishedMicroflow {
 		Map<String, Object> args = new HashMap<String, Object>();
 		if (hasArgument) {
 			IMendixObject argO = Core.instantiate(rsr.getContext(), argType);
-			JSONObject data;
+			JSONObject data = null;
 			
 			if (rsr.getContentType() == ContentType.JSON) { 
 				String body = IOUtils.toString(rsr.request.getInputStream());
 				data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 			}
-			else
-				data = RestServiceHandler.requestParamsToJsonMap(rsr);
+			
+			if (data == null)
+				data = new JSONObject();
+			
+			RestServiceHandler.requestParamsToJsonMap(rsr, data);
 			
 			JsonDeserializer.readJsonDataIntoMendixObject(rsr.getContext(), data, argO, false);
 			args.put(argName, argO);

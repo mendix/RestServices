@@ -16,6 +16,7 @@ import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
@@ -155,7 +156,7 @@ public class RestConsumer {
 	 * @throws HttpException 
 	 */
 	private static HttpResponseData doRequest(String method, String url,
-			Map<String, String> requestHeaders, HttpMethodParams params,
+			Map<String, String> requestHeaders, Map<String, String> params,
 			RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
 		if (RestServices.LOGCONSUME.isDebugEnabled())
 			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
@@ -179,8 +180,12 @@ public class RestConsumer {
 			request.addRequestHeader(e.getKey(), e.getValue());
 		includeHeaders(request);
 		
-		if (params != null)
-			request.setParams(params);
+		if (params != null) {
+			if (request instanceof PostMethod) 
+				((PostMethod)request).addParameters(mapToNameValuePair(params));
+			else
+				request.setQueryString(mapToNameValuePair(params));
+		}
 		
 		if (request instanceof PostMethod && requestEntity != null)
 			((PostMethod)request).setRequestEntity(requestEntity);
@@ -205,6 +210,16 @@ public class RestConsumer {
 		finally {
 			request.releaseConnection();
 		}
+	}
+	
+	private static NameValuePair[] mapToNameValuePair(Map<String, String> params) {
+		NameValuePair[] res = new NameValuePair[params.size()];
+		int i = 0;
+		for(Entry<String, String> e : params.entrySet()) {
+			res[i] = new NameValuePair(e.getKey(), e.getValue());
+			i++;
+		}
+		return res;
 	}
 	
 	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
@@ -341,7 +356,7 @@ public class RestConsumer {
 			throw new IllegalArgumentException("Files can only be send with method is POST or PUT");
 
 		Map<String, String> requestHeaders = new HashMap<String, String>();
-		HttpMethodParams params = new HttpMethodParams();
+		Map<String, String> params = new HashMap<String, String>();
 		RequestEntity requestEntity = null;
 		
 		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
@@ -354,7 +369,7 @@ public class RestConsumer {
 				
 				Object value = data.get(key);
 				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
-					params.setParameter(key, String.valueOf(value));
+					params.put(key, String.valueOf(value));
 			}
 			
 		}
@@ -369,7 +384,7 @@ public class RestConsumer {
 			String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
 			
 			ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
-			requestEntity = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, params);
+			requestEntity = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, new HttpMethodParams());
 		}
 		else if (asFormData && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.APPLICATION_X_WWW_FORM_URLENCODED);

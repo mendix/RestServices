@@ -160,11 +160,9 @@ public class RestServiceHandler extends RequestHandler{
 		return "GET".equals(method) && parts.length == 1 && rsr.request.getParameter(RestServices.PARAM_ABOUT) != null;
 	}
 
-	public static JSONObject requestParamsToJsonMap(RestServiceRequest rsr) {
-		JSONObject data = new JSONObject();
+	public static void requestParamsToJsonMap(RestServiceRequest rsr, JSONObject target) {
 		for (String param : rsr.request.getParameterMap().keySet())
-			data.put(param, rsr.request.getParameter(param));
-		return data;
+			target.put(param, rsr.request.getParameter(param));
 	}
 	
 	private void rollback(RestServiceRequest rsr) {
@@ -225,7 +223,8 @@ public class RestServiceHandler extends RequestHandler{
 				handled = true;
 				JSONObject data;
 				if (RestServices.APPLICATION_X_WWW_FORM_URLENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
-					data = requestParamsToJsonMap(rsr);
+					data = new JSONObject();
+					requestParamsToJsonMap(rsr, data);
 				}
 				//TODO: support multipart?
 				else {
