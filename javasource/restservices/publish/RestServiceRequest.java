@@ -18,11 +18,13 @@ import com.mendix.systemwideinterfaces.core.IUser;
 import communitycommons.StringUtils;
 
 public class RestServiceRequest {
-	public static enum ContentType { JSON, XML, HTML }
+	public static enum ResponseType { JSON, XML, HTML }
+	public static enum RequestContentType { JSON, FORMENCODED, MULTIPART, OTHER }
 
 	HttpServletRequest request;
 	HttpServletResponse response;
-	private ContentType contentType = ContentType.JSON;
+	private ResponseType responseContentType = ResponseType.JSON;
+	private RequestContentType requestContentType = RequestContentType.OTHER;
 	private IContext context;
 	protected DataWriter datawriter;
 	private boolean autoLogout;
@@ -32,11 +34,11 @@ public class RestServiceRequest {
 		this.request = request;
 		this.response = response;
 		
-		this.contentType = determineContentType(request);
-		setResponseContentType(response, contentType);
+		this.requestContentType = determineRequestContentType(request);
+		this.responseContentType = determineResponseContentType(request);
 
 		try {
-			this.datawriter = new DataWriter(response.getOutputStream(), contentType == ContentType.HTML ? DataWriter.HTML : contentType == ContentType.XML ? DataWriter.XML : DataWriter.JSON);
+			this.datawriter = new DataWriter(response.getOutputStream(), responseContentType == ResponseType.HTML ? DataWriter.HTML : responseContentType == ResponseType.XML ? DataWriter.XML : DataWriter.JSON);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -98,27 +100,46 @@ public class RestServiceRequest {
 		return false;
 	}
 
-	public static ContentType determineContentType(HttpServletRequest request) {
-		if (request.getParameter(RestServices.CONTENTTYPE_PARAM) != null)
-			return ContentType.valueOf(request.getParameter(RestServices.CONTENTTYPE_PARAM).toUpperCase());
-		String ct = request.getHeader(RestServices.ACCEPT_HEADER);
+	private RequestContentType determineRequestContentType(HttpServletRequest request) {
+		String ct = request.getHeader(RestServices.HEADER_CONTENTTYPE);
+		if (ct == null) 
+			return RequestContentType.OTHER;
+		if (ct.contains("text/json"))
+			return RequestContentType.JSON;
+		else if (ct.contains(RestServices.APPLICATION_X_WWW_FORM_URLENCODED))
+			return RequestContentType.FORMENCODED;
+		else if (ct.contains(RestServices.MULTIPART_FORM_DATA))
+			return RequestContentType.MULTIPART;
+		else 
+			return RequestContentType.OTHER;
+		
+	}
+
+	private ResponseType determineResponseContentType(HttpServletRequest request) {
+		String ct = request.getParameter(RestServices.CONTENTTYPE_PARAM);
+		if (ct == null)
+			ct = request.getHeader(RestServices.ACCEPT_HEADER);
 		if (ct != null) {
 			if (ct.contains("text/json"))
-				return ContentType.JSON;
+				return ResponseType.JSON;
 			if (ct.contains("html"))
-				return ContentType.HTML;
+				return ResponseType.HTML;
 			if (ct.contains("xml")) 
-				return ContentType.XML;
+				return ResponseType.XML;
 		}
-		return ContentType.JSON; //by default
+		return ResponseType.JSON; 
 	}
 	
-	public static void setResponseContentType(HttpServletResponse response, ContentType contentType) {
-		response.setContentType("text/" + contentType.toString().toLowerCase()+ "; charset=UTF-8");
+	public static void setResponseContentType(HttpServletResponse response, ResponseType responseType) {
+		response.setContentType("text/" + responseType.toString().toLowerCase()+ "; charset=UTF-8");
 	}
 	
-	public ContentType getContentType() {
-		return this.contentType;
+	public ResponseType getResponseContentType() {
+		return this.responseContentType;
+	}
+	
+	public RequestContentType getRequestContentType() {
+		return this.requestContentType;
 	}
 	
 	public RestServiceRequest write(String data) {
@@ -179,14 +200,14 @@ public class RestServiceRequest {
 	}
 
 	public void startDoc() {
-		if (getContentType() == ContentType.HTML) 
+		if (getResponseContentType() == ResponseType.HTML) 
 			startHTMLDoc();
-		else if (getContentType() == ContentType.XML)
+		else if (getResponseContentType() == ResponseType.XML)
 			startXMLDoc();
 	}
 
 	public void endDoc() {
-		if (getContentType() == ContentType.HTML) 
+		if (getResponseContentType() == ResponseType.HTML) 
 			endHTMLDoc();
 		close();
 	}

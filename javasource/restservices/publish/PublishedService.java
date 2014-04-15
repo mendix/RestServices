@@ -12,7 +12,7 @@ import restservices.RestServices;
 import restservices.proxies.ObjectState;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
-import restservices.publish.RestServiceRequest.ContentType;
+import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
@@ -259,7 +259,7 @@ public class PublishedService {
 		rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
 		rsr.startDoc();
 
-		if (rsr.getContentType() == ContentType.HTML)
+		if (rsr.getResponseContentType() == ResponseType.HTML)
 			rsr.write("<h1>").write(getName()).write("/").write(key).write("</h1>");
 
 		rsr.datawriter.value(result);

@@ -162,6 +162,12 @@ public class RestConsumer {
 			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
 		
 		HttpMethodBase request;
+
+		if (params != null && !"POST".equals(method)) {
+			//append params to url. Do *not* use request.setQueryString; that will override any args already in there
+			for(Entry<String, String> e : params.entrySet())
+				url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
+		}
 		
 		if ("GET".equals(method))
 			request = new GetMethod(url);
@@ -180,12 +186,8 @@ public class RestConsumer {
 			request.addRequestHeader(e.getKey(), e.getValue());
 		includeHeaders(request);
 		
-		if (params != null) {
-			if (request instanceof PostMethod) 
-				((PostMethod)request).addParameters(mapToNameValuePair(params));
-			else
-				request.setQueryString(mapToNameValuePair(params));
-		}
+		if (params != null && request instanceof PostMethod) 
+			((PostMethod)request).addParameters(mapToNameValuePairs(params));
 		
 		if (request instanceof PostMethod && requestEntity != null)
 			((PostMethod)request).setRequestEntity(requestEntity);
@@ -212,7 +214,7 @@ public class RestConsumer {
 		}
 	}
 	
-	private static NameValuePair[] mapToNameValuePair(Map<String, String> params) {
+	private static NameValuePair[] mapToNameValuePairs(Map<String, String> params) {
 		NameValuePair[] res = new NameValuePair[params.size()];
 		int i = 0;
 		for(Entry<String, String> e : params.entrySet()) {

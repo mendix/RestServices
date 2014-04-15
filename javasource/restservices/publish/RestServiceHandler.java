@@ -181,7 +181,7 @@ public class RestServiceHandler extends RequestHandler{
 		
 		rsr.startDoc();
 		
-		switch(rsr.getContentType()) {
+		switch(rsr.getResponseContentType()) {
 		case HTML:
 			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p><p>Status code:" + status + "</p>");
 			break;

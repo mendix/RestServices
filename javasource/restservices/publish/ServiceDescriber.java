@@ -9,7 +9,7 @@ import communitycommons.StringUtils;
 
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
-import restservices.publish.RestServiceRequest.ContentType;
+import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.Utils;
 
@@ -20,7 +20,7 @@ public class ServiceDescriber {
 
 	public static void serveServiceOverview(RestServiceRequest rsr) {
 		rsr.startDoc();
-		if (rsr.getContentType() == ContentType.HTML) 
+		if (rsr.getResponseContentType() == ResponseType.HTML) 
 			rsr.write("<h1>RestServices</h1>");
 
 		rsr.datawriter.object()
@@ -42,7 +42,7 @@ public class ServiceDescriber {
 	public ServiceDescriber(RestServiceRequest rsr, ServiceDefinition def) {
 		this.rsr = rsr;
 		this.def = def;
-		this.isHTML = rsr.getContentType() == ContentType.HTML;
+		this.isHTML = rsr.getResponseContentType() == ResponseType.HTML;
 	}
 	
 	public void serveServiceDescription() {

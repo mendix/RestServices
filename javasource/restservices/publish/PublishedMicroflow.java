@@ -16,7 +16,8 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import communitycommons.XPath;
 
 import restservices.RestServices;
-import restservices.publish.RestServiceRequest.ContentType;
+import restservices.publish.RestServiceRequest.RequestContentType;
+import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
@@ -82,7 +83,7 @@ public class PublishedMicroflow {
 			IMendixObject argO = Core.instantiate(rsr.getContext(), argType);
 			JSONObject data = null;
 			
-			if (rsr.getContentType() == ContentType.JSON) { 
+			if (rsr.getRequestContentType() == RequestContentType.JSON) { 
 				String body = IOUtils.toString(rsr.request.getInputStream());
 				data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 			}
@@ -127,7 +128,7 @@ public class PublishedMicroflow {
 	public void serveDescription(RestServiceRequest rsr) {
 		rsr.startDoc();
 		
-		if (rsr.getContentType() == ContentType.HTML)
+		if (rsr.getResponseContentType() == ResponseType.HTML)
 			rsr.write("<h1>Operation '").write(getName()).write("'</h1>");
 		
 		rsr.datawriter.object()
