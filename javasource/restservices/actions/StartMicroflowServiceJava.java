@@ -19,19 +19,21 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 {
 	private String microflowName;
 	private String securityRole;
+	private String description;
 
-	public StartMicroflowServiceJava(String microflowName, String securityRole)
+	public StartMicroflowServiceJava(String microflowName, String securityRole, String description)
 	{
 		super();
 		this.microflowName = microflowName;
 		this.securityRole = securityRole;
+		this.description = description;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new PublishedMicroflow(microflowName, securityRole); //automatically registers
+		new PublishedMicroflow(microflowName, securityRole, description); 
 		return true;
 		// END USER CODE
 	}

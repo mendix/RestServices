@@ -34,10 +34,12 @@ public class PublishedMicroflow {
 	private String returnType;
 	private String argName;
 	private String securityRole;
+	private String description;
 
-	public PublishedMicroflow(String microflowname, String securityRole) throws CoreException{
+	public PublishedMicroflow(String microflowname, String securityRole, String description) throws CoreException{
 		this.microflowname = microflowname;
 		this.securityRole = securityRole;
+		this.description = description;
 		this.consistencyCheck();
 		RestServices.registerPublishedMicroflow(this);
 	}
@@ -133,6 +135,7 @@ public class PublishedMicroflow {
 		
 		rsr.datawriter.object()
 			.key("name").value(getName())
+			.key("description").value(description)
 			.key("url").value(RestServices.getServiceUrl(getName()))
 			.key("arguments").value(JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname)))
 			.key("result").value(JSONSchemaBuilder.build(Core.getReturnType(microflowname)))

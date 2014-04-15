@@ -23,7 +23,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testMfService() throws Exception {
-		new PublishedMicroflow("Tests.ReplaceService", "*");
+		new PublishedMicroflow("Tests.ReplaceService", "*", "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -57,7 +57,7 @@ public class ServiceTest extends TestBase {
 	public void testFileTransfer() throws Exception {
 		IContext c = Core.createSystemContext();
 		try {
-			new PublishedMicroflow("Tests.FileMultiplier", "*");
+			new PublishedMicroflow("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
 			
 			TestFile source = new TestFile(c);
 			source.setMultiplier(2);
