@@ -1,6 +1,6 @@
 # Rest Services
 
-![RestServices](images/logo.png) 
+<img src="images/logo.png" style="float: right; padding: 0 0 20px 20px; width:300px" align="right"/>
 
 [GitHub](https://github.com/mweststrate/RestServices) - [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
 
@@ -11,16 +11,6 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 3. (Real time) Synchronization of data between Mendix applications
 
 *Note: the RestServices module depends on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher*
-
-## How does Rest Services relate to Mendix Webservices and Mendix AppServices?
-
-Mendix Webservices are the de-facto integration method. Webservices are well supported in the Mendix Modeler and allow you to publish and consume operations. Webservices rely on the WSDL / SOAP standards for definition and transport. 
-
-Mendix Appservices are build on top of webservices and make integration between Mendix Apps easier. They allow you to skip object mappings and provide an API versioning system. 
-
-RestServices allows you to consume and publish operations as well, but based on the JSON standard and Rest principles. Besides JSON, the module also provides full support for form-encoded, multipart and binary data transfer, allowing the module the integrate with almost any Rest service. 
-
-It is also possible do share data using RestServices as the module generates Rest based crud operations for your data and (real-time) synchronization strategies. 
 
 # Consuming REST services
 
@@ -183,3 +173,13 @@ We know that the RestSevices module has already been used successfully to integr
 * Note that this is a GitHub repository which is based on git, in contrast to the Mendix TeamServer, which is based on SVN. So the build-in Teamserver support of the Mendix Modeler will not work for this repository! 
 * If you want to receive access to the Mendix Project in which this module is managed, feel to request me an invite! The backlog of the project is also managed there. 
 * Unit tests are defined in the *Tests* module. Those can be run in the usual way using the already included *[UnitTesting](https://appstore.mendix.com/app/Unit%20Testing)* module
+
+# RestServices, Web Services or App Services? 
+
+How does Rest Services relate to Mendix Webservices and Mendix AppServices? Mendix Webservices are the de-facto integration method. Webservices are well supported in the Mendix Modeler and allow you to publish and consume operations. Webservices rely on the WSDL / SOAP standards for definition and transport. 
+
+Mendix Appservices are build on top of webservices and make integration between Mendix Apps easier. They allow you to skip object mappings and provide an API versioning system. 
+
+RestServices allows you to consume and publish operations as well, but based on the JSON standard and Rest principles. Besides JSON, the module also provides full support for form-encoded, multipart and binary data transfer, allowing the module the integrate with almost any Rest service. 
+
+It is also possible do share data using RestServices as the module generates Rest based crud operations for your data and (real-time) synchronization strategies. 
