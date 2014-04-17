@@ -200,6 +200,7 @@ public class RestServiceRequest {
 	}
 
 	public void startDoc() {
+		//TODO: set content header + ;charset=UTF-8
 		if (getResponseContentType() == ResponseType.HTML) 
 			startHTMLDoc();
 		else if (getResponseContentType() == ResponseType.XML)

@@ -30,6 +30,7 @@ import org.apache.commons.httpclient.methods.multipart.ByteArrayPartSource;
 import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
+import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
@@ -368,7 +369,7 @@ public class RestConsumer {
 			for(String key : JSONObject.getNames(data)) {
 				if (isFileSource && isFileDocAttr(key)) 
 					continue; //Do not pick up default filedoc attrs!
-				
+				//TODO: if system attr continue
 				Object value = data.get(key);
 				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
 					params.put(key, String.valueOf(value));
@@ -381,12 +382,7 @@ public class RestConsumer {
 			requestEntity = new InputStreamRequestEntity(Core.getFileDocumentContent(context, source));
 		}
 		else if (source != null && asFormData && isFileSource) {
-			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.MULTIPART_FORM_DATA);
-			
-			String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
-			
-			ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
-			requestEntity = new MultipartRequestEntity(new Part[] { new FilePart(fileName, p) }, new HttpMethodParams());
+			requestEntity = buildMultiPartEntity(context, source, params);
 		}
 		else if (asFormData && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.APPLICATION_X_WWW_FORM_URLENCODED);
@@ -429,6 +425,25 @@ public class RestConsumer {
 		}
 		
 		return response.asRequestResult(context);
+	}
+
+	private static RequestEntity buildMultiPartEntity(final IContext context,
+			final IMendixObject source, Map<String, String> params)
+			throws IOException {
+		//MWE: don't set contenttype to MULTIPART_FORM_DATA; this will be done by the request entity and add the boundaries
+		Part[] parts = new Part[params.size() + 1];
+
+		String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
+		ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
+		parts[0] = new FilePart(fileName, p);
+		
+		int i = 1;
+		for(Entry<String, String> e : params.entrySet())
+			parts[i++] = new StringPart(e.getKey(), e.getValue(), RestServices.UTF8);
+		
+		params.clear();
+		
+		return new MultipartRequestEntity(parts, new HttpMethodParams());
 	}
 	
 	private static boolean isFileDocAttr(String key) {

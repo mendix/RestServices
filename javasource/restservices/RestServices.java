@@ -15,11 +15,19 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 
 public class RestServices {
 	
+	/**
+	 * Amount of objects that are processed by the module at the same time.
+	 * Larger number yields better performance but increases memory consumptions. 
+	 * 
+	 * Defaults to 1000.
+	 */
 	public static int BATCHSIZE = 1000;
 
 	public static ILogNode LOGPUBLISH = Core.getLogger("RestPublish");
 	public static ILogNode LOGCONSUME = Core.getLogger("RestConsume");
 	public static ILogNode LOGUTIL = Core.getLogger("RestUtil");
+	
+	//TODO: cleanup constant names
 	
 	public static final String VERSION = "1.0.0";
 	public static final String UTF8 = "UTF-8";
@@ -62,6 +70,8 @@ public class RestServices {
 	public static final String CHANGE_KEY = "key";
 	public static final String CHANGE_DELETED = "deleted";
 	public static final String CHANGE_REV = "rev";
+
+	public static final String APPLICATION_OCTET = "application/octet-stream";
 
 
 	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();

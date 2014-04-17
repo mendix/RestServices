@@ -41,7 +41,7 @@ public class multiplefile extends UserAction<Boolean>
 		byte[] buffer = new byte[size];
 		IOUtils.read(Core.getFileDocumentContent(getContext(), __file), buffer);
 		
-		byte[] resultbuffer = new byte[size * file.getMultiplier()];
+		byte[] resultbuffer = new byte[size * (int)file.getMultiplier()];
 		
 		//MWE: worst implementation ever, but thats not the point :)
 		for(int i = 0; i < file.getMultiplier(); i++)

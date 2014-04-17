@@ -12,6 +12,16 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 
 *Note: the RestServices module depends on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher*
 
+## How does Rest Services relate to Mendix Webservices and Mendix AppServices?
+
+Mendix Webservices are the de-facto integration method. Webservices are well supported in the Mendix Modeler and allow you to publish and consume operations. Webservices rely on the WSDL / SOAP standards for definition and transport. 
+
+Mendix Appservices are build on top of webservices and make integration between Mendix Apps easier. They allow you to skip object mappings and provide an API versioning system. 
+
+RestServices allows you to consume and publish operations as well, but based on the JSON standard and Rest principles. Besides JSON, the module also provides full support for form-encoded, multipart and binary data transfer, allowing the module the integrate with almost any Rest service. 
+
+It is also possible do share data using RestServices as the module generates Rest based crud operations for your data and (real-time) synchronization strategies. 
+
 # Consuming REST services
 
 This module is able to invoke most, if not any, REST service which is based on JSON, form-data or multipart data (that is; files). The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation. 
@@ -78,9 +88,10 @@ Publishing a REST service is pretty straight forward with this modules. The modu
 PLEASE NOT THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHSERVICES` SHOULD BE CALLED DURING STARTUP OF THE APP!
 
 ## Publishing a microflow using `CreateMicroflowService`
-Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms). 
 
-A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String. In the latter case, the string is considered to be the raw response of the operation which is not further processed. 
+Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms) or raw binary data (for efficient downloads for example). 
+
+A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed. 
 
 Publishing a microflow is as simple as calling `CreateMicroflowService` with the public name of the operation and the microflow that provides the implementation. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*
 

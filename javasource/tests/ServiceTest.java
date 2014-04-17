@@ -1,6 +1,13 @@
 package tests;
 
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.List;
+
+import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -58,6 +65,7 @@ public class ServiceTest extends TestBase {
 		IContext c = Core.createSystemContext();
 		try {
 			new PublishedMicroflow("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
+			String url = RestServices.getServiceUrl("FileMultiplier");
 			
 			TestFile source = new TestFile(c);
 			source.setMultiplier(2);
@@ -66,18 +74,34 @@ public class ServiceTest extends TestBase {
 			
 			TestFile destination = new TestFile(c);
 			
-			String url = RestServices.getServiceUrl("FileMultiplier");
 			RestConsumer.request(c, HttpMethod.POST, url, source.getMendixObject(), destination.getMendixObject(), true);
 			
-			Assert.assertEquals(2L, (long)destination.getMultiplier());
 			Assert.assertEquals("YoloYolo", StringUtils.stringFromFile(c, destination));
 
 			//request params should override
 			RestConsumer.request(c, HttpMethod.POST, Utils.appendParamToUrl(url, TestFile.MemberNames.Multiplier.toString(), "3"), source.getMendixObject(), destination.getMendixObject(), true);
 			
-			Assert.assertEquals(3L, (long)destination.getMultiplier());
 			Assert.assertEquals("YoloYoloYolo", StringUtils.stringFromFile(c, destination));
-
+			
+			//do not use multipart but direct binary data
+			URL u = new URL(Utils.appendParamToUrl(url, TestFile.MemberNames.Multiplier.toString(), "3"));
+			HttpURLConnection con = (HttpURLConnection) u.openConnection();
+			con.setDoOutput(true);
+			con.setDoInput(true);
+			con.setRequestMethod("POST");
+			con.setRequestProperty("Connection", "Keep-Alive");
+			con.setRequestProperty("Content-Type", RestServices.APPLICATION_OCTET);
+			con.connect();
+			OutputStream out =  con.getOutputStream();
+			IOUtils.copy(IOUtils.toInputStream("Yolo"), out);
+			out.flush();
+			out.close();
+			InputStream in = con.getInputStream();
+			List<String> lines = IOUtils.readLines(in);
+			in.close();
+			con.disconnect();
+			Assert.assertEquals(1, lines.size());
+			Assert.assertEquals("YoloYoloYolo", lines.get(0));
 		}
 		finally {
 			XPath.create(c, TestFile.class).deleteAll();

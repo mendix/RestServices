@@ -147,9 +147,10 @@ public class JsonDeserializer {
 		case String:
 			return object.getString(attr);
 		case AutoNumber:
-		case Integer:
 		case Long:
 			return object.getLong(attr);
+		case Integer:
+			return object.getInt(attr);
 		case Binary:
 		default:
 			throw new Exception("Unsupported attribute type '" + type + "' in attribute '" + attr + "'");
