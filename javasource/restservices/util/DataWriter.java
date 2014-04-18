@@ -101,15 +101,15 @@ public class DataWriter {
 		
 		State s = new State();
 		s.isKey = true;
-		s.key = keyName;
+		s.key = mode == XML ? keyName.replaceAll("[^a-zA-Z0-9_]", "_") : keyName;
 		states.push(s);
 		
 		if (mode == JSON)
-			write(JSONObject.quote(keyName)).write(":");
+			write(JSONObject.quote(s.key)).write(":");
 		else if (mode == XML)
-			write("<").write(keyName).write(">");
+			write("<").write(s.key).write(">");
 		else if (mode == HTML)
-			write("\n<tr><td>").write(StringEscapeUtils.escapeHtml(keyName)).write("</td><td>");
+			write("\n<tr><td>").write(StringEscapeUtils.escapeHtml(s.key)).write("</td><td>");
 		
 		return this;
 	}
