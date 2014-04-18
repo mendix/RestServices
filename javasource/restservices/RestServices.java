@@ -29,7 +29,7 @@ public class RestServices {
 	
 	//TODO: cleanup constant names
 	
-	public static final String VERSION = "1.0.0";
+	public static final String VERSION = "1.0.x";
 	public static final String UTF8 = "UTF-8";
 	public static final String URL_ATTR = "_url";
 	public static final String TEXTJSON = "text/json";
