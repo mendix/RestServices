@@ -1,0 +1,9 @@
+
+/deployment
+/.settings
+/*.launch
+/.classpath
+/.project
+/*.mpr.lock
+proxies
+/javasource/system
