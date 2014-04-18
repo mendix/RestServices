@@ -18,7 +18,7 @@ import com.mendix.systemwideinterfaces.core.IUser;
 import communitycommons.StringUtils;
 
 public class RestServiceRequest {
-	public static enum ResponseType { JSON, XML, HTML }
+	public static enum ResponseType { JSON, XML, HTML, PLAIN, BINARY }
 	public static enum RequestContentType { JSON, FORMENCODED, MULTIPART, OTHER }
 
 	HttpServletRequest request;
@@ -127,11 +127,30 @@ public class RestServiceRequest {
 			if (ct.contains("xml")) 
 				return ResponseType.XML;
 		}
-		return ResponseType.JSON; 
+		return ResponseType.JSON; //Not set, fall back to default json 
 	}
 	
-	public static void setResponseContentType(HttpServletResponse response, ResponseType responseType) {
-		response.setContentType("text/" + responseType.toString().toLowerCase()+ "; charset=UTF-8");
+	public void setResponseContentType(ResponseType responseType) {
+		switch (responseType) {
+		case HTML:
+			response.setContentType("text/html;charset=UTF-8");
+			break;
+		case JSON:
+			response.setContentType("application/json;charset=UTF-8");
+			break;
+		case PLAIN:
+			response.setContentType("text/plain;charset=UTF-8");
+			break;
+		case XML:
+			response.setContentType("text/xml;charset=UTF-8");
+			break;
+		case BINARY:
+			response.setContentType(RestServices.APPLICATION_OCTET);
+			break;
+		default:
+			throw new IllegalStateException();
+		}
+		
 	}
 	
 	public ResponseType getResponseContentType() {
@@ -163,12 +182,12 @@ public class RestServiceRequest {
 		}
 	}
 
-	public void startHTMLDoc() {
+	private void startHTMLDoc() {
 		this.write("<!DOCTYPE HTML><html><head><style>" + RestServices.STYLESHEET + "</style><head><body>");		
 	}
 
 
-	public void endHTMLDoc() {
+	private void endHTMLDoc() {
 		String url = Utils.getRequestUrl(request);
 		this.write("<p><center><small>View as: <a href='")
 			.write(Utils.appendParamToUrl(url, "contenttype", "xml"))
@@ -180,8 +199,12 @@ public class RestServiceRequest {
 			.write("). Powered by Mendix.</small></center></body></html>");
 	}
 
-	public void startXMLDoc() {
-		this.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+	private void startXMLDoc() {
+		this.write("<?xml version=\"1.0\" encoding=\"utf-8\"?><response>");
+	}
+	
+	private void endXMLDoc() {
+		this.write("</response>");
 	}
 
 	public void setStatus(int status) {
@@ -202,16 +225,20 @@ public class RestServiceRequest {
 	}
 
 	public void startDoc() {
-		//TODO: set content header + ;charset=UTF-8
-		if (getResponseContentType() == ResponseType.HTML) 
+		setResponseContentType(responseContentType);
+		if (getResponseContentType() == ResponseType.HTML) { 
 			startHTMLDoc();
-		else if (getResponseContentType() == ResponseType.XML)
+		}
+		else if (getResponseContentType() == ResponseType.XML) {
 			startXMLDoc();
+		}
 	}
 
 	public void endDoc() {
 		if (getResponseContentType() == ResponseType.HTML) 
 			endHTMLDoc();
+		else if (getResponseContentType() == ResponseType.XML)
+			endXMLDoc();
 		close();
 	}
 

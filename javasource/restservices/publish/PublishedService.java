@@ -304,6 +304,7 @@ public class PublishedService {
 		if (!Utils.isValidKey(key))
 			throw new RuntimeException("Failed to serve POST request: microflow '" + def.getOnPublishMicroflow() + "' should have created a new key");
 			
+		rsr.setResponseContentType(ResponseType.PLAIN);
 		rsr.setStatus(201); //created
 		rsr.response.setHeader(RestServices.ETAG_HEADER, getETag(rsr.getContext(), key, target));
 		//question: write url, or write key?

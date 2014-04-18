@@ -226,7 +226,6 @@ public class RestServiceHandler extends RequestHandler{
 					data = new JSONObject();
 					requestParamsToJsonMap(rsr, data);
 				}
-				//TODO: support multipart?
 				else {
 					String body = IOUtils.toString(rsr.request.getInputStream());
 					data = new JSONObject(body);

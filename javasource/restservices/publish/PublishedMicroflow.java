@@ -2,7 +2,6 @@ package restservices.publish;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,10 +9,8 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.Part;
 
-import org.apache.commons.fileupload.MultipartStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.util.MultiPartInputStream;
 import org.eclipse.jetty.util.MultiPartInputStream.MultiPart;
 import org.json.JSONObject;
 
@@ -101,6 +98,11 @@ public class PublishedMicroflow {
 
 		parseInputData(rsr, args);
 		
+		if (isReturnTypeString)
+			rsr.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
+		else if (isFileTarget)
+			rsr.setResponseContentType(ResponseType.BINARY);
+		
 		Object result = Core.execute(rsr.getContext(), microflowname, args);
 		writeOutputData(rsr, result);
 	}
@@ -111,10 +113,6 @@ public class PublishedMicroflow {
 			//write nothing
 		}
 		else if (this.isFileTarget) {
-			rsr.response.setHeader(RestServices.CONTENTTYPE_PARAM, RestServices.APPLICATION_OCTET);
-			
-			//TODO: content disposiation
-			//TODO: filename
 			InputStream stream  = Core.getFileDocumentContent(rsr.getContext(), (IMendixObject)result);
 			IOUtils.copy(stream, rsr.response.getOutputStream());
 		}
