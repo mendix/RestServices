@@ -2,7 +2,7 @@
 
 <img src="images/logo.png" style="float: right; padding: 0 0 20px 20px; width:300px" align="right"/>
 
-[GitHub](https://github.com/mweststrate/RestServices) - [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
+RestServices On [GitHub](https://github.com/mweststrate/RestServices) - Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
 
 Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
@@ -10,11 +10,18 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 2. Publish data or microflows through REST API's
 3. (Real time) Synchronization of data between Mendix applications
 
-*Note: the RestServices module depends on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher*
+
+# Getting Started
+
+1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 4.4.4+ or Mendix 5.1.1+. 
+2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher. Download this module as well if it is not already part of your project. 
+3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well. 
+4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application.
+5. It is strongly recommended to **not** use the defaut HSQLDB engine if you want to publish RestServices while running locally. 
 
 # Consuming REST services
 
-This module is able to invoke most, if not any, REST service which is based on JSON, form-data or multipart data (that is; files). The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation. 
+This module is able to invoke most, if not any, REST service which is based on JSON, form-data, multipart or binary data. The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation. 
 
 ## The `Request` java action
 Request performs an HTTP request and provides the means to both send data and receive data over HTTP. Its parameters are defined as follow. 
@@ -34,7 +41,7 @@ Most REST operations return a `RequestResult` object which contains the meta inf
 * `ETag` if the response contained an `ETag` header, it is picked up and stored in this field. It can be used as optimization for any subsequent requests. 
 * `ResponseBody` the full and raw response body of the request. This field is only set if the body of the response is not yet parsed (by providing an `optResponseData` parameter for example). 
 
-## Sending request headers using `addHeaderToNextRequest`
+## Sending request headers
 Many REST services require the usage of custom request handlers for authentication, caching etc. In the RestServices module, any call to `addHeaderToNextRequest` will add a header to the *next* (and only the next) request that will be made by the current microflow. 
 
 ## Authentication
@@ -77,7 +84,7 @@ Publishing a REST service is pretty straight forward with this modules. The modu
 
 PLEASE NOT THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHSERVICES` SHOULD BE CALLED DURING STARTUP OF THE APP!
 
-## Publishing a microflow using `CreateMicroflowService`
+## Publishing a microflow
 
 Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms) or raw binary data (for efficient downloads for example). 
 
@@ -157,6 +164,8 @@ Enable change tracking
 # JSON Serialization
 
 # JSON Deserialization
+
+# Sending and receiving files
 
 # Known Integrations
 
