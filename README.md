@@ -141,16 +141,69 @@ The *Enable Change Tracking* property has significant impact on the behavior and
 
 * Two new endpoints are created: *rest/service/changes/list* and *rest/service/changes/feed*. Both endpoints provide a list of all changes which where made to the *source* collection. The endpoints accept an `rev` parameter, which can be used to only retrieve changes which were not synced yet. The API and behavior are heavily inspired by the [CouchDB changes API](TODO). 
 * Requests are served from the cache instead of the database directly. To update an item in the cache, the model needs to call `publishUpdate` or `publishDelete`. Changes are not visible for consumers until one of these methods is called by the model. 
+* It is no longer possible to use the `'[%CurrentUser%]'` token in constraints; the cache is shared with all users connecting to the server so different users can no longer be distinguisehd.
 * The performance of retrieving objects is improved, since they are stored in serialized form internally. 
 * If, for example, the domain model of your *source* or *view* object changes, the cache becomes stale. Most model changes are detected by the RestServices module automatically, but you can force rebuilding the complete index by invoking `RebuildServiceIndex`. 
 
 ### Using your service
 
-Responses can also be rendered as XML or HTML, depending on the Accept headers of the request. 
+Responses can also be rendered as XML or HTML, depending on the Accept headers of the request.
+
+The RestServices module automatically generates a service description which lists in great detail all possible parameters and headers at *&lt;app-url&gt;/rest/servicename/?about*
 
 # Data synchronization
 
-Enable change tracking
+## The change log
+
+If change tracking is enabled for a service the RestServices module will preserve a change log with which consumers can synchronize. A typical change item like this:
+```
+{
+  "rev": 2,
+  "deleted": false,
+  "key": "2"
+  "url": "http://localhost:8080/rest/customers/2",
+  "etag": "6a068f795f26d65c5aa8ef335c6e9ac1",
+  "data": {
+    "Name": "bla",
+    "Nr": 2,
+    "Orders": []
+  },
+}
+```
+The `rev` attribute indicates the revision this service is currently at. For each changes that happens with the entity that is published by this service, this number is increased by one. Consumers should keep track of this revision number, as they are only required to fetch all the changes with a higher revision number using the `since` parameter. 
+
+Revisions are not kept forever, they are removed as soon as they are shadowed by a newer revision for the same `key`. The `key` attribute describes which object this change is about. This means that a consumer actually might miss some changes, but that the end result after synchronization will always be consistent with the publisher. 
+
+The `url` is the fully qualified url at which this object could be fetched using a GET operation. The `etag` value indicates the current version of the object altered by the change. If the `deleted` attribute is false, the object has been created or changed, and its actual contents can be found under the `data` attribute. 
+
+## Reading the change log
+
+Retrieving the changes published by a services is as simple as sending a GET request to *rest/service-name/changes/list*:
+
+```
++----------+                                                           +-----------+
+|          |  ------ GET /rest/service/changes/list?since=<rev>----->  |           |
+| consumer |                                                           | publisher |
+|          |  <------------- returns list of changes ----------------  |           |
++----------+                                                           +-----------+
+```
+
+The `since` parameter specifies the last change the consumer already knows. If no changes has been received before, use '0'. Furhter parameters are described in greater detail in the generated service description. 
+
+A second endpoint available for retrieving changes is *rest/service-name/changes/feed*. This service yields the same results as the list service, except that the HTTP request does not end after all known changes are send. Rather, the connection is kept open so that new changes can be pushed back to the consumer in real time. If the connection is closed for any reason the consumer should try to reconnect automatically. 
+
+The RestServices module provides several methods to consume a changelog published by another app. Those can be found in the `CONSUME/Change Tracking` folder. Note that for all these functions only the *collection* URL needs to be specified (for example: *http://app/rest/tasks*). Furthermore the module automatically tracks which changes have been received already, so there is no need to specify the `since` parameter. 
+
+* `fetchChanges`: Request recent changes for a certain collection using the *list* API. 
+* `followChanges`: Request recent changes and start listening for new incoming changes using the *feed* API.
+* `unfollowChanges`: Stop listing to changes
+* `resetChangeTracking`: Resets the last know revision to zero. This means that upon the next synchronization, *all* data will be retrieved again. 
+
+## Two way synchronization
+
+### Master - Slave
+
+### Master - Master
 
 # HTTP Verbs in Rest
 
