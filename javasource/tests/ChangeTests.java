@@ -15,6 +15,7 @@ import restservices.consume.ChangeFeedListener;
 import restservices.consume.RestConsumer;
 import restservices.proxies.FollowChangesState;
 import restservices.proxies.HttpMethod;
+import restservices.proxies.RequestResult;
 import tests.proxies.Task;
 import tests.proxies.TaskCopy;
 
@@ -82,6 +83,12 @@ public class ChangeTests extends TestBase{
 		changes = getChangesJSON(c2, changes.getJSONObject(0).getLong("rev"));
 		Assert.assertEquals(1L, changes.length());
 		assertChange(changes.getJSONObject(0), t2.getNr(), false, "twix",3);
+		
+		//check etag and complete change object
+		JSONObject ch = changes.getJSONObject(0);
+		RequestResult resp = RestConsumer.request(c2, HttpMethod.GET, ch.getString("url"), null, null, false);
+		Assert.assertEquals(ch.getJSONObject("data").toString(), new JSONObject(resp.getResponseBody()).toString());
+		Assert.assertEquals(ch.getString("etag"), resp.getETag());
 		
 		Task t3 = createTask(c, "dog", false);
 		publishTask(c, t3, false);
