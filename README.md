@@ -94,18 +94,18 @@ Publishing a microflow is as simple as calling `CreateMicroflowService` with the
 
 ## Publishing a data service
 
-A Published Service provides a JSON based API to list, retrieve, create, update, delete and track objects in your database. Documentation for these services will be generated automatically by the module and can be read by pointing your browser at *&lt;app-url&gt;/rest/*. Responses can be rendered JSON, XML or HTML, depending on the `Accept` headers of the request. Depending on the selected features, the following endpoints are available for a data service:
+A Published Service provides a JSON based API to list, retrieve, create, update, delete and track objects in your database. Documentation for these services will be generated automatically by the module and can be read by pointing your browser at *&lt;app-url&gt;/rest/*. Responses can be rendered JSON, XML or HTML, depending on the `Accept` headers of the request. Depending on the selected features, the following endpoints are available for a data service after the base url `<app-url>/rest/<service-name>`:
 
 | Method | Url | Description |
 |--------|-----|-------------|
-| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**?about** | Meta description of this services. Describes the endpoints and datatypes of this service in great detail. |
-| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**** | List of all objects published by this service |
-| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**&lt;key&gt;** | Returns a specific instance, identified by the *key* |
-| POST | &lt;app-url&gt;/rest/&lt;service-name&gt;/**** | Creates a new object and initializes it based on the JSON body of the request. Returns the `key` of the newly created object |
-| PUT | &lt;app-url&gt;/rest/&lt;service-name&gt;/**&lt;key&gt;** | Creates or updates the object with the specified &lt;key&gt;. Returns nothing |
-| DELETE | &lt;app-url&gt;/rest/&lt;service-name&gt;/**&lt;key&gt;** | Deletes the object with the specified &lt;key&gt;. Returns nothing |
-| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**changes/list** | Returns all objects of this service change by change. Can be used to synchronize data. |
-| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**changes/feed** | Similar to *changes/list* but keeps the HTTP connection open to be able to push any future changes to the consumer |
+| GET | /**?about** | Meta description of this services. Describes the endpoints and datatypes of this service in great detail. |
+| GET | / | List of all objects published by this service. |
+| GET | /**&lt;key&gt;** | Returns a specific instance, identified by the *key*. |
+| POST | / | Creates a new object and initializes it based on the JSON body of the request. Returns the `key` of the newly created object. |
+| PUT | /**&lt;key&gt;** | Creates or updates the object with the specified &lt;key&gt;. Returns nothing. |
+| DELETE | /**&lt;key&gt;** | Deletes the object with the specified &lt;key&gt;. Returns nothing. |
+| GET | /**changes/list** | Returns all objects of this service change by change. Can be used to synchronize data. |
+| GET | /**changes/feed** | Similar to *changes/list* but keeps the HTTP connection open to be able to push any future changes to the consumer. |
 
 ### How a data service works
 
@@ -217,14 +217,7 @@ The RestServices module provides several methods to consume a changelog publishe
 The JSON serialization process starts with a (preferrably) transient object and converts it into a JSON structure as follows:
 
 1. Given a transient object, a new JSON object is created (`{}`)
-2. Each of its primitives members is added as key value pair to the JSON object. The 'nearest' json type is used, for example integers and longs are turned into numbers, booleans in to booleans and the others into strings (or `null` values). For example:
-```
-{
-	"task" : 17,
-	"description" : "Buy milk",
-	"finished" : false
-}
-```
+2. Each of its primitives members is added as key value pair to the JSON object. The 'nearest' json type is used, for example integers and longs are turned into numbers, booleans in to booleans and the others into strings (or `null` values). For example: `{ "task" : 17, "description" : "Buy milk" }
 3. For each owned reference that points to a *transient* object, another key/value pair is added to the object. As key the name of the reference is used, but *excluding* the module name. As value either `null` is used if the reference is not set, or the child object is serialized into a JSON object as well, using this very same procedure. 
 4. For each owned referenceset that points to a *transient* object, the same approach is taken, except that the value is an array (`[]`) to which each serialized child object is added. 
 5. If an owned reference(set) points to a *a* persistent object the reference is not serialed, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result. 
@@ -255,6 +248,56 @@ For example the following domain model results in the JSON object listed below, 
 It is possible to manually trigger the serialization process by using the `serializeObjectToJson` java action. 
 
 # JSON Deserialization
+
+The JSON deserialization process is the inverse of the serialization process and can be triggered manually by calling `deserializeJsonToObject`. The process always starts with a freshly created transient object (the *target*) and the JSON structure as string. The root of the JSON structure should always be an JSON object (for arrays, see the `getCollection` method). The parse process then starts as follows:
+
+1. For each primitive *key*/*value* pair in the JSON object, a matching\* primitive attribute is searched in the transient object. If found, the *value* is parsed and set. 
+2. If the primitive is of type string, but the member with the same name in the transient object is a reference, the process assumes that the string value represents an url. The url is then fetched using a GET request and its result is also interpreted as JSON and deserialized. The resulting object is assigned to the reference. 
+3. If the member in the *target* object is a reference, and the *value* is a JSON object, a new object of the child type of the reference is intantiated, and the JSON *value* is parsed into that object; which then is stored in the references. 
+4. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *3.* but then a complete referenceset is filled. 
+5. If you need to parse a JSON array of primitive values, use a referenceset that has as child `RestServices.Primitive`. These objects can hold a JSON primitive and allows to create primitive lists which don't exist natively in Mendix. 
+
+\* <small>A member name matches if the names are the same in a case sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within mendix. For assocations, the module name is never considered</small>
+
+For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json&q=geertgen` generates the following JSON (shortened a bit for readability) which can be parsed into the domain model as shown below, assuming that parsing starts with an instance of the `Query` entity. Note that only some specific attributes of interest are made part of the domain model. 
+
+```
+{
+  "elapsedMilliseconds": 51,
+  "count": 9,
+  "artObjects": [
+    {
+      "links": {
+        "self": "https://www.rijksmuseum.nl/api/en/collection/SK-A-2150",
+        "web": "https://www.rijksmuseum.nl/en/collection/SK-A-2150"
+      },
+      "id": "en-SK-A-2150",
+      "title": "The Adoration of the Magi",
+      "hasImage": true,
+      "principalOrFirstMaker": "Geertgen tot Sint Jans",
+      "longTitle": "The Adoration of the Magi, Geertgen tot Sint Jans, c. 1480 - c. 1485",
+      "webImage": {
+        "guid": "9b0a55b9-5bf9-4670-9a24-929d076b5bd1",
+        "width": 1929,
+        "height": 2500,
+        "url": "http://lh6.ggpht.com/JE0o7Cgs3kKT5wDAR0Ks32zuTZUulpAcJFwTFNNJMJ6ENOVL3PE1MaKUEmFP-kdTqxXlDGtlNIZrryxe10G8g3mm_Q=s0"
+      },
+      "headerImage": {
+        "guid": "93364abc-e6a2-476b-aa07-197cd90b0dda",
+        "offsetPercentageX": 50,
+        "offsetPercentageY": 50,
+        "width": 1920,
+        "height": 460,
+        "url": "http://lh5.ggpht.com/4go9ib-06Mq5jHS2RltLrwhsE1-0TKBx2PnfDjzPIyCL7kcbMc_8aNpng7lHipgPBwBJNbL95WohglA-KkK2avtGczsY=s0"
+      },
+      "productionPlaces": [
+        "Haarlem"
+      ]
+    }
+  ]
+}
+```
+![Domain Model](images/deserializeexample.png)
 
 # Sending and receiving files
 
