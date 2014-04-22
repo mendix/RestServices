@@ -82,7 +82,7 @@ Publishing a REST service is pretty straight forward with this modules. The modu
 1. Publishing operations, based on a single microflow. 
 2. Publishing a part of your data model, and providing a typical rest based API to retrieve, update, delete, create and even real-time sync data. 
 
-PLEASE NOT THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHSERVICES` SHOULD BE CALLED DURING STARTUP OF THE APP!
+PLEASE NOTE THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHSERVICES` SHOULD BE CALLED DURING STARTUP OF THE APP!
 
 ## Publishing a microflow
 
@@ -94,9 +94,20 @@ Publishing a microflow is as simple as calling `CreateMicroflowService` with the
 
 ## Publishing a data service
 
-### Introduction
+A Published Service provides a JSON based API to list, retrieve, create, update, delete and track objects in your database. Documentation for these services will be generated automatically by the module and can be read by pointing your browser at *&lt;app-url&gt;/rest/*. Responses can be rendered JSON, XML or HTML, depending on the `Accept` headers of the request. Depending on the selected features, the following endpoints are available for a data service:
 
-A Published Service provides a JSON based API to list, retrieve, create, update, delete and track objects in your database. Documentation for these services will be generated automatically by the module and can be read by pointing your browser at *&lt;app-url&gt;/rest/*.
+| Method | Url | Description |
+|--------|-----|-------------|
+| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**?about** | Meta description of this services. Describes the endpoints and datatypes of this service in great detail. |
+| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**** | List of all objects published by this service |
+| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**&lt;key&gt;** | Returns a specific instance, identified by the *key* |
+| POST | &lt;app-url&gt;/rest/&lt;service-name&gt;/**** | Creates a new object and initializes it based on the JSON body of the request. Returns the `key` of the newly created object |
+| PUT | &lt;app-url&gt;/rest/&lt;service-name&gt;/**&lt;key&gt;** | Creates or updates the object with the specified &lt;key&gt;. Returns nothing |
+| DELETE | &lt;app-url&gt;/rest/&lt;service-name&gt;/**&lt;key&gt;** | Deletes the object with the specified &lt;key&gt;. Returns nothing |
+| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**changes/list** | Returns all objects of this service change by change. Can be used to synchronize data. |
+| GET | &lt;app-url&gt;/rest/&lt;service-name&gt;/**changes/feed** | Similar to *changes/list* but keeps the HTTP connection open to be able to push any future changes to the consumer |
+
+### How a data service works
 
 The central idea behind a service that there is a persistent entity in your database acting as data *source* for your service. Furthermore your model should define a transient object that will act as *view* object of your data, so that your internal data structure is not directly published to the outside. This allows for better maintainability and it guarantees that you can pre- or post-process your data when required. 
 
@@ -107,6 +118,7 @@ Each *source* object should be uniquely identifiable by a single *key* attribute
 For example: *GET &lt;your-app&gt;/rest/&lt;service name&gt;/&lt;identifier&gt;* will search for the first *source* object in your database which *key* value equals the *identifier*. If found, this object will be converted by the *Publish Microflow* into a *view object*. This *view object* will be serialized to JSON (or HTML or XML) and returned to the consumer.  
 
 ### Creating a new service
+
 Creating a new JSON based data service with full CRUD support is pretty straightforward with the RestServices module. The easiest way to start is to connect the microflow `IVK_OpenServiceOverview` to your navigation and create a new Published Service after starting your app. 
 
 Once you have figured out the correct configuration for your data service, a best practice is to use the `GetOrCreateDataService` microflow in the startup microflow to create your service configuration. Alter and commit the properties of the resulting ServiceDefinition to update the configuration. If the configuration contains consistency errors, those will will be listed in the log of your application. 
@@ -152,12 +164,6 @@ The *Enable Change Tracking* property has significant impact on the behavior and
 * The performance of retrieving objects is improved, since they are stored in serialized form internally. 
 * If, for example, the domain model of your *source* or *view* object changes, the cache becomes stale. Most model changes are detected by the RestServices module automatically, but you can force rebuilding the complete index by invoking `RebuildServiceIndex`. 
 
-### Using your service
-
-Responses can also be rendered as XML or HTML, depending on the Accept headers of the request.
-
-The RestServices module automatically generates a service description which lists in great detail all possible parameters and headers at *&lt;app-url&gt;/rest/servicename/?about*
-
 # Data synchronization
 
 ## The change log
@@ -201,18 +207,10 @@ A second endpoint available for retrieving changes is *rest/service-name/changes
 
 The RestServices module provides several methods to consume a changelog published by another app. Those can be found in the `CONSUME/Change Tracking` folder. Note that for all these functions only the *collection* URL needs to be specified (for example: *http://app/rest/tasks*). Furthermore the module automatically tracks which changes have been received already, so there is no need to specify the `since` parameter. 
 
-* `fetchChanges`: Request recent changes for a certain collection using the *list* API. 
-* `followChanges`: Request recent changes and start listening for new incoming changes using the *feed* API.
+* `fetchChanges`: Requests recent changes for a certain collection using the *list* API. The *updateMicroflow* should have one parameter of some transient object type. The microflow will be called for each change and the parameter will be initialized by deserializing the `data` field of the change. The *deleteMicroflow* should have a string parameter, which will be initialized to the *key* of the object to be deleted. 
+* `followChanges`: Similar to `fetchChanges`. Requests recent changes and start listening for new incoming changes using the *feed* API.
 * `unfollowChanges`: Stop listing to changes
 * `resetChangeTracking`: Resets the last know revision to zero. This means that upon the next synchronization, *all* data will be retrieved again. 
-
-## Two way synchronization
-
-### Master - Slave
-
-### Master - Master
-
-# HTTP Verbs in Rest
 
 # JSON Serialization
 
@@ -245,3 +243,5 @@ Mendix Appservices are build on top of webservices and make integration between 
 RestServices allows you to consume and publish operations as well, but based on the JSON standard and Rest principles. Besides JSON, the module also provides full support for form-encoded, multipart and binary data transfer, allowing the module the integrate with almost any Rest service. 
 
 It is also possible do share data using RestServices as the module generates Rest based crud operations for your data and (real-time) synchronization strategies. 
+
+# HTTP Verbs in Rest
