@@ -306,7 +306,10 @@ public class PublishedService {
 			
 		rsr.setResponseContentType(ResponseType.PLAIN);
 		rsr.setStatus(201); //created
-		rsr.response.setHeader(RestServices.ETAG_HEADER, getETag(rsr.getContext(), key, target));
+		
+		String eTag = getETag(rsr.getContext(), key, target);
+		if (eTag != null)
+			rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
 		//question: write url, or write key?
 		//rsr.write(getObjecturl(rsr.getContext(), target));
 		rsr.write(key);
@@ -347,7 +350,11 @@ public class PublishedService {
 		}
 		
 		updateObject(rsr.getContext(), target, data);
-		rsr.response.setHeader(RestServices.ETAG_HEADER, getETag(rsr.getContext(), key, target));
+		
+		String eTag = getETag(rsr.getContext(), key, target);
+		if (eTag != null)
+			rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
+		
 		rsr.close();
 	}
 	
@@ -404,15 +411,18 @@ public class PublishedService {
 
 		String currentETag = getETag(context, key, source);
 		
-		if (!currentETag.equals(etag))
+		if (currentETag == null | !currentETag.equals(etag))
 			throw new RestPublishException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
 	}
 
 	private String getETag(IContext context, String key, IMendixObject source)
 			throws CoreException, Exception, UnsupportedEncodingException {
-		String currentETag;
-		if (def.getEnableChangeTracking())
-			currentETag = getObjectStateByKey(context, key).getetag();
+		String currentETag = null;
+		if (def.getEnableChangeTracking()) {
+			ObjectState objectState = getObjectStateByKey(context, key); 
+			if (objectState != null)
+				currentETag = objectState.getetag();
+		}
 		else {
 			IMendixObject view = convertSourceToView(context, source);
 			JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);

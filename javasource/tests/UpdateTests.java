@@ -149,7 +149,7 @@ public class UpdateTests extends TestBase {
 	
 	@Test
 	public void postUsingIndex ()throws Exception {
-		def.setUseAutomaticChangeTracking(true);
+		def.setEnableChangeTracking(true);
 		def.commit();
 		
 		this.testPost();
