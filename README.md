@@ -17,7 +17,7 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher. Download this module as well if it is not already part of your project. 
 3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well. 
 4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application.
-5. It is strongly recommended to **not** use the defaut HSQLDB engine if you want to publish RestServices while running locally. 
+5. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally. 
 
 # Consuming REST services
 
@@ -134,7 +134,7 @@ Property | Default value | Description
 Name | (required) | Public name of this service. The endpoint of the service will be *&lt;app-url&gt;/rest/&lt;name&gt;*. Example: `Tasks`
 Description | (optional) | Description of this services. Will be part of the generated meta data
 Source Entity | (required) | The entity in the data model that should be published. Should be persistable. Example: `MyModule.Task`
-Source Key Attribute | (required) | Attribute that uniquly identies an object and which will be used as external reference to this object. The attribute should not change over time. Example: `TaskID`
+Source Key Attribute | (required) | Attribute that uniquely identifies an object and which will be used as external reference to this object. The attribute should not change over time. Example: `TaskID`
 Source Constraint | (optional) | XPath constraint that limits which objects are readable / writable through this service. It is possible to use the `'[%Current_User%]'` token inside this constraint, unless the *Enable Change Tracking* flag is set. Example: `[Finished = false() and MyModule.Task_Owner = '[%Current_User%]']`
 Required Role | `*` | Set this property to indicate that authentication is required to use this service. Exactly one project wide role can be specified. If set, the consumer is required to authenticate using Basic Authentication if the consumer doesn't have a normal Mendix client session. Use `*` to make the service world readable / writable.
 On Publish Microflow | (optional) | Microflow that transforms a *source object* into some transient object which (the *view*). This view will be serialized into JSON/HTML/XML when data is requested from the service. The speed of this microflow primarily determines the speed of the service as a whole. 
@@ -151,16 +151,15 @@ Enable Update | `false` | Allows consumers to update existing objects using PUT 
 Enable Create | `false` | Allows consumers to create new objects using POST at *rest/servicename/*
 Enable Delete | `false` | Allows consumers to remove existing objects using DELETE at *rest/servicename/objectid*
 Enable Change Tracking | `false` | See next section
-Use Automatic Change Tracking | `false` | TODO
 Use Strict Versioning | `false` | If set to true, all requests that modify data are required to provide an `if-none-match` header, to verify that the request is based on the latest known version. This way conflicting updates are detected and it is not possible to base changes on stale objects
 
 #### Enable Change Tracking
 
 The *Enable Change Tracking* property has significant impact on the behavior and internal working of the service. It introduces a cache in which the JSON representation of each objects are stored and provides the possibility to synchronize with consumers over time. See the [Data synchronisation](Data synchronisation) section for more details. Enabling change tracking has the following consequences:
 
-* Two new endpoints are created: *rest/service/changes/list* and *rest/service/changes/feed*. Both endpoints provide a list of all changes which where made to the *source* collection. The endpoints accept an `rev` parameter, which can be used to only retrieve changes which were not synced yet. The API and behavior are heavily inspired by the [CouchDB changes API](TODO). 
+* Two new endpoints are created: *rest/service/changes/list* and *rest/service/changes/feed*. Both endpoints provide a list of all changes which where made to the *source* collection. The endpoints accept an `rev` parameter, which can be used to only retrieve changes which were not synced yet. The API and behavior are heavily inspired by the [CouchDB changes API](http://couchdb.readthedocs.org/en/latest/api/database/changes.html). 
 * Requests are served from the cache instead of the database directly. To update an item in the cache, the model needs to call `publishUpdate` or `publishDelete`. Changes are not visible for consumers until one of these methods is called by the model. 
-* It is no longer possible to use the `'[%CurrentUser%]'` token in constraints; the cache is shared with all users connecting to the server so different users can no longer be distinguisehd.
+* It is no longer possible to use the `'[%CurrentUser%]'` token in constraints; the cache is shared with all users connecting to the server so different users can no longer be distinguished.
 * The performance of retrieving objects is improved, since they are stored in serialized form internally. 
 * If, for example, the domain model of your *source* or *view* object changes, the cache becomes stale. Most model changes are detected by the RestServices module automatically, but you can force rebuilding the complete index by invoking `RebuildServiceIndex`. 
 
@@ -201,7 +200,7 @@ Retrieving the changes published by a services is as simple as sending a GET req
 +----------+                                                           +-----------+
 ```
 
-The `since` parameter specifies the last change the consumer already knows. If no changes has been received before, use '0'. Furhter parameters are described in greater detail in the generated service description. 
+The `since` parameter specifies the last change the consumer already knows. If no changes has been received before, use '0'. Further parameters are described in greater detail in the generated service description. 
 
 A second endpoint available for retrieving changes is *rest/service-name/changes/feed*. This service yields the same results as the list service, except that the HTTP request does not end after all known changes are send. Rather, the connection is kept open so that new changes can be pushed back to the consumer in real time. If the connection is closed for any reason the consumer should try to reconnect automatically. 
 
@@ -214,13 +213,13 @@ The RestServices module provides several methods to consume a changelog publishe
 
 # JSON Serialization
 
-The JSON serialization process starts with a (preferrably) transient object and converts it into a JSON structure as follows:
+The JSON serialization process starts with a (preferably) transient object and converts it into a JSON structure as follows:
 
 1. Given a transient object, a new JSON object is created (`{}`)
 2. Each of its primitives members is added as key value pair to the JSON object. The 'nearest' json type is used, for example integers and longs are turned into numbers, booleans in to booleans and the others into strings (or `null` values). For example: `{ "task" : 17, "description" : "Buy milk" }
 3. For each owned reference that points to a *transient* object, another key/value pair is added to the object. As key the name of the reference is used, but *excluding* the module name. As value either `null` is used if the reference is not set, or the child object is serialized into a JSON object as well, using this very same procedure. 
 4. For each owned referenceset that points to a *transient* object, the same approach is taken, except that the value is an array (`[]`) to which each serialized child object is added. 
-5. If an owned reference(set) points to a *a* persistent object the reference is not serialed, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result. 
+5. If an owned reference(set) points to a *a* persistent object the reference is not serialized, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result. 
 
 For example the following domain model results in the JSON object listed below, assuming that the serialization process is started with an *OrderView* instance:
 
@@ -253,11 +252,11 @@ The JSON deserialization process is the inverse of the serialization process and
 
 1. For each primitive *key*/*value* pair in the JSON object, a matching\* primitive attribute is searched in the transient object. If found, the *value* is parsed and set. 
 2. If the primitive is of type string, but the member with the same name in the transient object is a reference, the process assumes that the string value represents an url. The url is then fetched using a GET request and its result is also interpreted as JSON and deserialized. The resulting object is assigned to the reference. 
-3. If the member in the *target* object is a reference, and the *value* is a JSON object, a new object of the child type of the reference is intantiated, and the JSON *value* is parsed into that object; which then is stored in the references. 
+3. If the member in the *target* object is a reference, and the *value* is a JSON object, a new object of the child type of the reference is instantiated, and the JSON *value* is parsed into that object; which then is stored in the references. 
 4. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *3.* but then a complete referenceset is filled. 
 5. If you need to parse a JSON array of primitive values, use a referenceset that has as child `RestServices.Primitive`. These objects can hold a JSON primitive and allows to create primitive lists which don't exist natively in Mendix. 
 
-\* <small>A member name matches if the names are the same in a case sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within mendix. For assocations, the module name is never considered</small>
+\* <small>A member name matches if the names are the same in a case sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. For associations, the module name is never considered</small>
 
 For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json&q=geertgen` generates the following JSON (shortened a bit for readability) which can be parsed into the domain model as shown below, assuming that parsing starts with an instance of the `Query` entity. Note that only some specific attributes of interest are made part of the domain model. 
 
@@ -301,6 +300,14 @@ For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json
 
 # Sending and receiving files
 
+## Publishing operations that work with files
+It is possible to send or receive files using the RestServices module. To publish an operation that supports binary data you can define a microflow service which input or output argument (or both) inherits from a `System.FileDocument`. If the input parameter is a filedocument, it interprets requests with `Content-Type: multipart/form-data` correctly if there is one *part* that contains binary data. The other form data parameters can be picked up if a similarly named attribute is present in the type of the input argument. If the return type of a microflow service is a filedocument, the binary contents is streamed in raw format to the consumer, using `Content-Type: application/octet-stream`. 
+
+## Consuming operations that work with files
+It is possible to send binary data using the `post` java action. If the `asFormData` parameter is set, the file is send using `Content-Type: multipart/form-data`, and other attributes of the filedocument are included as well as form parts. If `asFormData` is set to false, the contents of the filedocument is streamed raw in the request body to the publisher. Any other attributes in the filedocument are added as request parameters to the target url. 
+
+If the consumed service responds with binary data, this is picked up properly by the generic `request` java action if the `optResponseData` parameter inherits from `System.FileDocument.`
+
 # Known Integrations
 
 We know that the RestSevices module has already been used successfully to integrate with the following services:
@@ -328,3 +335,5 @@ RestServices allows you to consume and publish operations as well, but based on 
 It is also possible do share data using RestServices as the module generates Rest based crud operations for your data and (real-time) synchronization strategies. 
 
 # HTTP Verbs in Rest
+
+See the table at [http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services](http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services) to get an idea how the `get`, `put`, `post` and `delete` verbs should be used in combination with rest. The RestServices module respects these best practices as well. 
