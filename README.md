@@ -214,6 +214,46 @@ The RestServices module provides several methods to consume a changelog publishe
 
 # JSON Serialization
 
+The JSON serialization process starts with a (preferrably) transient object and converts it into a JSON structure as follows:
+
+1. Given a transient object, a new JSON object is created (`{}`)
+2. Each of its primitives members is added as key value pair to the JSON object. The 'nearest' json type is used, for example integers and longs are turned into numbers, booleans in to booleans and the others into strings (or `null` values). For example:
+```
+{
+	"task" : 17,
+	"description" : "Buy milk",
+	"finished" : false
+}
+```
+3. For each owned reference that points to a *transient* object, another key/value pair is added to the object. As key the name of the reference is used, but *excluding* the module name. As value either `null` is used if the reference is not set, or the child object is serialized into a JSON object as well, using this very same procedure. 
+4. For each owned referenceset that points to a *transient* object, the same approach is taken, except that the value is an array (`[]`) to which each serialized child object is added. 
+5. If an owned reference(set) points to a *a* persistent object the reference is not serialed, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result. 
+
+For example the following domain model results in the JSON object listed below, assuming that the serialization process is started with an *OrderView* instance:
+
+![Example Domain model](images/serializeexample.png)
+```
+{
+  "Nr": 1,
+  "Total": 9.4,
+  "OrderCustomer": "http://localhost:8080/rest/customers/3",
+  "OrderLines": [
+    {
+      "Description": "Coffee Biscuits 36pcs",
+      "Amount": 2,
+      "Price": 0.89
+    },
+    {
+      "Description": "Dark Coffee 36pads Limited Edition",
+      "Amount": 3,
+      "Price": 2.54
+    }
+  ]
+}
+```
+
+It is possible to manually trigger the serialization process by using the `serializeObjectToJson` java action. 
+
 # JSON Deserialization
 
 # Sending and receiving files
