@@ -181,7 +181,7 @@ public class RestConsumer {
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
 		
-		request.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
+		request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_TEXTJSON);
 
 		if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
 			request.addRequestHeader(e.getKey(), e.getValue());
@@ -197,7 +197,7 @@ public class RestConsumer {
 		
 		try {
 			int status = client.executeMethod(request);
-			Header responseEtag = request.getResponseHeader(RestServices.ETAG_HEADER);
+			Header responseEtag = request.getResponseHeader(RestServices.HEADER_ETAG);
 			
 			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue());
 			InputStream instream = request.getResponseBodyAsStream(); 
@@ -386,9 +386,9 @@ public class RestConsumer {
 			requestEntity = buildMultiPartEntity(context, source, params);
 		}
 		else if (asFormData && !isFileSource)
-			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.APPLICATION_X_WWW_FORM_URLENCODED);
+			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
 		else if (data != null)
-			requestEntity = new StringRequestEntity(data.toString(4), RestServices.TEXTJSON, RestServices.UTF8);
+			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_TEXTJSON, RestServices.UTF8);
 		
 		final StringBuilder bodyBuffer = new StringBuilder();
 		HttpResponseData response = doRequest(method.toString(), url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {
@@ -431,7 +431,7 @@ public class RestConsumer {
 	private static RequestEntity buildMultiPartEntity(final IContext context,
 			final IMendixObject source, Map<String, String> params)
 			throws IOException {
-		//MWE: don't set contenttype to MULTIPART_FORM_DATA; this will be done by the request entity and add the boundaries
+		//MWE: don't set contenttype to CONTENTTYPE_MULTIPART; this will be done by the request entity and add the boundaries
 		Part[] parts = new Part[params.size() + 1];
 
 		String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
@@ -488,7 +488,7 @@ public class RestConsumer {
 	
 	public static void useETagInNextRequest(String eTag) {
 		if (eTag != null)
-			addHeaderToNextRequest(RestServices.IFNONEMATCH_HEADER, eTag);
+			addHeaderToNextRequest(RestServices.HEADER_IFNONEMATCH, eTag);
 	}
 
 	

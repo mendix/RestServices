@@ -256,7 +256,7 @@ public class PublishedService {
 			return;
 		}
 		
-		rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
+		rsr.response.setHeader(RestServices.HEADER_ETAG, eTag);
 		rsr.startDoc();
 
 		if (rsr.getResponseContentType() == ResponseType.HTML)
@@ -309,7 +309,7 @@ public class PublishedService {
 		
 		String eTag = getETag(rsr.getContext(), key, target);
 		if (eTag != null)
-			rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
+			rsr.response.setHeader(RestServices.HEADER_ETAG, eTag);
 		//question: write url, or write key?
 		//rsr.write(getObjecturl(rsr.getContext(), target));
 		rsr.write(key);
@@ -353,7 +353,7 @@ public class PublishedService {
 		
 		String eTag = getETag(rsr.getContext(), key, target);
 		if (eTag != null)
-			rsr.response.setHeader(RestServices.ETAG_HEADER, eTag);
+			rsr.response.setHeader(RestServices.HEADER_ETAG, eTag);
 		
 		rsr.close();
 	}

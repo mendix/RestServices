@@ -12,9 +12,15 @@ import restservices.publish.PublishedService;
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+import communitycommons.XPath;
 
 public class RestServices {
 	
+	/**
+	 * Version of the RestServices module
+	 */
+	public static final String VERSION = "1.0.x";
+
 	/**
 	 * Amount of objects that are processed by the module at the same time.
 	 * Larger number yields better performance but increases memory consumptions. 
@@ -22,17 +28,17 @@ public class RestServices {
 	 * Defaults to 1000.
 	 */
 	public static int BATCHSIZE = 1000;
+	public static final int MAXPOLLQUEUE_LENGTH = 10000;
+	public static final int LONGPOLL_MAXDURATION = 50; //In seconds
 
 	public static ILogNode LOGPUBLISH = Core.getLogger("RestPublish");
 	public static ILogNode LOGCONSUME = Core.getLogger("RestConsume");
 	public static ILogNode LOGUTIL = Core.getLogger("RestUtil");
 	
-	//TODO: cleanup constant names
-	
-	public static final String VERSION = "1.0.x";
+	public static final String END_OF_HTTPHEADER = "\r\n\r\n";
 	public static final String UTF8 = "UTF-8";
-	public static final String URL_ATTR = "_url";
-	public static final String TEXTJSON = "text/json";
+	public static final String BASIC_AUTHENTICATION = "Basic";
+	public static final String CURRENTUSER_TOKEN = "'" + XPath.CurrentUser + "'";
 	public static final String STYLESHEET = 
 	"body { font-family: Arial; font-size: 0.8em; padding: 20px 60px; } " +
 	"td {padding: 5px 10px; border: 1px solid #e2e2e2; vertical-align: top; } " +
@@ -41,15 +47,24 @@ public class RestServices {
 	"h1 {color: navy; }" +
 	"hr {border-style:none; border-bottom: 1px dotted #aaa;}";
 
-	public static final int MAXPOLLQUEUE_LENGTH = 10000;
-	public static final int LONGPOLL_MAXDURATION = 50; //In seconds
-	public static final String IFNONEMATCH_HEADER = "If-None-Match";
-	public final static String HANDLERPATH = "rest/";
-	public static final String ETAG_HEADER = "ETag";
-	public static final String CONTENTTYPE_PARAM = "contenttype";
-	public static final String ACCEPT_HEADER = "Accept";
-	public static final String CURRENTUSER_TOKEN = "'[%CurrentUser%]'";
-	public static final String END_OF_HTTPHEADER = "\r\n\r\n";
+	public static final String CONTENTTYPE_TEXTJSON = "text/json";
+	public static final String CONTENTTYPE_FORMENCODED = "application/x-www-form-urlencoded";
+	public static final String CONTENTTYPE_MULTIPART = "multipart/form-data";
+	public static final String CONTENTTYPE_OCTET = "application/octet-stream";
+
+	public static final String HEADER_ETAG = "ETag";
+	public static final String HEADER_IFNONEMATCH = "If-None-Match";
+	public static final String HEADER_ACCEPT = "Accept";
+	public static final String HEADER_AUTHORIZATION = "Authorization";
+	public static final String HEADER_CONTENTTYPE = "Content-Type";
+	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
+	
+	public final static String PATH_REST = "rest/";
+	public static final String PATH_LIST = "list";
+	public static final String PATH_FEED = "feed";
+	public static final String PATH_CHANGES = "changes";
+	
+	public static final String PARAM_CONTENTTYPE = "contenttype";
 	public static final String PARAM_SINCE = "since";
 	public static final String PARAM_TIMEOUT = "timeout";
 	public static final String PARAM_ABOUT = "about";
@@ -57,21 +72,11 @@ public class RestServices {
 	public static final String PARAM_DATA = "data";
 	public static final String PARAM_OFFSET = "offset"; 
 	public static final String PARAM_LIMIT = "limit"; 
-	public static final String HEADER_AUTHORIZATION = "Authorization";
-	public static final String BASIC_AUTHENTICATION = "Basic";
-	public static final String HEADER_CONTENTTYPE = "Content-Type";
-	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
-	public static final String APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
-	public static final String MULTIPART_FORM_DATA = "multipart/form-data";
-	public static final String PATH_LIST = "list";
-	public static final String PATH_FEED = "feed";
-	public static final String PATH_CHANGES = "changes";
+
 	public static final String CHANGE_DATA = "data";
 	public static final String CHANGE_KEY = "key";
 	public static final String CHANGE_DELETED = "deleted";
 	public static final String CHANGE_REV = "rev";
-
-	public static final String APPLICATION_OCTET = "application/octet-stream";
 
 
 	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
@@ -134,5 +139,4 @@ public class RestServices {
 	public static PublishedMicroflow getPublishedMicroflow(String name) {
 		return microflowServices.get(name);
 	}
-
 }

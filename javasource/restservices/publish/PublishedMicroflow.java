@@ -210,7 +210,7 @@ public class PublishedMicroflow {
 			.key("arguments").value(JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname)))
 			.key("accepts_binary_data").value(isFileSource)
 			.key("result").value(isFileTarget 
-					? RestServices.APPLICATION_OCTET + " stream"
+					? RestServices.CONTENTTYPE_OCTET + " stream"
 					: JSONSchemaBuilder.build(Core.getReturnType(microflowname)))
 			.endObject();
 		

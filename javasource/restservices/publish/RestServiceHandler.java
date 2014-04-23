@@ -36,7 +36,7 @@ public class RestServiceHandler extends RequestHandler{
 	public static void start(IContext context) throws Exception {
 		if (instance == null) {
 			instance = new RestServiceHandler();
-			Core.addRequestHandler(RestServices.HANDLERPATH, instance);
+			Core.addRequestHandler(RestServices.PATH_REST, instance);
 			started = true;
 			loadConfig(context);
 		}
@@ -90,7 +90,7 @@ public class RestServiceHandler extends RequestHandler{
 		} catch (MalformedURLException e1) {
 			throw new IllegalStateException(e1);
 		}
-		path = u.getPath().substring(1 + RestServices.HANDLERPATH.length()); //Path which is passed to this request is already decode and therefor useless...
+		path = u.getPath().substring(1 + RestServices.PATH_REST.length()); //Path which is passed to this request is already decode and therefor useless...
 		
 		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
 
@@ -222,7 +222,7 @@ public class RestServiceHandler extends RequestHandler{
 			else if ("POST".equals(method)) {
 				handled = true;
 				JSONObject data;
-				if (RestServices.APPLICATION_X_WWW_FORM_URLENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
+				if (RestServices.CONTENTTYPE_FORMENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
 					data = new JSONObject();
 					requestParamsToJsonMap(rsr, data);
 				}

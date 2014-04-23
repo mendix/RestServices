@@ -106,9 +106,9 @@ public class RestServiceRequest {
 			return RequestContentType.OTHER;
 		if (ct.contains("text/json"))
 			return RequestContentType.JSON;
-		else if (ct.contains(RestServices.APPLICATION_X_WWW_FORM_URLENCODED))
+		else if (ct.contains(RestServices.CONTENTTYPE_FORMENCODED))
 			return RequestContentType.FORMENCODED;
-		else if (ct.contains(RestServices.MULTIPART_FORM_DATA))
+		else if (ct.contains(RestServices.CONTENTTYPE_MULTIPART))
 			return RequestContentType.MULTIPART;
 		else 
 			return RequestContentType.OTHER;
@@ -116,9 +116,9 @@ public class RestServiceRequest {
 	}
 
 	private ResponseType determineResponseContentType(HttpServletRequest request) {
-		String ct = request.getParameter(RestServices.CONTENTTYPE_PARAM);
+		String ct = request.getParameter(RestServices.PARAM_CONTENTTYPE);
 		if (ct == null)
-			ct = request.getHeader(RestServices.ACCEPT_HEADER);
+			ct = request.getHeader(RestServices.HEADER_ACCEPT);
 		if (ct != null) {
 			if (ct.contains("text/json"))
 				return ResponseType.JSON;
@@ -145,7 +145,7 @@ public class RestServiceRequest {
 			response.setContentType("text/xml;charset=UTF-8");
 			break;
 		case BINARY:
-			response.setContentType(RestServices.APPLICATION_OCTET);
+			response.setContentType(RestServices.CONTENTTYPE_OCTET);
 			break;
 		default:
 			throw new IllegalStateException();
@@ -212,7 +212,7 @@ public class RestServiceRequest {
 	}
 
 	public String getETag() {
-		return request.getHeader(RestServices.IFNONEMATCH_HEADER);
+		return request.getHeader(RestServices.HEADER_IFNONEMATCH);
 	}
 
 	public void dispose() {

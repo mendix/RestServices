@@ -82,7 +82,7 @@ public class ServiceDescriber {
 			}
 			if (def.getEnableGet()) {
 				startEndpoint("GET", "&lt;" + def.getSourceKeyAttribute() + "&gt;", "Returns the object specified by the URL, which is retrieved from the database by using the given key.");
-				addEndpointParam(RestServices.IFNONEMATCH_HEADER + " (header)", "If the current version of the object matches the ETag provided by this optional header, status 304 NOT MODIFIED will be returned instead of returning the whole objects. This header can be used for caching / performance optimization");
+				addEndpointParam(RestServices.HEADER_IFNONEMATCH + " (header)", "If the current version of the object matches the ETag provided by this optional header, status 304 NOT MODIFIED will be returned instead of returning the whole objects. This header can be used for caching / performance optimization");
 				addContentType();
 				
 				JSONObject schema = JSONSchemaBuilder.build(Core.getReturnType(def.getOnPublishMicroflow()));
@@ -133,9 +133,9 @@ public class ServiceDescriber {
 	}
 
 	private void addEtagParam() {
-		addEndpointParam(RestServices.IFNONEMATCH_HEADER + "(header)", "Both GET requests that returns an individual object and the changes api return ETag's (by using the " + RestServices.ETAG_HEADER + " header). " +
-				"If a " + RestServices.IFNONEMATCH_HEADER + " header is provided, the server might respond with a 304 NOT MODIFIED response, to indicate that the object was not changed since the previous time it was requested. In this case no data is returned." +
-				"If the 'requiresETags' setting is enabled, the " + RestServices.IFNONEMATCH_HEADER + " is required for request that alter data (PUT or DELETE). If the ETag is invalid in such a case, another party already updated the object and this update is reject since it was based on a stale copy. The server will respond with http status " + HttpStatus.SC_CONFLICT + " CONFLICT");
+		addEndpointParam(RestServices.HEADER_IFNONEMATCH + "(header)", "Both GET requests that returns an individual object and the changes api return ETag's (by using the " + RestServices.HEADER_ETAG + " header). " +
+				"If a " + RestServices.HEADER_IFNONEMATCH + " header is provided, the server might respond with a 304 NOT MODIFIED response, to indicate that the object was not changed since the previous time it was requested. In this case no data is returned." +
+				"If the 'requiresETags' setting is enabled, the " + RestServices.HEADER_IFNONEMATCH + " is required for request that alter data (PUT or DELETE). If the ETag is invalid in such a case, another party already updated the object and this update is reject since it was based on a stale copy. The server will respond with http status " + HttpStatus.SC_CONFLICT + " CONFLICT");
 	}
 
 	private void addBodyParam() {
@@ -143,7 +143,7 @@ public class ServiceDescriber {
 	}
 
 	private void addContentType() {
-		addEndpointParam("contenttype (param) or " + RestServices.ACCEPT_HEADER + " (header)", "Either 'json', 'html' or 'xml'. If the header is used, one of those three values is extracted from the headers. This parameter is used to determine the output type. This results in an HTML represention in browsers (unless overriden using the param) and Json or XML data for non-browser clients.");
+		addEndpointParam("contenttype (param) or " + RestServices.HEADER_ACCEPT + " (header)", "Either 'json', 'html' or 'xml'. If the header is used, one of those three values is extracted from the headers. This parameter is used to determine the output type. This results in an HTML represention in browsers (unless overriden using the param) and Json or XML data for non-browser clients.");
 	}
 
 	private void addEndpointParam(String param, Object description) {

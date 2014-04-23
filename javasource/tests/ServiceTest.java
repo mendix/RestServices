@@ -90,7 +90,7 @@ public class ServiceTest extends TestBase {
 			con.setDoInput(true);
 			con.setRequestMethod("POST");
 			con.setRequestProperty("Connection", "Keep-Alive");
-			con.setRequestProperty("Content-Type", RestServices.APPLICATION_OCTET);
+			con.setRequestProperty("Content-Type", RestServices.CONTENTTYPE_OCTET);
 			con.connect();
 			OutputStream out =  con.getOutputStream();
 			IOUtils.copy(IOUtils.toInputStream("Yolo"), out);

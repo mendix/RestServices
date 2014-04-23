@@ -98,7 +98,7 @@ public class ChangeFeedListener {
 		String requestUrl = getChangesRequestUrl(true);
 		
 		GetMethod get = this.currentRequest = new GetMethod(requestUrl);
-		get.setRequestHeader(RestServices.ACCEPT_HEADER, RestServices.TEXTJSON);
+		get.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_TEXTJSON);
 		
 		RestConsumer.includeHeaders(get, headers);
 		int status = RestConsumer.client.executeMethod(get);
