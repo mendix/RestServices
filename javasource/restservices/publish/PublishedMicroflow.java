@@ -208,8 +208,10 @@ public class PublishedMicroflow {
 			.key("description").value(description)
 			.key("url").value(RestServices.getServiceUrl(getName()))
 			.key("arguments").value(JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname)))
-			//TODO: set accepts file data if source is file!
-			.key("result").value(JSONSchemaBuilder.build(Core.getReturnType(microflowname))) //TODO: octet if targetIsFile!
+			.key("accepts_binary_data").value(isFileSource)
+			.key("result").value(isFileTarget 
+					? RestServices.APPLICATION_OCTET + " stream"
+					: JSONSchemaBuilder.build(Core.getReturnType(microflowname)))
 			.endObject();
 		
 		rsr.endDoc();
