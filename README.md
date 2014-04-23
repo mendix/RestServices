@@ -23,6 +23,8 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 
 This module is able to invoke most, if not any, REST service which is based on JSON, form-data, multipart or binary data. The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation. 
 
+![Example REST request in a microflow](images/examplemf.png)
+
 ## The `Request` java action
 Request performs an HTTP request and provides the means to both send data and receive data over HTTP. Its parameters are defined as follow. 
 
