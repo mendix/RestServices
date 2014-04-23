@@ -6,12 +6,15 @@ import java.util.Map;
 import java.util.Set;
 
 
+
+
 import restservices.publish.PublishedMicroflow;
 import restservices.publish.PublishedService;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+
 import communitycommons.XPath;
 
 public class RestServices {
@@ -76,7 +79,9 @@ public class RestServices {
 	public static final String CHANGE_DATA = "data";
 	public static final String CHANGE_KEY = "key";
 	public static final String CHANGE_DELETED = "deleted";
-	public static final String CHANGE_REV = "rev";
+	public static final String CHANGE_SEQNR = "seq";
+	public static final String CHANGE_ETAG = "etag";
+	public static final String CHANGE_URL = "url";
 
 
 	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();

@@ -92,7 +92,7 @@ public class PublishedService {
 
 	private ObjectState getObjectStateByKey(IContext context, String key) throws CoreException {
 		return XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.key,key)
+				.eq(ObjectState.MemberNames.Key,key)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
 				.first();
 	}	
@@ -109,7 +109,7 @@ public class PublishedService {
 		if (def.getEnableChangeTracking()) {
 			count = XPath.create(rsr.getContext(), ObjectState.class)
 					.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
-					.eq(ObjectState.MemberNames.deleted, false)
+					.eq(ObjectState.MemberNames.IsDeleted, false)
 					.count();
 		} else 
 			count = Core.retrieveXPathQueryAggregate(rsr.getContext(), "count(//" + getSourceEntity() + getConstraint(rsr.getContext()) + ")");
@@ -144,9 +144,9 @@ public class PublishedService {
 			final boolean includeData, int offset, int limit) throws CoreException {
 		XPath<ObjectState> xp  = XPath.create(rsr.getContext(), ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
-			.eq(ObjectState.MemberNames.deleted, false)
-			.eq(ObjectState.MemberNames._dirty, false)
-			.addSortingAsc(ObjectState.MemberNames.key);
+			.eq(ObjectState.MemberNames.IsDeleted, false)
+			.eq(ObjectState.MemberNames._IsDirty, false)
+			.addSortingAsc(ObjectState.MemberNames.Key);
 			
 		if (offset > -1)
 			xp.offset(offset); //MWE: note that the combination of offset/limit and batch only works in community commons 4.3.2 or higher!
@@ -159,9 +159,9 @@ public class PublishedService {
 				public void onItem(ObjectState item, long offset, long total)
 						throws Exception {
 					if (includeData)
-						rsr.datawriter.value(new JSONObject(item.getjson()));
+						rsr.datawriter.value(new JSONObject(item.getJson()));
 					else
-						rsr.datawriter.value(getServiceUrl() + item.getkey());
+						rsr.datawriter.value(getServiceUrl() + item.getKey());
 				}
 			});
 	}
@@ -220,16 +220,16 @@ public class PublishedService {
 	
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
 		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
-		if (source == null || source.getdeleted() || source.get_dirty()) 
+		if (source == null || source.getIsDeleted() || source.get_IsDirty()) 
 			throw new RestPublishException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
 		
-		if (Utils.isNotEmpty(rsr.getETag()) && rsr.getETag().equals(source.getetag())) {
+		if (Utils.isNotEmpty(rsr.getETag()) && rsr.getETag().equals(source.getEtag())) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
 			rsr.close();
 			return;
 		}
 		
-		writeGetResult(rsr,key, new JSONObject(source.getjson()), source.getetag());
+		writeGetResult(rsr,key, new JSONObject(source.getJson()), source.getEtag());
 	}
 
 	private void serveGetFromDB(RestServiceRequest rsr, String key) throws Exception {
@@ -421,7 +421,7 @@ public class PublishedService {
 		if (def.getEnableChangeTracking()) {
 			ObjectState objectState = getObjectStateByKey(context, key); 
 			if (objectState != null)
-				currentETag = objectState.getetag();
+				currentETag = objectState.getEtag();
 		}
 		else {
 			IMendixObject view = convertSourceToView(context, source);

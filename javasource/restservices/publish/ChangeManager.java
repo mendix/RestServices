@@ -45,7 +45,7 @@ public class ChangeManager {
 			serviceObjectIndex = XPath.create(context, ServiceObjectIndex.class)
 				.findOrCreate(ServiceObjectIndex.MemberNames.ServiceObjectIndex_ServiceDefinition, service.def);
 			
-			if (!calculateIndexVersion(service.def).equals(serviceObjectIndex.get_indexversion())) 
+			if (!calculateIndexVersion(service.def).equals(serviceObjectIndex.get_ConfigurationHash())) 
 				rebuildIndex();
 		}
 	}
@@ -53,14 +53,14 @@ public class ChangeManager {
 	JSONObject writeObjectStateToJson(ObjectState state){
 		JSONObject res = new JSONObject();
 		res
-			.put("key", state.getkey())
-			.put("url", service.getServiceUrl() + state.getkey())
-			.put("rev", state.getrevision())
-			.put("etag", state.getetag())
-			.put("deleted", state.getdeleted());
+			.put(RestServices.CHANGE_KEY, state.getKey())
+			.put(RestServices.CHANGE_URL, service.getServiceUrl() + state.getKey())
+			.put(RestServices.CHANGE_SEQNR, state.getSequenceNr())
+			.put(RestServices.CHANGE_ETAG, state.getEtag())
+			.put(RestServices.CHANGE_DELETED, state.getIsDeleted());
 		
-		if (!state.getdeleted())
-			res.put("data", new JSONObject(state.getjson()));
+		if (!state.getIsDeleted())
+			res.put(RestServices.CHANGE_DATA, new JSONObject(state.getJson()));
 		
 		return res;
 	}
@@ -69,16 +69,16 @@ public class ChangeManager {
 			String eTag, String jsonString, boolean deleted) throws Exception {
 		
 		/* store the update*/
-		long rev = getNextRevisionId();
+		long rev = getNextSequenceNr();
 		
 		if (RestServices.LOGPUBLISH.isDebugEnabled())
-			RestServices.LOGPUBLISH.debug("Updated: " + objectState.getkey() + " to revision " + rev);
+			RestServices.LOGPUBLISH.debug("Updated: " + objectState.getKey() + " to revision " + rev);
 		
-		objectState.setetag(eTag);
-		objectState.setdeleted(deleted);
-		objectState.setjson(deleted ? "" : jsonString);
-		objectState.setrevision(rev);
-		objectState.set_dirty(false);
+		objectState.setEtag(eTag);
+		objectState.setIsDeleted(deleted);
+		objectState.setJson(deleted ? "" : jsonString);
+		objectState.setSequenceNr(rev);
+		objectState.set_IsDirty(false);
 		objectState.commit();
 		
 		publishUpdate(objectState);
@@ -93,8 +93,8 @@ public class ChangeManager {
 		
 		XPath.create(c, ObjectState.class)
 			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex())
-			.compare(ObjectState.MemberNames.revision, ">", since)
-			.addSortingAsc(ObjectState.MemberNames.revision)
+			.compare(ObjectState.MemberNames.SequenceNr, ">", since)
+			.addSortingAsc(ObjectState.MemberNames.SequenceNr)
 			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
 	
 				@Override
@@ -170,7 +170,7 @@ public class ChangeManager {
 				 */
 				synchronized(this) {
 					if (since != -1)
-						writeChanges(rsr, Core.createSystemContext(), lastWrittenChange == null ? 0 : lastWrittenChange.getrevision());					
+						writeChanges(rsr, Core.createSystemContext(), lastWrittenChange == null ? 0 : lastWrittenChange.getSequenceNr());					
 					
 					ChangeFeedSubscriber lpsession = new ChangeFeedSubscriber(asyncContext, maxDurationSeconds < 0, this);
 
@@ -239,7 +239,7 @@ public class ChangeManager {
 		ServiceObjectIndex sState = getServiceObjectIndex();
 		
 		ObjectState objectState = XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.key, key)
+				.eq(ObjectState.MemberNames.Key, key)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, sState)
 				.first();
 		
@@ -249,19 +249,19 @@ public class ChangeManager {
 				return;
 			
 			objectState = new ObjectState(context);
-			objectState.setkey(key);
+			objectState.setKey(key);
 			objectState.setObjectState_ServiceObjectIndex(sState);
 			storeUpdate(objectState, eTag, jsonString, deleted);
 		}
 		
 		//nothing changed
 		else if (
-				(deleted && objectState.getdeleted()) 
-			|| (!deleted && !objectState.getdeleted() && eTag != null && eTag.equals(objectState.getetag()))
+				(deleted && objectState.getIsDeleted()) 
+			|| (!deleted && !objectState.getIsDeleted() && eTag != null && eTag.equals(objectState.getEtag()))
 		) {
-			if (objectState.get_dirty() && !objectState.getdeleted()) {
+			if (objectState.get_IsDirty() && !objectState.getIsDeleted()) {
 				//if there is a dirty mark, but no changes, the object should be preserved although it isn' t updated
-				objectState.set_dirty(false);
+				objectState.set_IsDirty(false);
 				objectState.commit();
 			}
 			return; 
@@ -272,14 +272,14 @@ public class ChangeManager {
 			storeUpdate(objectState, eTag, jsonString, deleted);
 	}
 
-	private synchronized long getNextRevisionId() {
+	private synchronized long getNextSequenceNr() {
 		ServiceObjectIndex state;
 		try {
 			state = getServiceObjectIndex();
-			long rev = state.getRevision() + 1;
-			state.setRevision(rev);
+			long seq = state.getSequenceNr() + 1;
+			state.setSequenceNr(seq);
 			state.commit();
-			return rev;
+			return seq;
 		} catch (CoreException e) {
 			throw new RestServiceRuntimeException(e);
 		}
@@ -387,7 +387,7 @@ public class ChangeManager {
 					@Override
 					public void onItem(ObjectState item, long offset, long total)
 							throws Exception {
-						item.set_dirty(true);
+						item.set_IsDirty(true);
 						item.commit();
 					}
 				});
@@ -417,15 +417,15 @@ public class ChangeManager {
 			 */
 			XPath.create(context, ObjectState.class)
 				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
-				.eq(ObjectState.MemberNames._dirty, true)
+				.eq(ObjectState.MemberNames._IsDirty, true)
 				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ObjectState>() {
 	
 					@Override
 					public void onItem(ObjectState item, long offset, long total)
 							throws Exception {
 						//was already deleted, so OK
-						if (item.getdeleted() == true) {
-							item.set_dirty(false);
+						if (item.getIsDeleted() == true) {
+							item.set_IsDirty(false);
 							item.commit();
 						}
 						
@@ -435,7 +435,7 @@ public class ChangeManager {
 					}
 			});
 			
-			serviceObjectIndex.set_indexversion(calculateIndexVersion(service.def));
+			serviceObjectIndex.set_ConfigurationHash(calculateIndexVersion(service.def));
 			serviceObjectIndex.commit();
 			
 			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. DONE");

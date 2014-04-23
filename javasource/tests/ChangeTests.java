@@ -80,7 +80,7 @@ public class ChangeTests extends TestBase{
 		assertChange(changes.getJSONObject(1), t2.getNr(), false, "twix",3);
 
 		//check since param
-		changes = getChangesJSON(c2, changes.getJSONObject(0).getLong("rev"));
+		changes = getChangesJSON(c2, changes.getJSONObject(0).getLong("seq"));
 		Assert.assertEquals(1L, changes.length());
 		assertChange(changes.getJSONObject(0), t2.getNr(), false, "twix",3);
 		
@@ -141,7 +141,7 @@ public class ChangeTests extends TestBase{
 			String description, long rev) throws Exception {
 		Assert.assertEquals((long) jsonObject.getLong("key"), (long) key);
 		Assert.assertEquals((boolean) jsonObject.getBoolean("deleted"), deleted);
-		Assert.assertEquals(rev, jsonObject.getLong("rev"));
+		Assert.assertEquals(rev, jsonObject.getLong("seq"));
 		
 		if (!deleted) {
 			Assert.assertEquals(jsonObject.getJSONObject("data").getString("Description"), description);

@@ -138,7 +138,7 @@ public class ChangeFeedListener {
 	public String getChangesRequestUrl(boolean useFeed) {
 		return Utils.appendParamToUrl(Utils.appendParamToUrl(
 			Utils.appendSlashToUrl(url) + PATH_CHANGES + "/" + (useFeed ? PATH_FEED : PATH_LIST),
-			PARAM_SINCE, String.valueOf((long) state.getRevision())),
+			PARAM_SINCE, String.valueOf((long) state.getSequenceNr())),
 			PARAM_TIMEOUT, String.valueOf(timeout));
 	}
 
@@ -163,7 +163,7 @@ public class ChangeFeedListener {
 	void processChange(JSONObject instr) throws Exception {
 		IContext c = Core.createSystemContext();
 
-		long revision = instr.getLong(CHANGE_REV); 
+		long revision = instr.getLong(CHANGE_SEQNR); 
 
 		RestServices.LOGCONSUME.info("Receiving update for " + url + " #" + revision + " object: '" + instr.getString(CHANGE_KEY) + "'"); 
 		
@@ -184,10 +184,10 @@ public class ChangeFeedListener {
 			Core.execute(c, onUpdateMF, ImmutableMap.of(Utils.getArgumentTypes(onUpdateMF).keySet().iterator().next(), (Object) target));
 		}
 		
-		if (revision <= state.getRevision()) 
-			RestServices.LOGCONSUME.warn("Received revision (" + revision + ") is smaller than the latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
+		if (revision <= state.getSequenceNr()) 
+			RestServices.LOGCONSUME.warn("Received revision (" + revision + ") is smaller than the latest known revision (" + state.getSequenceNr() +"), probably the collections are out of sync?");
 		
-		state.setRevision(revision);
+		state.setSequenceNr(revision);
 		state.commit();
 	}
 	
