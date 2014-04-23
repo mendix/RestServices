@@ -12,8 +12,8 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.ChangeItem;
+import restservices.proxies.ChangeLog;
 import restservices.proxies.ServiceDefinition;
-import restservices.proxies.ServiceObjectIndex;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonSerializer;
@@ -27,6 +27,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.sun.xml.fastinfoset.stax.events.Util;
+
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
 
@@ -34,7 +35,7 @@ public class ChangeManager {
 	
 	private PublishedService service;
 	private final List<ChangeFeedSubscriber> longPollSessions = new Vector<ChangeFeedSubscriber>(); 
-	private volatile ServiceObjectIndex serviceObjectIndex;
+	private volatile ChangeLog serviceObjectIndex;
 	private volatile boolean isRebuildingIndex = false;
 	
 	public ChangeManager(PublishedService service) throws CoreException {
@@ -42,8 +43,8 @@ public class ChangeManager {
 		if (service.def.getEnableChangeTracking() && service.def.getEnableGet()) {
 			IContext context = Core.createSystemContext();
 			
-			serviceObjectIndex = XPath.create(context, ServiceObjectIndex.class)
-				.findOrCreate(ServiceObjectIndex.MemberNames.ServiceObjectIndex_ServiceDefinition, service.def);
+			serviceObjectIndex = XPath.create(context, ChangeLog.class)
+				.findOrCreate(ChangeLog.MemberNames.ChangeLog_ServiceDefinition, service.def);
 			
 			if (!calculateIndexVersion(service.def).equals(serviceObjectIndex.get_ConfigurationHash())) 
 				rebuildIndex();
@@ -236,7 +237,7 @@ public class ChangeManager {
 	synchronized private void processUpdate(String key, String jsonString, String eTag, boolean deleted) throws Exception {
 		IContext context = Core.createSystemContext();
 	
-		ServiceObjectIndex sState = getServiceObjectIndex();
+		ChangeLog sState = getServiceObjectIndex();
 		
 		ChangeItem objectState = XPath.create(context, ChangeItem.class)
 				.eq(ChangeItem.MemberNames.Key, key)
@@ -273,7 +274,7 @@ public class ChangeManager {
 	}
 
 	private synchronized long getNextSequenceNr() {
-		ServiceObjectIndex state;
+		ChangeLog state;
 		try {
 			state = getServiceObjectIndex();
 			long seq = state.getSequenceNr() + 1;
@@ -358,7 +359,7 @@ public class ChangeManager {
 	}
 
 
-	ServiceObjectIndex getServiceObjectIndex() {
+	ChangeLog getServiceObjectIndex() {
 		return this.serviceObjectIndex;
 	}
 	

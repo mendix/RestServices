@@ -21,7 +21,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class GetNrOfIncomingConnections extends UserAction<Long>
 {
 	private IMendixObject __index;
-	private restservices.proxies.ServiceObjectIndex index;
+	private restservices.proxies.ChangeLog index;
 
 	public GetNrOfIncomingConnections(IMendixObject index)
 	{
@@ -32,10 +32,10 @@ public class GetNrOfIncomingConnections extends UserAction<Long>
 	@Override
 	public Long executeAction() throws Exception
 	{
-		this.index = __index == null ? null : restservices.proxies.ServiceObjectIndex.initialize(getContext(), __index);
+		this.index = __index == null ? null : restservices.proxies.ChangeLog.initialize(getContext(), __index);
 
 		// BEGIN USER CODE
-		ServiceDefinition def = index.getServiceObjectIndex_ServiceDefinition();
+		ServiceDefinition def = index.getChangeLog_ServiceDefinition();
 		if (def == null)
 			return 0L;
 		PublishedService service = RestServices.getService(def.getName());
