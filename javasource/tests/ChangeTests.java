@@ -13,7 +13,7 @@ import communitycommons.XPath;
 
 import restservices.consume.ChangeFeedListener;
 import restservices.consume.RestConsumer;
-import restservices.proxies.FollowChangesState;
+import restservices.proxies.DataSyncState;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import tests.proxies.Task;
@@ -33,7 +33,7 @@ public class ChangeTests extends TestBase{
 		IContext c = Core.createSystemContext();
 		IContext c2 = Core.createSystemContext();
 
-		XPath.create(c, FollowChangesState.class).contains(FollowChangesState.MemberNames.CollectionUrl, baseUrl).deleteAll();
+		XPath.create(c, DataSyncState.class).contains(DataSyncState.MemberNames.CollectionUrl, baseUrl).deleteAll();
 
 		def.setEnableChangeTracking(true);
 		def.commit();

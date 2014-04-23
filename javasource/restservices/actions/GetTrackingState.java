@@ -19,7 +19,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class GetTrackingState extends UserAction<String>
 {
 	private IMendixObject __feed;
-	private restservices.proxies.FollowChangesState feed;
+	private restservices.proxies.DataSyncState feed;
 
 	public GetTrackingState(IMendixObject feed)
 	{
@@ -30,7 +30,7 @@ public class GetTrackingState extends UserAction<String>
 	@Override
 	public String executeAction() throws Exception
 	{
-		this.feed = __feed == null ? null : restservices.proxies.FollowChangesState.initialize(getContext(), __feed);
+		this.feed = __feed == null ? null : restservices.proxies.DataSyncState.initialize(getContext(), __feed);
 
 		// BEGIN USER CODE
 		return ChangeFeedListener.getFeedState(feed.getCollectionUrl()).toString();

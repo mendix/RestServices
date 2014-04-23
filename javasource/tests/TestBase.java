@@ -8,7 +8,7 @@ import restservices.RestServices;
 import restservices.consume.ChangeFeedListener;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
-import restservices.proxies.FollowChangesState;
+import restservices.proxies.DataSyncState;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;

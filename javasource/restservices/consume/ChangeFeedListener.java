@@ -13,7 +13,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
-import restservices.proxies.FollowChangesState;
+import restservices.proxies.DataSyncState;
 import restservices.proxies.TrackingState;
 import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
@@ -34,7 +34,7 @@ public class ChangeFeedListener {
 	private String url;
 	private String onUpdateMF;
 	private String onDeleteMF;
-	private FollowChangesState state;
+	private DataSyncState state;
 	private static Map<String, ChangeFeedListener> activeListeners = Collections.synchronizedMap(new HashMap<String, ChangeFeedListener>());
 	volatile boolean cancelled = false;
 	private Map<String, String> headers;
@@ -49,7 +49,7 @@ public class ChangeFeedListener {
 		this.onUpdateMF = onUpdateMF;
 		this.onDeleteMF = onDeleteMF;
 		this.timeout = timeout;
-		this.state = XPath.create(Core.createSystemContext(), FollowChangesState.class).findOrCreate(FollowChangesState.MemberNames.CollectionUrl, url);
+		this.state = XPath.create(Core.createSystemContext(), DataSyncState.class).findOrCreate(DataSyncState.MemberNames.CollectionUrl, url);
 	}
 	
 	public ChangeFeedListener follow() {
@@ -217,7 +217,7 @@ public class ChangeFeedListener {
 	public static void resetState(String collectionUrl) throws CoreException {
 		if (activeListeners.containsKey(collectionUrl))
 			throw new IllegalStateException("Cannot reset state for collection '" + collectionUrl + "', there is an active listener. Please unfollow first");
-		XPath.create(Core.createSystemContext(), FollowChangesState.class).eq(FollowChangesState.MemberNames.CollectionUrl, collectionUrl).deleteAll();
+		XPath.create(Core.createSystemContext(), DataSyncState.class).eq(DataSyncState.MemberNames.CollectionUrl, collectionUrl).deleteAll();
 	}
 
 	public static TrackingState getFeedState(String collectionUrl) {
