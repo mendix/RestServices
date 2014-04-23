@@ -185,7 +185,7 @@ public class ChangeFeedListener {
 		}
 		
 		if (revision <= state.getRevision()) 
-			RestServices.LOGCONSUME.warn("Received revision (" + revision + ") is smaller as latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
+			RestServices.LOGCONSUME.warn("Received revision (" + revision + ") is smaller than the latest known revision (" + state.getRevision() +"), probably the collections are out of sync?");
 		
 		state.setRevision(revision);
 		state.commit();
