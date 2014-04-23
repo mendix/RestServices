@@ -155,10 +155,10 @@ Use Strict Versioning | `false` | If set to true, all requests that modify data 
 
 #### Enable Change Tracking
 
-The *Enable Change Tracking* property has significant impact on the behavior and internal working of the service. It introduces a cache in which the JSON representation of each objects are stored and provides the possibility to synchronize with consumers over time. See the [Data synchronisation](Data synchronisation) section for more details. Enabling change tracking has the following consequences:
+The *Enable Change Tracking* property has significant impact on the behavior and internal working of the service. It introduces a cache in which the JSON representation of each objects are stored and provides the possibility to synchronize with consumers over time. See the [Data synchronisation](#data-synchronisation) section for more details. Enabling change tracking has the following consequences:
 
 * Two new endpoints are created: *rest/service/changes/list* and *rest/service/changes/feed*. Both endpoints provide a list of all changes which where made to the *source* collection. The endpoints accept an `rev` parameter, which can be used to only retrieve changes which were not synced yet. The API and behavior are heavily inspired by the [CouchDB changes API](http://couchdb.readthedocs.org/en/latest/api/database/changes.html). 
-* Requests are served from the cache instead of the database directly. To update an item in the cache, the model needs to call `publishUpdate` or `publishDelete`. Changes are not visible for consumers until one of these methods is called by the model. 
+* Requests are served from the cache instead of the database directly. To update an item in the cache, the model needs to call `publishUpdate` or `publishDelete`. This can either be done as *after commit* / *after delete* event, or in the logic of your model. Changes are not visible for consumers until one of these methods is called by the model. 
 * It is no longer possible to use the `'[%CurrentUser%]'` token in constraints; the cache is shared with all users connecting to the server so different users can no longer be distinguished.
 * The performance of retrieving objects is improved, since they are stored in serialized form internally. 
 * If, for example, the domain model of your *source* or *view* object changes, the cache becomes stale. Most model changes are detected by the RestServices module automatically, but you can force rebuilding the complete index by invoking `RebuildServiceIndex`. 
@@ -188,6 +188,8 @@ Revisions are not kept forever, they are removed as soon as they are shadowed by
 
 The `url` is the fully qualified url at which this object could be fetched using a GET operation. The `etag` value indicates the current version of the object altered by the change. If the `deleted` attribute is false, the object has been created or changed, and its actual contents can be found under the `data` attribute. 
 
+To set up a changelog in your data service, please read the [Enable Change Tracking](#enable-change-tracking) section.
+
 ## Reading the change log
 
 Retrieving the changes published by a services is as simple as sending a GET request to *rest/service-name/changes/list*:
@@ -210,6 +212,8 @@ The RestServices module provides several methods to consume a changelog publishe
 * `followChanges`: Similar to `fetchChanges`. Requests recent changes and start listening for new incoming changes using the *feed* API.
 * `unfollowChanges`: Stop listing to changes
 * `resetChangeTracking`: Resets the last know revision to zero. This means that upon the next synchronization, *all* data will be retrieved again. 
+
+The state of the changelog can be viewed in the RestServices overview form, both as consumer and as publisher.
 
 # JSON Serialization
 
