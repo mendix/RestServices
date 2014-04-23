@@ -11,7 +11,7 @@ import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.proxies.ObjectState;
+import restservices.proxies.ChangeItem;
 import restservices.proxies.ServiceDefinition;
 import restservices.proxies.ServiceObjectIndex;
 import restservices.publish.RestPublishException.RestExceptionType;
@@ -50,7 +50,7 @@ public class ChangeManager {
 		}
 	}
 
-	JSONObject writeObjectStateToJson(ObjectState state){
+	JSONObject writeObjectStateToJson(ChangeItem state){
 		JSONObject res = new JSONObject();
 		res
 			.put(RestServices.CHANGE_KEY, state.getKey())
@@ -65,7 +65,7 @@ public class ChangeManager {
 		return res;
 	}
 
-	void storeUpdate(ObjectState objectState,
+	void storeUpdate(ChangeItem objectState,
 			String eTag, String jsonString, boolean deleted) throws Exception {
 		
 		/* store the update*/
@@ -84,21 +84,21 @@ public class ChangeManager {
 		publishUpdate(objectState);
 	}
 
-	private ObjectState writeChanges(final RestServiceRequest rsr, IContext c,
+	private ChangeItem writeChanges(final RestServiceRequest rsr, IContext c,
 			long since) throws CoreException {
 		if (since < 0)
 			throw new IllegalArgumentException("Since parameter should be positive");
 		
-		final AtomicReference<ObjectState> lastWrittenRevision = new AtomicReference<ObjectState>();
+		final AtomicReference<ChangeItem> lastWrittenRevision = new AtomicReference<ChangeItem>();
 		
-		XPath.create(c, ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, this.getServiceObjectIndex())
-			.compare(ObjectState.MemberNames.SequenceNr, ">", since)
-			.addSortingAsc(ObjectState.MemberNames.SequenceNr)
-			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
+		XPath.create(c, ChangeItem.class)
+			.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, this.getServiceObjectIndex())
+			.compare(ChangeItem.MemberNames.SequenceNr, ">", since)
+			.addSortingAsc(ChangeItem.MemberNames.SequenceNr)
+			.batch(RestServices.BATCHSIZE, new IBatchProcessor<ChangeItem>() {
 	
 				@Override
-				public void onItem(ObjectState item, long offset, long total)
+				public void onItem(ChangeItem item, long offset, long total)
 						throws Exception {
 					rsr.datawriter.value(writeObjectStateToJson(item));
 					lastWrittenRevision.set(item);
@@ -143,7 +143,7 @@ public class ChangeManager {
 				//make sure headers are send and some data is written, so that clients do not wait for headers to complete
 				rsr.response.getOutputStream().write(RestServices.END_OF_HTTPHEADER.getBytes(RestServices.UTF8));
 
-				ObjectState lastWrittenChange = null;
+				ChangeItem lastWrittenChange = null;
 				
 				if (since != -1) {
 					//write any changes between 'since' and the latest change
@@ -218,7 +218,7 @@ public class ChangeManager {
 		}
 	}
 
-	private void publishUpdate(ObjectState objectState) {
+	private void publishUpdate(ChangeItem objectState) {
 		JSONObject json = writeObjectStateToJson(objectState);
 		
 		for(int i = longPollSessions.size() - 1; i >= 0; i--) {
@@ -238,9 +238,9 @@ public class ChangeManager {
 	
 		ServiceObjectIndex sState = getServiceObjectIndex();
 		
-		ObjectState objectState = XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.Key, key)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, sState)
+		ChangeItem objectState = XPath.create(context, ChangeItem.class)
+				.eq(ChangeItem.MemberNames.Key, key)
+				.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, sState)
 				.first();
 		
 		//not yet published
@@ -248,9 +248,9 @@ public class ChangeManager {
 			if (deleted) //no need to publish if it wasn't yet published
 				return;
 			
-			objectState = new ObjectState(context);
+			objectState = new ChangeItem(context);
 			objectState.setKey(key);
-			objectState.setObjectState_ServiceObjectIndex(sState);
+			objectState.setChangeItem_ChangeLog(sState);
 			storeUpdate(objectState, eTag, jsonString, deleted);
 		}
 		
@@ -380,12 +380,12 @@ public class ChangeManager {
 			/**
 			 * From now on, consider everything dirty
 			 */
-			XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
-				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ObjectState>() {
+			XPath.create(context, ChangeItem.class)
+				.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getServiceObjectIndex())
+				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ChangeItem>() {
 	
 					@Override
-					public void onItem(ObjectState item, long offset, long total)
+					public void onItem(ChangeItem item, long offset, long total)
 							throws Exception {
 						item.set_IsDirty(true);
 						item.commit();
@@ -415,13 +415,13 @@ public class ChangeManager {
 			/**
 			 * Everything that is marked dirty, is either deleted earlier and shouldn' t be dirty, or should be deleted now. 
 			 */
-			XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getServiceObjectIndex())
-				.eq(ObjectState.MemberNames._IsDirty, true)
-				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ObjectState>() {
+			XPath.create(context, ChangeItem.class)
+				.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getServiceObjectIndex())
+				.eq(ChangeItem.MemberNames._IsDirty, true)
+				.batch(RestServices.BATCHSIZE/*, NR_OF_BATCHES*/, new IBatchProcessor<ChangeItem>() {
 	
 					@Override
-					public void onItem(ObjectState item, long offset, long total)
+					public void onItem(ChangeItem item, long offset, long total)
 							throws Exception {
 						//was already deleted, so OK
 						if (item.getIsDeleted() == true) {

@@ -9,7 +9,7 @@ import org.apache.http.HttpStatus;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.proxies.ObjectState;
+import restservices.proxies.ChangeItem;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.ResponseType;
@@ -90,10 +90,10 @@ public class PublishedService {
 		}
 	}
 
-	private ObjectState getObjectStateByKey(IContext context, String key) throws CoreException {
-		return XPath.create(context, ObjectState.class)
-				.eq(ObjectState.MemberNames.Key,key)
-				.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
+	private ChangeItem getObjectStateByKey(IContext context, String key) throws CoreException {
+		return XPath.create(context, ChangeItem.class)
+				.eq(ChangeItem.MemberNames.Key,key)
+				.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeManager().getServiceObjectIndex())
 				.first();
 	}	
 
@@ -107,9 +107,9 @@ public class PublishedService {
 		long count;
 		
 		if (def.getEnableChangeTracking()) {
-			count = XPath.create(rsr.getContext(), ObjectState.class)
-					.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
-					.eq(ObjectState.MemberNames.IsDeleted, false)
+			count = XPath.create(rsr.getContext(), ChangeItem.class)
+					.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeManager().getServiceObjectIndex())
+					.eq(ChangeItem.MemberNames.IsDeleted, false)
 					.count();
 		} else 
 			count = Core.retrieveXPathQueryAggregate(rsr.getContext(), "count(//" + getSourceEntity() + getConstraint(rsr.getContext()) + ")");
@@ -142,21 +142,21 @@ public class PublishedService {
 	
 	private void serveListingFromIndex(final RestServiceRequest rsr,
 			final boolean includeData, int offset, int limit) throws CoreException {
-		XPath<ObjectState> xp  = XPath.create(rsr.getContext(), ObjectState.class)
-			.eq(ObjectState.MemberNames.ObjectState_ServiceObjectIndex, getChangeManager().getServiceObjectIndex())
-			.eq(ObjectState.MemberNames.IsDeleted, false)
-			.eq(ObjectState.MemberNames._IsDirty, false)
-			.addSortingAsc(ObjectState.MemberNames.Key);
+		XPath<ChangeItem> xp  = XPath.create(rsr.getContext(), ChangeItem.class)
+			.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeManager().getServiceObjectIndex())
+			.eq(ChangeItem.MemberNames.IsDeleted, false)
+			.eq(ChangeItem.MemberNames._IsDirty, false)
+			.addSortingAsc(ChangeItem.MemberNames.Key);
 			
 		if (offset > -1)
 			xp.offset(offset); //MWE: note that the combination of offset/limit and batch only works in community commons 4.3.2 or higher!
 		if (limit > 0)
 			xp.limit(limit);
 		
-		xp.batch(RestServices.BATCHSIZE, new IBatchProcessor<ObjectState>() {
+		xp.batch(RestServices.BATCHSIZE, new IBatchProcessor<ChangeItem>() {
 
 				@Override
-				public void onItem(ObjectState item, long offset, long total)
+				public void onItem(ChangeItem item, long offset, long total)
 						throws Exception {
 					if (includeData)
 						rsr.datawriter.value(new JSONObject(item.getJson()));
@@ -219,7 +219,7 @@ public class PublishedService {
 
 	
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
-		ObjectState source = getObjectStateByKey(rsr.getContext(), key);
+		ChangeItem source = getObjectStateByKey(rsr.getContext(), key);
 		if (source == null || source.getIsDeleted() || source.get_IsDirty()) 
 			throw new RestPublishException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
 		
@@ -419,7 +419,7 @@ public class PublishedService {
 			throws CoreException, Exception, UnsupportedEncodingException {
 		String currentETag = null;
 		if (def.getEnableChangeTracking()) {
-			ObjectState objectState = getObjectStateByKey(context, key); 
+			ChangeItem objectState = getObjectStateByKey(context, key); 
 			if (objectState != null)
 				currentETag = objectState.getEtag();
 		}
