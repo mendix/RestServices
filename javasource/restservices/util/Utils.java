@@ -158,5 +158,15 @@ public class Utils {
 		return request.getRequestURL().toString() + (Utils.isEmpty(request.getQueryString()) ? "" : "?" + request.getQueryString());
 	}
 
+	public static boolean isSystemAttribute(String key) {
+		if ("createdDate".equals(key)
+			|| "changedDate".equals(key)
+			|| "System.owner".equals(key)
+			|| "System.changedBy".equals(key)) {
+			return true;
+		}
+		return false;
+	}
+
 	
 }

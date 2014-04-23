@@ -43,6 +43,10 @@ public class getCollection extends UserAction<Boolean>
 		this.firstResult = __firstResult == null ? null : restservices.proxies.AnyObject.initialize(getContext(), __firstResult);
 
 		// BEGIN USER CODE
+		if (firstResult == null)
+			throw new IllegalArgumentException("firstResult parameter should be set");
+		if (resultList == null)
+			throw new IllegalArgumentException("resultList parameter should be set");
 		RestConsumer.getCollection(getContext(), collectionUrl, __resultList, __firstResult);
 		return true;
 		// END USER CODE

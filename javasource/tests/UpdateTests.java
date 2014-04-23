@@ -144,14 +144,5 @@ public class UpdateTests extends TestBase {
 		catch(RestConsumeException e) {
 			Assert.assertEquals(404L, e.getStatus()); //Not available anymore
 		}
-		
-	}
-	
-	@Test
-	public void postUsingIndex ()throws Exception {
-		def.setEnableChangeTracking(true);
-		def.commit();
-		
-		this.testPost();
 	}
 }

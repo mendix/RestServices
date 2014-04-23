@@ -287,7 +287,7 @@ public class RestConsumer {
 	}
 	
 	public static void getCollection(final IContext context, String collectionUrl, final List<IMendixObject> resultList, final IMendixObject firstResult) throws Exception {
-		if (resultList.size() > 0)
+		if (resultList == null || resultList.size() > 0)
 			throw new RuntimeException("Expected stub collection to have size 0");
 		
 		getCollectionHelper(context, collectionUrl, new Function<IContext, IMendixObject>() {
@@ -369,7 +369,8 @@ public class RestConsumer {
 			for(String key : JSONObject.getNames(data)) {
 				if (isFileSource && isFileDocAttr(key)) 
 					continue; //Do not pick up default filedoc attrs!
-				//TODO: if system attr continue
+				if (Utils.isSystemAttribute(key))
+					continue;
 				Object value = data.get(key);
 				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
 					params.put(key, String.valueOf(value));
