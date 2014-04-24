@@ -1,17 +1,18 @@
 package restservices.publish;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.Part;
-
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.util.MultiPartInputStream.MultiPart;
 import org.json.JSONObject;
 
 import com.mendix.core.Core;
@@ -19,8 +20,8 @@ import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IDataType.DataTypeEnum;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-import communitycommons.XPath;
 
+import communitycommons.XPath;
 import restservices.RestServices;
 import restservices.publish.RestServiceRequest.RequestContentType;
 import restservices.publish.RestServiceRequest.ResponseType;
@@ -30,6 +31,8 @@ import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 import system.proxies.FileDocument;
 import system.proxies.UserRole;
+
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 
 public class PublishedMicroflow {
 	
@@ -43,6 +46,8 @@ public class PublishedMicroflow {
 	private String description;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
+	
+	private static final ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory(100000, new File(System.getProperty("java.io.tmpdir"))));
 
 	public PublishedMicroflow(String microflowname, String securityRole, String description) throws CoreException{
 		this.microflowname = microflowname;
@@ -137,7 +142,7 @@ public class PublishedMicroflow {
 	}
 
 	private void parseInputData(RestServiceRequest rsr, Map<String, Object> args)
-			throws IOException, ServletException, Exception {
+			throws IOException, Exception {
 		if (hasArgument) {
 			IMendixObject argO = Core.instantiate(rsr.getContext(), argType);
 			JSONObject data = new JSONObject();
@@ -168,13 +173,12 @@ public class PublishedMicroflow {
 	}
 
 	private void parseMultipartData(RestServiceRequest rsr, IMendixObject argO,
-			JSONObject data) throws IOException, ServletException {
+			JSONObject data) throws IOException, FileUploadException {
 		boolean hasFile = false;
 		
-
-		for(Part part : rsr.request.getParts()) {
-			String filename = ((MultiPart)part).getContentDispositionFilename();
-			if (filename != null) { //This is the file(?!)
+		for(FileItemIterator iter = servletFileUpload.getItemIterator(rsr.request); iter.hasNext();) {
+			FileItemStream item = iter.next();
+			if (!item.isFormField()){ //This is the file(?!)
 				if (!isFileSource) {
 					RestServices.LOGPUBLISH.warn("Received request with binary data but input argument isn't a filedocument. Skipping. At: " + rsr.request.getRequestURL().toString());
 					continue;
@@ -182,11 +186,15 @@ public class PublishedMicroflow {
 				if (hasFile)
 					RestServices.LOGPUBLISH.warn("Received request with multiple files. Only one is supported. At: " + rsr.request.getRequestURL().toString());
 				hasFile = true;
-				Core.storeFileDocumentContent(rsr.getContext(), argO, filename, part.getInputStream());
+				Core.storeFileDocumentContent(rsr.getContext(), argO, determineFileName(item), item.openStream());
 			}
 			else
-				data.put(part.getName(), IOUtils.toString(part.getInputStream()));
+				data.put(item.getFieldName(), IOUtils.toString(item.openStream()));
 		}
+	}
+
+	private String determineFileName(FileItemStream item) {
+		return null; //TODO:
 	}
 
 	public String getName() {
