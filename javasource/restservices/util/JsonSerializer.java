@@ -99,8 +99,11 @@ public class JsonSerializer {
 		Object value = member.getValue(context);
 		String memberName = member.getName();
 		
+		if (Utils.isSystemAttribute(memberName)) {
+			//skip
+		}
 		//Primitive?
-		if (!(member instanceof MendixObjectReference) && !(member instanceof MendixObjectReferenceSet)) {
+		else if (!(member instanceof MendixObjectReference) && !(member instanceof MendixObjectReferenceSet)) {
 			switch(viewType.getMetaPrimitive(member.getName()).getType()) {
 			case AutoNumber:
 			case Long:
