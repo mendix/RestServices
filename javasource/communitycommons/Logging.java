@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.mendix.core.Core;
-import com.mendix.m2ee.log.ILogNode;
+import com.mendix.logging.ILogNode;
 import communitycommons.proxies.LogLevel;
 
 public class Logging

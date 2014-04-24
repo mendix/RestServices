@@ -330,7 +330,7 @@ public class XPath<T>
 	public T constructInstance(boolean autoCommit, Object... keysAndValues) throws CoreException
 	{
 		assertEven(keysAndValues);
-		IMendixObject newObj = Core.create(context, this.entity);
+		IMendixObject newObj = Core.instantiate(context, this.entity);
 		
 		for(int i = 0; i < keysAndValues.length; i+= 2)
 			newObj.setValue(context, String.valueOf(keysAndValues[i]), toMemberValue(keysAndValues[i + 1]));
@@ -374,7 +374,7 @@ public class XPath<T>
 			//No longer available
 			removed.add(createProxy(context, this.proxyClass, existingItem));
 			if (autoDelete) 
-				Core.remove(context, existingItem);
+				Core.delete(context, existingItem);
 		}
 		
 		//Some items where not found in the database
@@ -515,7 +515,7 @@ public class XPath<T>
 
 		//Complex objects
 		if (value instanceof IMendixIdentifier)
-			return "'" + String.valueOf(((IMendixIdentifier) value).getGuid()) +  "'";
+			return "'" + String.valueOf(((IMendixIdentifier) value).toLong()) +  "'";
 		if (value instanceof IMendixObject)
 			return valueToXPathValue(((IMendixObject)value).getId());
 		if (value instanceof List<?>)
@@ -736,7 +736,6 @@ public class XPath<T>
 		final long count = this.count();
 
 		final XPath<T> self = this;
-		ConversationLog cl = new ConversationLog("Community_Commons");
 
 		int progress = 0;
 		List<Future<?>> futures = new ArrayList<Future<?>>(batchsize); //no need to synchronize
@@ -787,7 +786,7 @@ public class XPath<T>
 		this.limit(1000);
 		List<IMendixObject> objs = allMendixObjects();
 		while (!objs.isEmpty()) {
-			if (!Core.remove(context, objs.toArray(new IMendixObject[objs.size()]))) 
+			if (!Core.delete(context, objs.toArray(new IMendixObject[objs.size()]))) 
 				return false; //TODO: throw?
 			
 			objs = allMendixObjects();

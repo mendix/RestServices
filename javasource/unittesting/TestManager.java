@@ -1,11 +1,8 @@
 package unittesting;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,11 +29,11 @@ import unittesting.proxies.UnitTestResult;
 
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
-import com.mendix.m2ee.log.ILogNode;
+import com.mendix.logging.ILogNode;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IFeedback.MessageType;
-import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.webui.CustomJavaAction;
 import communitycommons.XPath;
 
 /**
@@ -81,7 +78,7 @@ public class TestManager extends RunListener
 
 
 	private Class<?>[] getUnitTestClasses(TestSuite testRun) {
-		if (!classCache.containsKey(testRun.getModule().toLowerCase())) {
+		if (false || !classCache.containsKey(testRun.getModule().toLowerCase())) {
 
 			ArrayList<Class<?>> classlist = getClassesForPackage(testRun.getModule());
 			Class<?>[] clazzez =  classlist.toArray(new Class<?>[classlist.size()]);
@@ -92,7 +89,7 @@ public class TestManager extends RunListener
 	}
 
 
-	public synchronized void runTest(UnitTest unitTest, IContext iContext, UserAction<?> action) throws ClassNotFoundException, CoreException
+	public synchronized void runTest(UnitTest unitTest, IContext iContext, CustomJavaAction<?> action) throws ClassNotFoundException, CoreException
 	{
 		this.currentTestRun = unitTest.getUnitTest_TestSuite();
 		this.context = iContext;
@@ -124,7 +121,7 @@ public class TestManager extends RunListener
 		}
 	}
 
-	private void runMfSetup(UserAction<?> action)  
+	private void runMfSetup(CustomJavaAction<?> action)  
 	{
 		if (Core.getMicroflowNames().contains(currentTestRun.getModule() + ".Setup")) {
 			try {
@@ -141,7 +138,7 @@ public class TestManager extends RunListener
 		}
 	}
 
-	private void runMfTearDown(UserAction<?> action) 
+	private void runMfTearDown(CustomJavaAction<?> action) 
 	{
 		if (Core.getMicroflowNames().contains(currentTestRun.getModule() + ".TearDown")) {
 			try
@@ -160,7 +157,7 @@ public class TestManager extends RunListener
 		}
 	}
 
-	public synchronized boolean runAllTests(TestSuite testRun, IContext iContext, UserAction<?> action) throws CoreException
+	public synchronized boolean runAllTests(TestSuite testRun, IContext iContext, CustomJavaAction<?> action) throws CoreException
 	{
 		LOG.info("Starting testrun on " + testRun.getModule());
 		context = iContext;
@@ -522,23 +519,10 @@ public class TestManager extends RunListener
 
 		//Lowercased Mendix Module names equals their package names
 		String pkgname = path.toLowerCase();
-		String relPath = path.toLowerCase();
 
 		// Get a File object for the package
-		URL resource = this.getClass().getClassLoader().getResource(relPath);
-		if (resource == null) {
-			LOG.warn("No JUnit tests found in java namespace: '" + relPath + "'");
-			return classes;
-		}
-
-		try
-		{
-			processDirectory(new File(URLDecoder.decode(resource.getPath(),"UTF-8")), pkgname, classes);
-		}
-		catch (UnsupportedEncodingException e)
-		{
-			throw new RuntimeException();
-		}
+		File basedir = new File(Core.getConfiguration().getBasePath() + File.separator + "run" +  File.separator + "bin" + File.separator + pkgname);
+		processDirectory(basedir, pkgname, classes);
 
 		return classes;
 	}

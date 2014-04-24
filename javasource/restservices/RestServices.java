@@ -12,7 +12,7 @@ import restservices.publish.PublishedMicroflow;
 import restservices.publish.PublishedService;
 
 import com.mendix.core.Core;
-import com.mendix.m2ee.log.ILogNode;
+import com.mendix.logging.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 
 import communitycommons.XPath;

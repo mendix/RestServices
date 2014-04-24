@@ -1,12 +1,10 @@
 package communitycommons;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.AccessControlException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -27,15 +25,14 @@ import system.proxies.FileDocument;
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
-import com.mendix.core.MxRuntime;
+import com.mendix.core.conf.RuntimeVersion;
 import com.mendix.core.objectmanagement.member.MendixBoolean;
-import com.mendix.m2ee.log.ILogNode;
-import com.mendix.modules.webservices.WebserviceException;
+import com.mendix.integration.WebserviceException;
+import com.mendix.logging.ILogNode;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
-import communitycommons.proxies.DTAPMode;
 
 
 public class Misc
@@ -106,13 +103,8 @@ public class Misc
 
 	public static String getRuntimeVersion()
 	{
-		Package currentPackage = MxRuntime.class.getPackage();
-		String specVersion = currentPackage.getSpecificationVersion();
-		String implVersion = currentPackage.getImplementationVersion();
-		if(specVersion != null && implVersion != null) 
-			return implVersion + " (build " + specVersion + ")"; 
-		return
-			"unreleased";
+	    RuntimeVersion runtimeVersion = RuntimeVersion.getInstance();
+        return runtimeVersion.toString();
 	}
 
 	public static void throwException(String message) throws UserThrownException
@@ -209,41 +201,36 @@ public class Misc
         return true;
 	}
 
-	@SuppressWarnings("deprecation")
 	public static Long getFileSize(IContext context, IMendixObject document)
 	{
-		long size = 0;
-		if (context != null) {
-			try {
-				try {
-					File f = Core.getFileDocumentContentAsFile(context, document);
-					size =  f.length();
-				}
-				catch (AccessControlException e1) {
-						//We seem to be in cloud security mode..., naive implementation: read the whole stream, count the bytes
-						InputStream in = Core.getFileDocumentContent(context, document);
-						byte[] buffer = new byte[1024];
-						int i;
-						while ((i = in.read(buffer)) != -1) 
-						    size += i;
-				}
-			}
-			catch(Exception e) {
-				throw new RuntimeException("Unable to read filesize: " + e.getMessage(), e);
-			}
-		}
+	    final int BUFFER_SIZE = 4096;
+        long size = 0;
+		
+        if (context != null) {
+            InputStream inputStream = null;
+            byte[] buffer = new byte[BUFFER_SIZE];
+            int bytesRead = 0;
+            
+            try {
+                inputStream = Core.getFileDocumentContent(context, document);
+                while ((bytesRead = inputStream.read(buffer)) != BUFFER_SIZE) {
+                    size += bytesRead;
+                }
+                size += bytesRead;
+            } catch (IOException e) {
+                Core.getLogger("FileUtil").error(
+                        "Couldn't determine filesize of FileDocument '" + document.getId()); 
+            } finally {
+                IOUtils.closeQuietly(inputStream);
+            }
+        }
+        
 		return size;
 	}
 
 	public static void delay(long delaytime) throws InterruptedException
 	{
 		Thread.sleep(delaytime);
-	}
-
-	@Deprecated
-	public static DTAPMode getDTAPMode()
-	{
-		return DTAPMode.valueOf(Core.getConfiguration().getDTAPMode().toString());
 	}
 
 	public static IContext getContextFor(IContext context, String username, boolean sudoContext) throws Exception {
@@ -255,7 +242,7 @@ public class Misc
 			IUser user = Core.getUser(context, username);
 			if (user == null)
 				throw new Exception("Assertion: user with username '" + username + "' does not exist");
-			session = Core.initializeSession(context, user, null, null);
+			session = Core.initializeSession(user, null);
 		}
 		
 		IContext c = session.createContext();
@@ -405,7 +392,7 @@ public class Misc
 	
 	private static class BatchState {
 		private int state = 0; //-1 = error, 1 = done.
-		private IBatchItemHandler	callback;
+		private final IBatchItemHandler	callback;
 
 		public BatchState(IBatchItemHandler callback) {
 			this.callback = callback;
@@ -511,7 +498,7 @@ public class Misc
 							batchState.handle(c, obj);
 						
 						//invoke next batch
-						executeInBatchesHelper(xpath, batchsize, objects.get(objects.size() - 1).getId().getGuid(), batchState, count, asc);
+						executeInBatchesHelper(xpath, batchsize, objects.get(objects.size() - 1).getId().toLong(), batchState, count, asc);
 					}
 				}
 				catch (Exception e)

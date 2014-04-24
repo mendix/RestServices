@@ -8,7 +8,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 import com.mendix.core.Core;
-import com.mendix.m2ee.log.ILogNode;
+import com.mendix.logging.ILogNode;
 
 /**
  * 
@@ -231,7 +231,7 @@ public class ConversationLog
 	public void reportProgress(String msg, long current, long total) {
 		long currentReportTime = System.currentTimeMillis();
 		
-		boolean report = (currentReportTime - lastResportedTime > REPORT_INTERVAL * 1000) || (total > 0 && current == total);
+		boolean report = (currentReportTime - lastResportedTime > REPORT_INTERVAL * 1000) || total == current; 
 		
 		if (report) {
 			lastResportedTime = currentReportTime;
