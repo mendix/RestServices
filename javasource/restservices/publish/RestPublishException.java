@@ -1,6 +1,6 @@
 package restservices.publish;
 
-import org.apache.http.HttpStatus;
+import org.apache.commons.httpclient.HttpStatus;
 
 public class RestPublishException extends Exception {
 	/**
