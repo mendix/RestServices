@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.consume.ChangeFeedListener;
+import restservices.consume.ChangeLogListener;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
@@ -48,7 +48,7 @@ public class followChanges extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		ChangeFeedListener.follow(collectionUrl, updateMicroflow, deleteMicroflow, timeout);
+		ChangeLogListener.follow(collectionUrl, updateMicroflow, deleteMicroflow, timeout);
 		return true;
 		// END USER CODE
 	}

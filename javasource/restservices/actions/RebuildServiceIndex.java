@@ -33,7 +33,7 @@ public class RebuildServiceIndex extends UserAction<Boolean>
 		this.serviceDefinition = __serviceDefinition == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __serviceDefinition);
 
 		// BEGIN USER CODE
-		RestServices.getService(serviceDefinition.getName()).getChangeManager().rebuildIndex();
+		RestServices.getService(serviceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
 		return true;
 		// END USER CODE
 	}

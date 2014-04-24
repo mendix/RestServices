@@ -27,7 +27,7 @@ public class ConsistencyChecker {
 		
 		checkSource(def, errors);
 		
-		if (def.getEnableChangeTracking() && def.getEnableGet())
+		if (def.getEnableChangeLog() && def.getEnableGet())
 			checkOnPublishMf(def, errors);
 
 		if (def.getEnableListing() && !def.getEnableGet())
@@ -92,7 +92,7 @@ public class ConsistencyChecker {
 			
 			if (def.getSourceConstraint() != null) {
 				if (def.getSourceConstraint().contains(RestServices.CURRENTUSER_TOKEN)) {
-					if (def.getEnableChangeTracking())
+					if (def.getEnableChangeLog())
 						errors.add("The source constrained is not allowed to refer to the current user if change tracking is enabled");
 					if ("*".equals(def.getAccessRole()))
 						errors.add("The source constrained is not allowed to refer to the current user if the service is world-readable or world-writable");

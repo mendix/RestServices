@@ -309,7 +309,7 @@ public class BasicTests extends TestBase {
 	
 	@Test
 	public void getFromIndex() throws Exception {
-		def.setEnableChangeTracking(true);
+		def.setEnableChangeLog(true);
 		def.commit();
 		
 		simpleGet();
@@ -318,7 +318,7 @@ public class BasicTests extends TestBase {
 
 	@Test
 	public void listFromIndex() throws Exception {
-		def.setEnableChangeTracking(true);
+		def.setEnableChangeLog(true);
 		def.setSourceConstraint("");
 		def.commit();
 		

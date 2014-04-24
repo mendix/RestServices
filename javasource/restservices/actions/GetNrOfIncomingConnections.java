@@ -41,7 +41,7 @@ public class GetNrOfIncomingConnections extends UserAction<Long>
 		PublishedService service = RestServices.getService(def.getName());
 		if (service == null)
 			return 0L;
-		return service.getChangeManager().getNrOfConnections();
+		return service.getChangeLogManager().getNrOfConnections();
 		// END USER CODE
 	}
 

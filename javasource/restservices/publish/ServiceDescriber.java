@@ -90,7 +90,7 @@ public class ServiceDescriber {
 				
 				endEndpoint();
 			}
-			if (def.getEnableChangeTracking()) {
+			if (def.getEnableChangeLog()) {
 				startEndpoint("GET", "changes/list", "Returns a list of incremental changes that allows the client to synchronize with recent changes on the server");
 				addEndpointParam(RestServices.PARAM_SINCE, SINCEPARAM_HELPTEXT);
 				addContentType();

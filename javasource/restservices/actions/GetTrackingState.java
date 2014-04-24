@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.consume.ChangeFeedListener;
+import restservices.consume.ChangeLogListener;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -33,7 +33,7 @@ public class GetTrackingState extends UserAction<String>
 		this.feed = __feed == null ? null : restservices.proxies.DataSyncState.initialize(getContext(), __feed);
 
 		// BEGIN USER CODE
-		return ChangeFeedListener.getFeedState(feed.getCollectionUrl()).toString();
+		return ChangeLogListener.getTrackingState(feed.getCollectionUrl()).toString();
 		// END USER CODE
 	}
 

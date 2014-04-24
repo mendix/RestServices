@@ -137,7 +137,7 @@ Name | (required) | Public name of this service. The endpoint of the service wil
 Description | (optional) | Description of this services. Will be part of the generated meta data
 Source Entity | (required) | The entity in the data model that should be published. Should be persistable. Example: `MyModule.Task`
 Source Key Attribute | (required) | Attribute that uniquely identifies an object and which will be used as external reference to this object. The attribute should not change over time. Example: `TaskID`
-Source Constraint | (optional) | XPath constraint that limits which objects are readable / writable through this service. It is possible to use the `'[%Current_User%]'` token inside this constraint, unless the *Enable Change Tracking* flag is set. Example: `[Finished = false() and MyModule.Task_Owner = '[%Current_User%]']`
+Source Constraint | (optional) | XPath constraint that limits which objects are readable / writable through this service. It is possible to use the `'[%Current_User%]'` token inside this constraint, unless the *Enable Change Log* flag is set. Example: `[Finished = false() and MyModule.Task_Owner = '[%Current_User%]']`
 Required Role | `*` | Set this property to indicate that authentication is required to use this service. Exactly one project wide role can be specified. If set, the consumer is required to authenticate using Basic Authentication if the consumer doesn't have a normal Mendix client session. Use `*` to make the service world readable / writable.
 On Publish Microflow | (optional) | Microflow that transforms a *source object* into some transient object which (the *view*). This view will be serialized into JSON/HTML/XML when data is requested from the service. The speed of this microflow primarily determines the speed of the service as a whole. 
 On Update Microflow | (optional) | Microflow that processes incoming changes. Should have two parameters; one of same type as the *source entity*, and one which is a transient entity. The transient object will be constructed with JSON data in the incoming request. This transient object should be processed by the microflow and update the *source* object as desired. Use the `ThrowWebserviceException` method of Community Commons to signal any exceptions to the consumer. 
@@ -152,12 +152,12 @@ Enable Listing | `true` | Allows listing all available objects using GET at *res
 Enable Update | `false` | Allows consumers to update existing objects using PUT or POST at *rest/servicename/objectid*
 Enable Create | `false` | Allows consumers to create new objects using POST at *rest/servicename/*
 Enable Delete | `false` | Allows consumers to remove existing objects using DELETE at *rest/servicename/objectid*
-Enable Change Tracking | `false` | See next section
+Enable Change Log | `false` | See next section
 Use Strict Versioning | `false` | If set to true, all requests that modify data are required to provide an `if-none-match` header, to verify that the request is based on the latest known version. This way conflicting updates are detected and it is not possible to base changes on stale objects
 
-#### Enable Change Tracking
+#### Enabling the change log
 
-The *Enable Change Tracking* property has significant impact on the behavior and internal working of the service. It introduces a cache in which the JSON representation of each objects are stored and provides the possibility to synchronize with consumers over time. See the [Data synchronisation](#data-synchronisation) section for more details. Enabling change tracking has the following consequences:
+The *Enable Change Log* property has significant impact on the behavior and internal working of the service. It introduces a cache in which the JSON representation of each objects are stored and provides the possibility to synchronize with consumers over time. See the [Data synchronisation](#data-synchronisation) section for more details. Enabling the changelog has the following consequences:
 
 * Two new endpoints are created: *rest/service/changes/list* and *rest/service/changes/feed*. Both endpoints provide a list of all changes which where made to the *source* collection. The endpoints accept an `since` parameter, which can be used to only retrieve changes which were not synced yet. The API and behavior are heavily inspired by the [CouchDB changes API](http://couchdb.readthedocs.org/en/latest/api/database/changes.html). 
 * Requests are served from the cache instead of the database directly. To update an item in the cache, the model needs to call `publishUpdate` or `publishDelete`. This can either be done as *after commit* / *after delete* event, or in the logic of your model. Changes are not visible for consumers until one of these methods is called by the model. 
@@ -169,7 +169,7 @@ The *Enable Change Tracking* property has significant impact on the behavior and
 
 ## The change log
 
-If change tracking is enabled for a service the RestServices module will preserve a change log with which consumers can synchronize. A typical change item like this:
+If the change log is enabled for a service the RestServices module will preserve a change log with which consumers can synchronize. A typical change item like this:
 ```
 {
   "seq": 2,
@@ -190,7 +190,7 @@ Revisions are not kept forever, they are removed as soon as they are shadowed by
 
 The `url` is the fully qualified url at which this object could be fetched using a GET operation. The `etag` value indicates the current version of the object altered by the change. If the `deleted` attribute is false, the object has been created or changed, and its actual contents can be found under the `data` attribute. 
 
-To set up a changelog in your data service, please read the [Enable Change Tracking](#enable-change-tracking) section.
+To set up a changelog in your data service, please read the [Enabling the change cog](#enabling-the-change-log) section.
 
 ## Reading the change log
 
@@ -215,7 +215,7 @@ The RestServices module provides several methods to consume a changelog publishe
 * `unfollowChanges`: Stop listing to changes
 * `resetChangeTracking`: Resets the last know sequence number to zero. This means that upon the next synchronization, *all* data will be retrieved again. 
 
-The state of the changelog can be viewed in the RestServices overview form, both as consumer and as publisher.
+The state of the change log can be viewed in the RestServices overview form, both as consumer and as publisher.
 
 # JSON Serialization
 

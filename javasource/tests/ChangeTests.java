@@ -11,7 +11,7 @@ import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import communitycommons.XPath;
 
-import restservices.consume.ChangeFeedListener;
+import restservices.consume.ChangeLogListener;
 import restservices.consume.RestConsumer;
 import restservices.proxies.DataSyncState;
 import restservices.proxies.HttpMethod;
@@ -35,7 +35,7 @@ public class ChangeTests extends TestBase{
 
 		XPath.create(c, DataSyncState.class).contains(DataSyncState.MemberNames.CollectionUrl, baseUrl).deleteAll();
 
-		def.setEnableChangeTracking(true);
+		def.setEnableChangeLog(true);
 		def.commit();
 		
 		
@@ -65,7 +65,7 @@ public class ChangeTests extends TestBase{
 		assertChange(changes.getJSONObject(0), t1.getNr(), false, "karnemelk",2);
 		
 		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
-		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
+		ChangeLogListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(1L, XPath.create(c2, TaskCopy.class).count());
 		Assert.assertEquals(t1.getNr(), XPath.create(c2, TaskCopy.class).first().getNr());
 		Assert.assertEquals("karnemelk", XPath.create(c2, TaskCopy.class).first().getDescription());
@@ -93,7 +93,7 @@ public class ChangeTests extends TestBase{
 		Task t3 = createTask(c, "dog", false);
 		publishTask(c, t3, false);
 
-		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
+		ChangeLogListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(3L, XPath.create(c2, TaskCopy.class).count());
 		
 		publishTask(c, t2, true);
@@ -105,18 +105,18 @@ public class ChangeTests extends TestBase{
 		assertChange(changes.getJSONObject(2), t2.getNr(), true, null, 5);
 
 		//fetching should  now result in 2 items
-		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
+		ChangeLogListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(2L, XPath.create(c2, TaskCopy.class).count());
 		
 		//if we reset the state
-		ChangeFeedListener.resetState(baseUrl);
+		ChangeLogListener.resetDataSyncState(baseUrl);
 		XPath.create(c2, TaskCopy.class).deleteAll();
 
 		//there should be nothing
 		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
 		
 		//until we fetch again
-		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
+		ChangeLogListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(2L, XPath.create(c2, TaskCopy.class).count());
 		
 		//if we delete all data
@@ -124,15 +124,15 @@ public class ChangeTests extends TestBase{
 		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
 
 		//and fetch there should be still nothing, the tracker doesn't know after all..
-		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
+		ChangeLogListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
 
 		//but if we reset as well
-		ChangeFeedListener.resetState(baseUrl);
+		ChangeLogListener.resetDataSyncState(baseUrl);
 		Assert.assertEquals(0L, XPath.create(c2, TaskCopy.class).count());
 
 		//then everything should come back :)
-		ChangeFeedListener.fetch(baseUrl, ONUPDATE, ONDELETE);
+		ChangeLogListener.fetch(baseUrl, ONUPDATE, ONDELETE);
 		Assert.assertEquals(2L, XPath.create(c2, TaskCopy.class).count());
 		
 	}
@@ -166,15 +166,15 @@ public class ChangeTests extends TestBase{
 		IContext c = Core.createSystemContext();
 		IContext c2 = Core.createSystemContext();
 
-		def.setEnableChangeTracking(true);
+		def.setEnableChangeLog(true);
 		def.commit();
 
 		Task t1 = createTask(c, "milk", false);
 		TaskCopy t2;
 		publishTask(c, t1, false);
 
-		ChangeFeedListener.resetState(baseUrl);
-		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, timeout);
+		ChangeLogListener.resetDataSyncState(baseUrl);
+		ChangeLogListener.follow(baseUrl, ONUPDATE, ONDELETE, timeout);
 		try {
 			t2 = XPath.create(c2, TaskCopy.class)
 				.eq(TaskCopy.MemberNames.Nr, t1.getNr())
@@ -203,7 +203,7 @@ public class ChangeTests extends TestBase{
 			Assert.assertTrue(t2 != null);
 		}
 		finally {
-			ChangeFeedListener.unfollow(baseUrl);
+			ChangeLogListener.unfollow(baseUrl);
 		}
 		
 		
@@ -217,8 +217,8 @@ public class ChangeTests extends TestBase{
 		Task t1 = createTask(c, "test", true);
 		
 		//listen before feed is enabled
-		ChangeFeedListener.resetState(baseUrl);
-		ChangeFeedListener.follow(baseUrl, ONUPDATE, ONDELETE, 5);
+		ChangeLogListener.resetDataSyncState(baseUrl);
+		ChangeLogListener.follow(baseUrl, ONUPDATE, ONDELETE, 5);
 			
 		Thread.sleep(25000);
 		
@@ -228,7 +228,7 @@ public class ChangeTests extends TestBase{
 		.firstOrWait(1000);
 		Assert.assertNull(t2);
 		
-		def.setEnableChangeTracking(true);
+		def.setEnableChangeLog(true);
 		def.commit();
 		
 		t2 = XPath.create(c, TaskCopy.class)

@@ -252,9 +252,9 @@ public class RestServiceHandler extends RequestHandler{
 			if (isGet && "changes".equals(parts[1])) {
 				handled = true;
 				if ("list".equals(parts[2]))
-					service.getChangeManager().serveChanges(rsr, false);
+					service.getChangeLogManager().serveChanges(rsr, false);
 				else if ("feed".equals(parts[2]))
-					service.getChangeManager().serveChanges(rsr, true);
+					service.getChangeLogManager().serveChanges(rsr, true);
 				else
 					throw new RestPublishException(RestExceptionType.NOT_FOUND, "changes/"  + parts[2] + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
 			}

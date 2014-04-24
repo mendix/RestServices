@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.publish.ChangeManager;
+import restservices.publish.ChangeLogManager;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
@@ -34,7 +34,7 @@ public class publishDelete extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		ChangeManager.publishDelete(getContext(), source);
+		ChangeLogManager.publishDelete(getContext(), source);
 		return true;
 		// END USER CODE
 	}

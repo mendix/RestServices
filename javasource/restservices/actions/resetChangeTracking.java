@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.consume.ChangeFeedListener;
+import restservices.consume.ChangeLogListener;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
@@ -29,7 +29,7 @@ public class resetChangeTracking extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		ChangeFeedListener.resetState(collectionUrl);
+		ChangeLogListener.resetDataSyncState(collectionUrl);
 		return true;
 		// END USER CODE
 	}

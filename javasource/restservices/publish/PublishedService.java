@@ -38,7 +38,7 @@ public class PublishedService {
 	public PublishedService(ServiceDefinition def) {
 		this.def = def;
 		try {
-			changeManager = new ChangeManager(this);
+			changeLogManager = new ChangeLogManager(this);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -55,10 +55,10 @@ public class PublishedService {
 	
 	private IMetaObject sourceMetaEntity;
 
-	private ChangeManager changeManager;
+	private ChangeLogManager changeLogManager;
 	
-	public ChangeManager getChangeManager() {
-		return changeManager;
+	public ChangeLogManager getChangeLogManager() {
+		return changeLogManager;
 	}
 
 	public String getName() {
@@ -93,7 +93,7 @@ public class PublishedService {
 	private ChangeItem getObjectStateByKey(IContext context, String key) throws CoreException {
 		return XPath.create(context, ChangeItem.class)
 				.eq(ChangeItem.MemberNames.Key,key)
-				.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeManager().getServiceObjectIndex())
+				.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeLogManager().getChangeLog())
 				.first();
 	}	
 
@@ -106,9 +106,9 @@ public class PublishedService {
 		
 		long count;
 		
-		if (def.getEnableChangeTracking()) {
+		if (def.getEnableChangeLog()) {
 			count = XPath.create(rsr.getContext(), ChangeItem.class)
-					.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeManager().getServiceObjectIndex())
+					.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeLogManager().getChangeLog())
 					.eq(ChangeItem.MemberNames.IsDeleted, false)
 					.count();
 		} else 
@@ -131,7 +131,7 @@ public class PublishedService {
 		rsr.startDoc();
 		rsr.datawriter.array();
 
-		if (def.getEnableChangeTracking())
+		if (def.getEnableChangeLog())
 			serveListingFromIndex(rsr, includeData, offset, limit);
 		else
 			serveListingFromDB(rsr, includeData, offset, limit);
@@ -143,7 +143,7 @@ public class PublishedService {
 	private void serveListingFromIndex(final RestServiceRequest rsr,
 			final boolean includeData, int offset, int limit) throws CoreException {
 		XPath<ChangeItem> xp  = XPath.create(rsr.getContext(), ChangeItem.class)
-			.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeManager().getServiceObjectIndex())
+			.eq(ChangeItem.MemberNames.ChangeItem_ChangeLog, getChangeLogManager().getChangeLog())
 			.eq(ChangeItem.MemberNames.IsDeleted, false)
 			.eq(ChangeItem.MemberNames._IsDirty, false)
 			.addSortingAsc(ChangeItem.MemberNames.Key);
@@ -211,7 +211,7 @@ public class PublishedService {
 		if (!def.getEnableGet())
 			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "GET is not enabled for this service");
 		
-		if(def.getEnableChangeTracking())
+		if(def.getEnableChangeLog())
 			serveGetFromIndex(rsr, key);
 		else
 			serveGetFromDB(rsr, key);
@@ -418,7 +418,7 @@ public class PublishedService {
 	private String getETag(IContext context, String key, IMendixObject source)
 			throws CoreException, Exception, UnsupportedEncodingException {
 		String currentETag = null;
-		if (def.getEnableChangeTracking()) {
+		if (def.getEnableChangeLog()) {
 			ChangeItem objectState = getObjectStateByKey(context, key); 
 			if (objectState != null)
 				currentETag = objectState.getEtag();
@@ -474,7 +474,7 @@ public class PublishedService {
 	}
 
 	public void dispose() {
-		this.changeManager.dispose();
+		this.changeLogManager.dispose();
 	}
 
 	

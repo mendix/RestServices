@@ -5,7 +5,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import restservices.RestServices;
-import restservices.consume.ChangeFeedListener;
+import restservices.consume.ChangeLogListener;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.DataSyncState;
@@ -13,7 +13,7 @@ import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
 import restservices.proxies.ServiceDefinition;
-import restservices.publish.ChangeManager;
+import restservices.publish.ChangeLogManager;
 import system.proxies.User;
 import system.proxies.UserRole;
 import tests.proxies.CTaskView;
@@ -49,7 +49,7 @@ public class TestBase {
 		def.setSourceKeyAttribute(Task.MemberNames.Nr.toString());
 		def.setOnPublishMicroflow("Tests.TaskToView");
 		def.setOnUpdateMicroflow("Tests.ViewToTask");
-		def.setEnableChangeTracking(false);
+		def.setEnableChangeLog(false);
 		def.commit();
 		
 		this.baseUrl = RestServices.getServiceUrl("tasks");
@@ -61,7 +61,7 @@ public class TestBase {
 			XPath.create(Core.createSystemContext(), User.class).eq(User.MemberNames.Name, username).deleteAll();
 			username = null;
 		}
-		ChangeFeedListener.unfollow(baseUrl);
+		ChangeLogListener.unfollow(baseUrl);
 	}
 	
 	String getTestUser() throws CoreException {
@@ -99,11 +99,11 @@ public class TestBase {
 	void publishTask(IContext c, Task t, boolean delete) throws CoreException {
 		if (delete) {
 			t.delete();
-			ChangeManager.publishDelete(c, t.getMendixObject());
+			ChangeLogManager.publishDelete(c, t.getMendixObject());
 		}
 		else {
 			t.commit();
-			ChangeManager.publishUpdate(c, t.getMendixObject());
+			ChangeLogManager.publishUpdate(c, t.getMendixObject());
 		}
 	}
 	
