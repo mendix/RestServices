@@ -26,7 +26,6 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
-import com.sun.xml.fastinfoset.stax.events.Util;
 
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
@@ -209,7 +208,7 @@ public class ChangeLogManager {
 		
 		if (asFeed) {
 			String longPollMaxDuration = rsr.request.getParameter(RestServices.PARAM_TIMEOUT);
-			serveChangesFeed(rsr, since, Util.isEmptyString(longPollMaxDuration) ? RestServices.LONGPOLL_MAXDURATION : Long.valueOf(longPollMaxDuration));
+			serveChangesFeed(rsr, since, Utils.isEmpty(longPollMaxDuration) ? RestServices.LONGPOLL_MAXDURATION : Long.valueOf(longPollMaxDuration));
 		}
 
 		else {
