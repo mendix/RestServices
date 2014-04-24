@@ -13,7 +13,7 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 
 # Getting Started
 
-1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 4.4.4+ or Mendix 5.1.1+. 
+1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 4.4.4+ or Mendix 5.3.1+. 
 2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher. Download this module as well if it is not already part of your project. 
 3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well. 
 4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application.
