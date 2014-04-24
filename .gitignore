@@ -1,9 +1,11 @@
-
+/RestServices.mpr.bak
+/javasource/com/mendix/core/Core.java
 /deployment
 /.settings
 /*.launch
 /.classpath
 /.project
 /*.mpr.lock
+.mendix-cache
 proxies
 /javasource/system
