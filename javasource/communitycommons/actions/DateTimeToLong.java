@@ -18,19 +18,19 @@ import communitycommons.DateTime;
  */
 public class DateTimeToLong extends UserAction<Long>
 {
-	private java.util.Date Date;
+	private java.util.Date dateObject;
 
-	public DateTimeToLong(java.util.Date Date)
+	public DateTimeToLong(java.util.Date dateObject)
 	{
 		super();
-		this.Date = Date;
+		this.dateObject = dateObject;
 	}
 
 	@Override
 	public Long executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return DateTime.dateTimeToLong(Date);
+		return DateTime.dateTimeToLong(dateObject);
 		// END USER CODE
 	}
 

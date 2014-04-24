@@ -2,6 +2,7 @@ package communitycommons;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
@@ -18,6 +19,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.apache.commons.io.IOUtils;
 
 import system.proxies.FileDocument;
@@ -175,24 +177,36 @@ public class Misc
 
 	public static Boolean storeURLToFileDocument(IContext context, String url, IMendixObject __document, String filename) throws Exception
 	{
-		if (__document == null || url == null || filename == null)
-			throw new Exception("No document, filename or URL provided");
-		
-		final int MAX_REMOTE_FILESIZE = 1024 * 1024 * 200; //maxium of 200 MB
-		URL imageUrl = new URL(url);
-		URLConnection connection = imageUrl.openConnection();
-		//we connect in 20 seconds or not at all
-		connection.setConnectTimeout(20000);
-		connection.setReadTimeout(20000);
-		connection.connect();
+        if (__document == null || url == null || filename == null)
+            throw new Exception("No document, filename or URL provided");
+        
+        final int MAX_REMOTE_FILESIZE = 1024 * 1024 * 200; //maxium of 200 MB
+        URL imageUrl = new URL(url);
+        URLConnection connection = imageUrl.openConnection();
+        //we connect in 20 seconds or not at all
+        connection.setConnectTimeout(20000);
+        connection.setReadTimeout(20000);
+        connection.connect();
 
-		//check on forehand the size of the remote file, we don't want to kill the server by providing a 3 terabyte image. 
-		if (connection.getContentLength() < 0 || connection.getContentLength() >  MAX_REMOTE_FILESIZE) //maximum of 200 mb
-			throw new IllegalArgumentException("MxID: importing image, wrong filesize of remote url: " + connection.getContentLength()+ " (max: " + String.valueOf(MAX_REMOTE_FILESIZE)+ ")");
-
-		//NB; stream is closed by the core
-		Core.storeFileDocumentContent(context, __document, filename, connection.getInputStream());
-		return true;
+        //check on forehand the size of the remote file, we don't want to kill the server by providing a 3 terabyte image. 
+        if (connection.getContentLength() > MAX_REMOTE_FILESIZE) { //maximum of 200 mb 
+            throw new IllegalArgumentException("MxID: importing image, wrong filesize of remote url: " + connection.getContentLength()+ " (max: " + String.valueOf(MAX_REMOTE_FILESIZE)+ ")");
+        } else if (connection.getContentLength() < 0) {
+            // connection has not specified content length, wrap stream in a LimitedInputStream
+            LimitedInputStream limitStream = new LimitedInputStream(connection.getInputStream(), MAX_REMOTE_FILESIZE) {                
+                @Override
+                protected void raiseError(long pSizeMax, long pCount) throws IOException {
+                    throw new IllegalArgumentException("MxID: importing image, wrong filesize of remote url (max: " + String.valueOf(MAX_REMOTE_FILESIZE)+ ")");                    
+                }
+            };
+            Core.storeFileDocumentContent(context, __document, filename, limitStream);
+        } else {
+            // connection has specified correct content length, read the stream normally
+            //NB; stream is closed by the core
+            Core.storeFileDocumentContent(context, __document, filename, connection.getInputStream());
+        }
+        
+        return true;
 	}
 
 	@SuppressWarnings("deprecation")

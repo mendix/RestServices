@@ -150,7 +150,7 @@ public class XPath<T>
 			subconstraint()
 			.contains(attr, value)
 			.and()
-			.append(" length(" + attr + ") = ").append(valueToXPathValue(value))
+			.append(" length(" + attr + ") = ").append(value == null ? "0" : valueToXPathValue(value.length()))	
 			.close();
 	}
 	
