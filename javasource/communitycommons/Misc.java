@@ -202,21 +202,19 @@ public class Misc
 	}
 
 	public static Long getFileSize(IContext context, IMendixObject document)
-	{
-	    final int BUFFER_SIZE = 4096;
+    {
+        final int BUFFER_SIZE = 4096;
         long size = 0;
-		
+
         if (context != null) {
             InputStream inputStream = null;
             byte[] buffer = new byte[BUFFER_SIZE];
-            int bytesRead = 0;
             
             try {
                 inputStream = Core.getFileDocumentContent(context, document);
-                while ((bytesRead = inputStream.read(buffer)) != BUFFER_SIZE) {
-                    size += bytesRead;
-                }
-                size += bytesRead;
+                int i;
+                while ((i = inputStream.read(buffer)) != -1) 
+                    size += i;
             } catch (IOException e) {
                 Core.getLogger("FileUtil").error(
                         "Couldn't determine filesize of FileDocument '" + document.getId()); 
@@ -225,8 +223,8 @@ public class Misc
             }
         }
         
-		return size;
-	}
+        return size;
+    }      
 
 	public static void delay(long delaytime) throws InterruptedException
 	{
