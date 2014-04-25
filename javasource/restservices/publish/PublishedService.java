@@ -90,7 +90,7 @@ public class PublishedService {
 				RestServices.LOGPUBLISH.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
 				return null;
 			}
-			throw e;
+			throw new RuntimeException(e);
 		}
 	}
 
