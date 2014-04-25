@@ -7,3 +7,13 @@
 /*.mpr.lock
 .mendix-cache
 proxies
+
+#mxgit-marker-start
+/.svn
+/modeler-merge-marker
+/.mendix-cache
+/*.mpr.bak
+/*.mpr.left*
+/*.mpr.right*
+/releases
+#mxgit-marker-end

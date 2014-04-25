@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.http.HttpStatus;
+import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -28,6 +28,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
 
@@ -84,9 +85,12 @@ public class PublishedService {
 			List<IMendixObject> results = Core.retrieveXPathQuery(context, xpath, 1, 0, ImmutableMap.of("id", "ASC"));
 			return results.size() == 0 ? null : results.get(0);
 		}
-		catch(CoreRuntimeException e) {
-			RestServices.LOGPUBLISH.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
-			return null;
+		catch(Throwable e) {
+			if (e.getClass().getSimpleName().equals("CoreRuntimeException")) { //Somehow the exception is not properly catched. Other classloader?
+				RestServices.LOGPUBLISH.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
+				return null;
+			}
+			throw new RuntimeException(e);
 		}
 	}
 
