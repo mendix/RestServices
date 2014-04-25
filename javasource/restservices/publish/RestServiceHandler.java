@@ -79,8 +79,8 @@ public class RestServiceHandler extends RequestHandler{
 		
 		long start = System.currentTimeMillis();
 		
-		HttpServletRequest request = (HttpServletRequest) req.getOriginalRequest();
-		HttpServletResponse response = (HttpServletResponse) resp.getOriginalResponse();
+		HttpServletRequest request = req.getHttpServletRequest();
+		HttpServletResponse response = resp.getHttpServletResponse();
 
 		String method = request.getMethod();
 		String requestStr =  method + " " + path;
@@ -182,6 +182,7 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.startDoc();
 		
 		switch(rsr.getResponseContentType()) {
+		default:
 		case HTML:
 			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p><p>Status code:" + status + "</p>");
 			break;
