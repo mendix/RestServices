@@ -190,7 +190,7 @@ Revisions are not kept forever, they are removed as soon as they are shadowed by
 
 The `url` is the fully qualified url at which this object could be fetched using a GET operation. The `etag` value indicates the current version of the object altered by the change. If the `deleted` attribute is false, the object has been created or changed, and its actual contents can be found under the `data` attribute. 
 
-To set up a changelog in your data service, please read the [Enabling the change cog](#enabling-the-change-log) section.
+To set up a changelog in your data service, please read the [Enabling the change log](#enabling-the-change-log) section.
 
 ## Reading the change log
 
