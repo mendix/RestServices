@@ -1,10 +1,10 @@
-# Rest Services
+# Mendix REST Services module
 
 <img src="images/logo.png" style="float: right; padding: 0 0 20px 20px; width:300px" align="right"/>
 
 RestServices On [GitHub](https://github.com/mweststrate/RestServices) - Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
 
-Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
+Welcome to the REST Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
 1. Consume JSON REST based services
 2. Publish data or microflows through REST API's
@@ -332,13 +332,13 @@ We know that the RestSevices module has already been used successfully to integr
 
 # RestServices, Web Services or App Services? 
 
-How does Rest Services relate to Mendix Webservices and Mendix AppServices? Mendix Webservices are the de-facto integration method. Webservices are well supported in the Mendix Modeler and allow you to publish and consume operations. Webservices rely on the WSDL / SOAP standards for definition and transport. 
+How does REST Services relate to Mendix Webservices and Mendix AppServices? Mendix Webservices are the de-facto integration method. Webservices are well supported in the Mendix Modeler and allow you to publish and consume operations. Webservices rely on the WSDL / SOAP standards for definition and transport. 
 
 Mendix Appservices are build on top of webservices and make integration between Mendix Apps easier. They allow you to skip object mappings and provide an API versioning system. 
 
-RestServices allows you to consume and publish operations as well, but based on the JSON standard and Rest principles. Besides JSON, the module also provides full support for form-encoded, multipart and binary data transfer, allowing the module the integrate with almost any Rest service. 
+RestServices allows you to consume and publish operations as well, but based on the JSON standard and REST principles. Besides JSON, the module also provides full support for form-encoded, multipart and binary data transfer, allowing the module the integrate with almost any REST service. 
 
-It is also possible do share data using RestServices as the module generates Rest based crud operations for your data and (real-time) synchronization strategies. 
+It is also possible do share data using RestServices as the module generates REST based crud operations for your data and (real-time) synchronization strategies. 
 
 # HTTP Verbs in Rest
 
