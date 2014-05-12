@@ -20,21 +20,21 @@ import com.mendix.webui.CustomJavaAction;
  */
 public class put extends CustomJavaAction<IMendixObject>
 {
-	private String url;
-	private IMendixObject dataObject;
+	private String resourceUrl;
+	private IMendixObject requestData;
 
-	public put(IContext context, String url, IMendixObject dataObject)
+	public put(IContext context, String resourceUrl, IMendixObject requestData)
 	{
 		super(context);
-		this.url = url;
-		this.dataObject = dataObject;
+		this.resourceUrl = resourceUrl;
+		this.requestData = requestData;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.putObject(getContext(), url, dataObject, null).getMendixObject();
+		return RestConsumer.putObject(getContext(), resourceUrl, requestData, null).getMendixObject();
 		// END USER CODE
 	}
 

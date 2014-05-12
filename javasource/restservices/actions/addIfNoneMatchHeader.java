@@ -15,25 +15,25 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * Use this header to provide an eTag. If the resource requested is not modified, the servier might respond with a 304 Not Modified response, instead of sending the data. 
+ * Use this header to provide an ETag. If the resource requested is not modified, the servier might respond with a 304 Not Modified response, instead of sending the data. 
  * 
  * This saves resources of both the client and server. 
  */
 public class addIfNoneMatchHeader extends CustomJavaAction<Boolean>
 {
-	private String eTag;
+	private String ETag;
 
-	public addIfNoneMatchHeader(IContext context, String eTag)
+	public addIfNoneMatchHeader(IContext context, String ETag)
 	{
 		super(context);
-		this.eTag = eTag;
+		this.ETag = ETag;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		RestConsumer.useETagInNextRequest(eTag);
+		RestConsumer.useETagInNextRequest(ETag);
 		return true;
 		// END USER CODE
 	}

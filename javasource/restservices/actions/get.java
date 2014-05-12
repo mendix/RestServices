@@ -10,9 +10,9 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
-import com.mendix.systemwideinterfaces.core.UserAction;
+
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
@@ -20,21 +20,21 @@ import com.mendix.webui.CustomJavaAction;
  */
 public class get extends CustomJavaAction<IMendixObject>
 {
-	private String url;
-	private IMendixObject stub;
+	private String resourceUrl;
+	private IMendixObject targetObject;
 
-	public get(IContext context, String url, IMendixObject stub)
+	public get(IContext context, String resourceUrl, IMendixObject targetObject)
 	{
 		super(context);
-		this.url = url;
-		this.stub = stub;
+		this.resourceUrl = resourceUrl;
+		this.targetObject = targetObject;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), url, null, stub).getMendixObject();
+		return RestConsumer.getObject(getContext(), resourceUrl, null, targetObject).getMendixObject();
 		// END USER CODE
 	}
 

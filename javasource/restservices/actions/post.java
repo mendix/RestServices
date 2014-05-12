@@ -21,22 +21,22 @@ import com.mendix.webui.CustomJavaAction;
 public class post extends CustomJavaAction<IMendixObject>
 {
 	private String collectionUrl;
-	private IMendixObject dataObject;
-	private Boolean asFormData;
+	private IMendixObject requestData;
+	private Boolean submitAsFormData;
 
-	public post(IContext context, String collectionUrl, IMendixObject dataObject, Boolean asFormData)
+	public post(IContext context, String collectionUrl, IMendixObject requestData, Boolean submitAsFormData)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
-		this.dataObject = dataObject;
-		this.asFormData = asFormData;
+		this.requestData = requestData;
+		this.submitAsFormData = submitAsFormData;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, asFormData).getMendixObject();
+		return RestConsumer.postObject(getContext(), collectionUrl, requestData, submitAsFormData).getMendixObject();
 		// END USER CODE
 	}
 
