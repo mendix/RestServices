@@ -8,3 +8,10 @@
 /*.mpr.lock
 .mendix-cache
 proxies
+
+/.svn
+/modeler-merge-marker
+/.mendix-cache
+/*.mpr.bak
+/*.mpr.left*
+/*.mpr.right*
