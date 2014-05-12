@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.util.Utils;
-import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
