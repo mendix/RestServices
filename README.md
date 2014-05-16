@@ -2,15 +2,16 @@
 
 <img src="images/logo.png" style="float: right; padding: 0 0 20px 20px; width:300px" align="right"/>
 
-RestServices On [GitHub](https://github.com/mweststrate/RestServices) - Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
-Blog post: [Consuming your first REST service](http://www.mendix.com/blog/consuming-first-rest-service/)
-
 Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
 1. Consume JSON REST based services
 2. Publish data or microflows through REST API's
 3. (Real time) Synchronization of data between Mendix applications
 
+## Related resources
+* RestServices On [GitHub](https://github.com/mweststrate/RestServices)
+* Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
+* Blog post: [Consuming your first REST service](http://www.mendix.com/blog/consuming-first-rest-service/)
 
 # Getting Started
 
