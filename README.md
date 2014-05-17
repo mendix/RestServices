@@ -2,14 +2,16 @@
 
 <img src="images/logo.png" style="float: right; padding: 0 0 20px 20px; width:300px" align="right"/>
 
-RestServices On [GitHub](https://github.com/mweststrate/RestServices) - Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
-
 Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
 1. Consume JSON REST based services
 2. Publish data or microflows through REST API's
 3. (Real time) Synchronization of data between Mendix applications
 
+## Related resources
+* RestServices On [GitHub](https://github.com/mweststrate/RestServices)
+* Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
+* Blog post: [Consuming your first REST service](http://www.mendix.com/blog/consuming-first-rest-service/)
 
 # Getting Started
 
@@ -20,6 +22,8 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 5. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally. 
 
 # Consuming REST services
+
+*This readme is the reference guide. For a quick how-to you might take a look at this [blog post](http://www.mendix.com/blog/consuming-first-rest-service/) as well.*
 
 This module is able to invoke most, if not any, REST service which is based on JSON, form-data, multipart or binary data. The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation. 
 
