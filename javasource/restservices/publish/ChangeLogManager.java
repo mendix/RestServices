@@ -345,8 +345,7 @@ public class ChangeLogManager {
 				return;
 			}
 				
-			IMendixObject view = service.convertSourceToView(context, source);
-			JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
+			JSONObject result = service.serializeToJson(context, source);
 					
 			String jsonString = result.toString(4);
 			String eTag = Utils.getMD5Hash(jsonString);

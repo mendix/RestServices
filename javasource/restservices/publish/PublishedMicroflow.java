@@ -28,6 +28,7 @@ import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
+import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
 import system.proxies.UserRole;
 
@@ -92,7 +93,7 @@ public class PublishedMicroflow {
 		}
 	}
 	
-	void execute(RestServiceRequest rsr) throws Exception {
+	void execute(final RestServiceRequest rsr) throws Exception {
 		
 		Map<String, Object> args = new HashMap<String, Object>();
 
@@ -104,7 +105,15 @@ public class PublishedMicroflow {
 			rsr.setResponseContentType(ResponseType.BINARY);
 		
 		Object result = Core.execute(rsr.getContext(), microflowname, args);
-		writeOutputData(rsr, result);
+		
+		Utils.whileRetainingObject(rsr.getContext(), result, new IRetainWorker<Boolean>() {
+
+			@Override
+			public Boolean apply(Object item) throws IOException, Exception {
+				writeOutputData(rsr, item);
+				return true;
+			}
+		});
 	}
 
 	private void writeOutputData(RestServiceRequest rsr, Object result)
