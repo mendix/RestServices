@@ -16,6 +16,7 @@ import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
+import restservices.util.Utils.IRetainWorker;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -200,8 +201,7 @@ public class PublishedService {
 					rsr.datawriter.value(getObjecturl(rsr.getContext(), item));
 				}
 				else {
-					IMendixObject view = convertSourceToView(rsr.getContext(), item);
-					rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), view));
+					rsr.datawriter.value(serializeToJson(rsr.getContext(), item));
 				}
 			}
 			
@@ -242,14 +242,12 @@ public class PublishedService {
 					keyExists(rsr.getContext(), key) && !isWorldReadable()? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND,
 					getName() + "/" + key);
 		
-		IMendixObject view = convertSourceToView(rsr.getContext(), source);
-		JSONObject result = JsonSerializer.writeMendixObjectToJson(rsr.getContext(), view);
+		JSONObject result = serializeToJson(rsr.getContext(), source);
 				
 		String jsonString = result.toString(4);
 		String eTag = Utils.getMD5Hash(jsonString);
 		
 		writeGetResult(rsr, key, result, eTag);
-		rsr.getContext().getSession().release(view.getId());
 	}
 
 	private void writeGetResult(RestServiceRequest rsr, String key, JSONObject result, String eTag) {
@@ -418,7 +416,7 @@ public class PublishedService {
 			throw new RestPublishException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
 	}
 
-	private String getETag(IContext context, String key, IMendixObject source)
+	private String getETag(final IContext context, String key, IMendixObject source)
 			throws CoreException, Exception, UnsupportedEncodingException {
 		String currentETag = null;
 		if (def.getEnableChangeLog()) {
@@ -427,8 +425,7 @@ public class PublishedService {
 				currentETag = objectState.getEtag();
 		}
 		else {
-			IMendixObject view = convertSourceToView(context, source);
-			JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
+			JSONObject result = serializeToJson(context, source);
 				
 			String jsonString = result.toString(4);
 			currentETag = Utils.getMD5Hash(jsonString);
@@ -445,6 +442,20 @@ public class PublishedService {
 	public IMendixObject convertSourceToView(IContext context, IMendixObject source) throws CoreException {
 		return (IMendixObject) Core.execute(context, def.getOnPublishMicroflow(), source);
 	}
+	
+	JSONObject serializeToJson(final IContext context,
+			IMendixObject source) throws CoreException, Exception {
+		final IMendixObject view = convertSourceToView(context, source);
+		
+		JSONObject result = Utils.whileRetainingObject(context, view, new IRetainWorker<JSONObject>() {
+			@Override
+			public JSONObject apply(Object item) throws Exception {
+				return JsonSerializer.writeMendixObjectToJson(context, view);
+			}
+		});
+		return result;
+	}
+
 
 	public boolean identifierInConstraint(IContext c, IMendixIdentifier id) throws CoreException {
 		if (this.getConstraint(c).isEmpty())
