@@ -35,10 +35,14 @@ public class RestServiceHandler extends RequestHandler{
 	
 	public static void start(IContext context) throws Exception {
 		if (instance == null) {
+			RestServices.LOGPUBLISH.info("Starting RestServices module...");
+			
 			instance = new RestServiceHandler();
 			Core.addRequestHandler(RestServices.PATH_REST, instance);
 			started = true;
 			loadConfig(context);
+
+			RestServices.LOGPUBLISH.info("Starting RestServices module... DONE");
 		}
 	}
 
@@ -51,7 +55,8 @@ public class RestServiceHandler extends RequestHandler{
 	public static void loadConfig(ServiceDefinition def, boolean throwOnFailure) {
 		if (!started)
 			return;
-		
+
+		RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "...");
 		String errors = null;
 		try {
 			ConsistencyChecker.check(def);
@@ -70,6 +75,7 @@ public class RestServiceHandler extends RequestHandler{
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
 			PublishedService service = new PublishedService(def);
 			RestServices.registerService(service.getName(), service);
+			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
 		}
 	}
 
