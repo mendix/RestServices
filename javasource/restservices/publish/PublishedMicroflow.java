@@ -210,7 +210,7 @@ public class PublishedMicroflow {
 		rsr.startDoc();
 		
 		if (rsr.getResponseContentType() == ResponseType.HTML)
-			rsr.write("<h1>Operation '").write(getName()).write("'</h1>");
+			rsr.write("<h1>Operation: ").write(getName()).write("</h1>");
 		
 		rsr.datawriter.object()
 			.key("name").value(getName())
