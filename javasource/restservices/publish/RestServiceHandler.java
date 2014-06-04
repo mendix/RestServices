@@ -4,6 +4,7 @@ package restservices.publish;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -14,6 +15,8 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumeException;
+import restservices.consume.RestConsumer;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.Utils;
@@ -26,6 +29,7 @@ import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.integration.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
+
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -33,17 +37,58 @@ public class RestServiceHandler extends RequestHandler{
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
 	
+	@SuppressWarnings("deprecation")
 	public static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
 			
 			instance = new RestServiceHandler();
-			Core.addRequestHandler(RestServices.PATH_REST, instance);
+			
+			boolean isSandbox = Core.getConfiguration().getApplicationRootUrl().contains(".mendixcloud.com") && "DEVELOPMENT".equalsIgnoreCase(Core.getConfiguration().getDTAPMode().toString());
+			if (isSandbox)
+				startSandboxCompatibilityMode();
+			else
+				Core.addRequestHandler(RestServices.PATH_REST, instance);
+			
 			started = true;
 			loadConfig(context);
-
+			
 			RestServices.LOGPUBLISH.info("Starting RestServices module... DONE");
 		}
+	}
+
+	/**
+	 * startSandboxCompatibilityMode is introduced to circumvent the fact that custom request handlers
+	 * are not available in sandbox apps. In that case the 'ws-doc' requesthandler is reclaimed by the
+	 * Rest services module as soon the app is started. Obviously this is a nasty workaround and this
+	 * should only be used for demo / testing purposes but never be exposed in real live apps. 
+	 */
+	private static void startSandboxCompatibilityMode() {
+		RestServices.PATH_REST = "ws-doc/";
+		final RestServiceHandler self = instance;
+		
+		new Thread() {
+			@Override
+			public void run() {
+				boolean started = false;
+				while(!started) {
+					try {
+						Thread.sleep(1000);
+						RestConsumer.getObject(Core.createSystemContext(), Core.getConfiguration().getApplicationRootUrl() + "/ws/", null, null);
+						started = true;
+					} catch (RestConsumeException e) {
+						started = e.getResponseData().getStatus() != HttpStatus.SC_BAD_GATEWAY;
+					}
+					catch (Exception e) {
+						RestServices.LOGPUBLISH.warn("Error when trying to start sandbox mode: " + e.getMessage(), e);
+						break;
+					}
+				} 
+				Core.addRequestHandler(RestServices.PATH_REST, self);
+				RestServices.LOGPUBLISH.warn("The RestServices module has been started on basepath 'ws-doc/' for sandbox compatibility. Please use the alternative basepath for demo & testing purposes only, and do not share this path as integration endpoint");
+			}
+		}.start();
+		
 	}
 
 	private static void loadConfig(IContext context) throws CoreException {
@@ -96,9 +141,9 @@ public class RestServiceHandler extends RequestHandler{
 		} catch (MalformedURLException e1) {
 			throw new IllegalStateException(e1);
 		}
-		path = u.getPath().substring(1 + RestServices.PATH_REST.length()); //Path which is passed to this request is already decode and therefor useless...
 		
-		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
+		String[] basePath = u.getPath().split("/");
+		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
 
 		response.setCharacterEncoding(RestServices.UTF8);
 		response.setHeader("Expires", "-1");

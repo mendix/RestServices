@@ -10,6 +10,7 @@ import java.util.Set;
 
 import restservices.publish.PublishedMicroflow;
 import restservices.publish.PublishedService;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.logging.ILogNode;
@@ -62,7 +63,7 @@ public class RestServices {
 	public static final String HEADER_CONTENTTYPE = "Content-Type";
 	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
 	
-	public final static String PATH_REST = "rest/";
+	public static String PATH_REST = "rest/";
 	public static final String PATH_LIST = "list";
 	public static final String PATH_FEED = "feed";
 	public static final String PATH_CHANGES = "changes";
@@ -132,8 +133,12 @@ public class RestServices {
 		return names;
 	}
 
+	public static String getBaseUrl() {
+		return Utils.appendSlashToUrl(Core.getConfiguration().getApplicationRootUrl()) + PATH_REST;
+	}
+	
 	public static String getServiceUrl(String name) {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + (microflowServices.containsKey(name) ? "" : "/");
+		return getBaseUrl() + name + (microflowServices.containsKey(name) ? "" : "/");
 	}
 
 	public static void registerPublishedMicroflow(PublishedMicroflow s) {

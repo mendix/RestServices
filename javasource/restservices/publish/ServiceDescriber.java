@@ -48,9 +48,8 @@ public class ServiceDescriber {
 	public void serveServiceDescription() {
 		rsr.startDoc();
 		if (isHTML) { 
-			rsr.write("<a href='/rest/'>&laquo;Go Back</a><h1>Service: " + def.getName() + "</h1>");
+			rsr.write("<a href='/" + RestServices.PATH_REST + "'>&laquo;Go Back</a><h1>Service: " + def.getName() + "</h1>");
 		}
-
 		
 		rsr.datawriter.object()
 			.key("name").value(def.getName())
