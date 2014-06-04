@@ -132,6 +132,10 @@ public class PublishedService {
 			throw new RestPublishException(RestExceptionType.BAD_REQUEST, "'limit' should be positive and larget than zero");
 		
 		rsr.startDoc();
+		
+		if (rsr.getResponseContentType() == ResponseType.HTML)
+			rsr.write("<h1>" + getName() + "</h1>");
+		
 		rsr.datawriter.array();
 
 		if (def.getEnableChangeLog())

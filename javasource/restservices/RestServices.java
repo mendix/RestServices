@@ -43,13 +43,16 @@ public class RestServices {
 	public static final String UTF8 = "UTF-8";
 	public static final String BASIC_AUTHENTICATION = "Basic";
 	public static final String CURRENTUSER_TOKEN = "'" + XPath.CurrentUser + "'";
-	public static final String STYLESHEET = 
-	"body { font-family: Arial; font-size: 0.8em; padding: 20px 60px; } " +
-	"td {padding: 5px 10px; border: 1px solid #e2e2e2; vertical-align: top; } " +
-	"tr { background-color: white; }" +
-	".table-nested-odd > tbody > tr {background-color: #e2e2e2; } " +
-	"h1 {color: navy; }" +
-	"hr {border-style:none; border-bottom: 1px dotted #aaa;}";
+	public static final String STYLESHEET =
+			"body { font-family: Arial; font-size: 0.8em; padding: 0px 60px; margin: 0px; }"+
+			"h1 { margin: 0 -60px 20px; background-color: #5c3566; font-size: em; padding: 20px 60px; color: white; box-shadow: 3px 3px 2px #666;text-transform:uppercase }"+
+			"table { border-spacing: 0px; margin-top:-4px } "+
+			"td:first-child { border-right: 1px dotted #ccc; font-weight: bold; text-align: right; color: #666;text-transform:uppercase;font-size:0.8em;padding-top:6px}"+
+			"td:first-child, th:first-child { background-color: #f9f9f9; }"+
+			"td { padding: 4px 8px; vertical-align: top; min-width: 100px; }"+
+			"a, a:active, a:visited { color: #5c3566 }"+
+			"h2 { margin-top: 40px; color: white; background-color:#333; border-radius:2px; padding: 8px 16px;}"+
+			"h2 small { font-size: 0.5em; } h2 a { color: white !important; text-decoration: none; }";
 
 	public static final String CONTENTTYPE_TEXTJSON = "text/json";
 	public static final String CONTENTTYPE_FORMENCODED = "application/x-www-form-urlencoded";
