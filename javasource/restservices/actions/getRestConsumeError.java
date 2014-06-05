@@ -10,32 +10,26 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-import restservices.proxies.HttpMethod;
+import restservices.proxies.RequestResult;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
-public class get2 extends UserAction<IMendixObject>
+public class getRestConsumeError extends UserAction<IMendixObject>
 {
-	private String resourceUrl;
-	private IMendixObject requestData;
-	private IMendixObject targetObject;
-
-	public get2(String resourceUrl, IMendixObject requestData, IMendixObject targetObject)
+	public getRestConsumeError()
 	{
 		super();
-		this.resourceUrl = resourceUrl;
-		this.requestData = requestData;
-		this.targetObject = targetObject;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.request(getContext(), HttpMethod.GET, resourceUrl, requestData, targetObject, false).getMendixObject();
+		RequestResult res = RestConsumer.getLastConsumeError(getContext());
+		return res == null ? null : res.getMendixObject();
 		// END USER CODE
 	}
 
@@ -45,7 +39,7 @@ public class get2 extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "get2";
+		return "getRestConsumeError";
 	}
 
 	// BEGIN EXTRA CODE
