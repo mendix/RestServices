@@ -42,7 +42,7 @@ This method returns a `RequestResult` object if the service responds with HTTP r
 ## The `RequestResult` object
 Most REST operations return a `RequestResult` object which contains the meta information of a response. An instance contains the following fields:
 
-* `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [ETags](http://en.wikipedia.org/wiki/HTTP_ETag)
+* `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [ETags](http://en.wikipedia.org/wiki/HTTP_ETag). The value will be 'Error' if an error occured during a REST reques (in which case the current RequestResult object can be retrieved by calling `getRestConsumeError`).
 * `RawResponseCode` idem, but as HTTP status code. Either '200' or '304'. 
 * `ETag` if the response contained an `ETag` header, it is picked up and stored in this field. It can be used as optimization for any subsequent requests. 
 * `ResponseBody` the full and raw response body of the request. This field is only set if the body of the response is not yet parsed (by providing an `optResponseData` parameter for example). 
@@ -80,6 +80,9 @@ Tries to delete a resource at the given URL.
 
 ### `put`
 Similar to `post`. See the 'HTTP verbs' section or the specs of the service you are consuming to find out whether to use `post` or `put`. 
+
+### `getRestConsumeError`
+Can be used in the error handler of a REST request. Returns the `RequestResult` object with the response data that would also be returned otherwise if the request was successful. The `ResponseCode` field will be set to `Error`. 
 
 # Publishing REST services
 
