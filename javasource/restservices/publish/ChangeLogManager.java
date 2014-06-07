@@ -16,7 +16,6 @@ import restservices.proxies.ChangeLog;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.JSONSchemaBuilder;
-import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
 
@@ -345,8 +344,7 @@ public class ChangeLogManager {
 				return;
 			}
 				
-			IMendixObject view = service.convertSourceToView(context, source);
-			JSONObject result = JsonSerializer.writeMendixObjectToJson(context, view);
+			JSONObject result = service.serializeToJson(context, source);
 					
 			String jsonString = result.toString(4);
 			String eTag = Utils.getMD5Hash(jsonString);

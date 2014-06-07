@@ -2,14 +2,16 @@
 
 <img src="images/logo.png" style="float: right; padding: 0 0 20px 20px; width:300px" align="right"/>
 
-RestServices On [GitHub](https://github.com/mweststrate/RestServices) - Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
-
-Welcome to the REST Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
+Welcome to the Rest Services module. This module can be used in [Mendix](http://www.mendix.com/) apps as toolkit if you want to achieve one of the following three purposes:
 
 1. Consume JSON REST based services
 2. Publish data or microflows through REST API's
 3. (Real time) Synchronization of data between Mendix applications
 
+## Related resources
+* RestServices on [GitHub](https://github.com/mweststrate/RestServices)
+* Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
+* Blog post: [Consuming your first REST service](http://www.mendix.com/blog/consuming-first-rest-service/)
 
 # Getting Started
 
@@ -17,10 +19,12 @@ Welcome to the REST Services module. This module can be used in [Mendix](http://
 2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher. Download this module as well if it is not already part of your project.
 3. TODO: connect userroles and layouts (mx 5)
 3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well.
-4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application.
+4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application. Also, the 'rest/' request handler needs to be opened if running in the Mendix Standard Cloud (or on premise).
 5. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally.
 
 # Consuming REST services
+
+*This readme is the reference guide. For a quick how-to you might take a look at this [blog post](http://www.mendix.com/blog/consuming-first-rest-service/) as well.*
 
 This module is able to invoke most, if not any, REST service which is based on JSON, form-data, multipart or binary data. The operations in the 'Consume' folder of the module provide the necessary tools to invoke data. The work horse of all this operations is the java action `request`. Most other methods are wrappers around this operation.
 
@@ -39,7 +43,7 @@ This method returns a `RequestResult` object if the service responds with HTTP r
 ## The `RequestResult` object
 Most REST operations return a `RequestResult` object which contains the meta information of a response. An instance contains the following fields:
 
-* `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [ETags](http://en.wikipedia.org/wiki/HTTP_ETag)
+* `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [ETags](http://en.wikipedia.org/wiki/HTTP_ETag). The value will be 'Error' if an error occured during a REST reques (in which case the current RequestResult object can be retrieved by calling `getRestConsumeError`).
 * `RawResponseCode` idem, but as HTTP status code. Either '200' or '304'.
 * `ETag` if the response contained an `ETag` header, it is picked up and stored in this field. It can be used as optimization for any subsequent requests.
 * `ResponseBody` the full and raw response body of the request. This field is only set if the body of the response is not yet parsed (by providing an `optResponseData` parameter for example).
@@ -80,6 +84,9 @@ Tries to delete a resource at the given URL.
 
 ### `put`
 Similar to `post`. See the 'HTTP verbs' section or the specs of the service you are consuming to find out whether to use `post` or `put`.
+
+### `getRestConsumeError`
+Can be used in the error handler of a REST request. Returns the `RequestResult` object with the response data that would also be returned otherwise if the request was successful. The `ResponseCode` field will be set to `Error`.
 
 # Publishing REST services
 
@@ -194,7 +201,7 @@ Revisions are not kept forever, they are removed as soon as they are shadowed by
 
 The `url` is the fully qualified url at which this object could be fetched using a GET operation. The `etag` value indicates the current version of the object altered by the change. If the `deleted` attribute is false, the object has been created or changed, and its actual contents can be found under the `data` attribute.
 
-To set up a changelog in your data service, please read the [Enabling the change cog](#enabling-the-change-log) section.
+To set up a changelog in your data service, please read the [Enabling the change log](#enabling-the-change-log) section.
 
 ## Reading the change log
 

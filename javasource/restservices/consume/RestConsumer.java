@@ -58,6 +58,8 @@ import communitycommons.StringUtils;
 
 public class RestConsumer {
 	
+	private static ThreadLocal<HttpResponseData> lastConsumeError = new ThreadLocal<HttpResponseData>();
+	
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
     static	HttpClient client = new HttpClient(connectionManager);
     
@@ -102,7 +104,9 @@ public class RestConsumer {
 				case 204: //no content
 				case IMxRuntimeResponse.OK: 
 					return ResponseCode.OK;
-				default: 
+				default:
+					if (status >= 400)
+						return ResponseCode.Error;
 					throw new IllegalArgumentException("Unexpected response code in " + this.toString());
 			}
 		}
@@ -356,6 +360,8 @@ public class RestConsumer {
 
 	public static RequestResult request(final IContext context, HttpMethod method, final String url, 
 			final IMendixObject source, final IMendixObject target, final boolean asFormData) throws Exception {
+		lastConsumeError.set(null);
+		
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
 		
@@ -428,9 +434,12 @@ public class RestConsumer {
 			}
 		});
 
+
 		//wrap up
-		if (!response.isOk())
+		if (!response.isOk()) {
+			lastConsumeError.set(response);
 			throw new RestConsumeException(response);
+		}
 		
 		response.setBody(bodyBuffer.toString());
 		if (target != null && Core.isSubClassOf(ReferableObject.entityName, target.getType())) {
@@ -515,5 +524,10 @@ public class RestConsumer {
 		return null;
 	}
 
-	
+	public static RequestResult getLastConsumeError(IContext context) {
+		HttpResponseData res = lastConsumeError.get();
+		if (res == null)
+			return null;
+		return res.asRequestResult(context);
+	}
 }

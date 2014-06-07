@@ -128,6 +128,7 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.getRequestHeader.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getResponseHeader.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getRestBaseUrl.class);
+			component.actionRegistry().registerUserAction(restservices.actions.getRestConsumeError.class);
 			component.actionRegistry().registerUserAction(restservices.actions.GetTrackingState.class);
 			component.actionRegistry().registerUserAction(restservices.actions.isUrl.class);
 			component.actionRegistry().registerUserAction(restservices.actions.isValidObjectKey.class);

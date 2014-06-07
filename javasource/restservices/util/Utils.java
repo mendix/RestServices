@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -16,6 +17,7 @@ import restservices.RestServices;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
+import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
@@ -168,5 +170,44 @@ public class Utils {
 		return false;
 	}
 
+	public static void retain(IContext context, Object result) {
+		if (result == null)
+			return;
+		if (result instanceof IMendixObject)
+			context.getSession().retain((IMendixObject)result);
+		else if (result instanceof List<?>)
+			for(Object item: (List<?>) result)
+				retain(context, item);
+	}
+
+	public static void release(IContext context, Object result) {
+		if (result == null)
+			return;
+		if (result instanceof IMendixObject)
+			context.getSession().release(((IMendixObject)result).getId());
+		else if (result instanceof IMendixIdentifier)
+			context.getSession().release((IMendixIdentifier) result);
+		else if (result instanceof List<?>)
+			for(Object item: (List<?>) result)
+				release(context, item);
+	}
 	
+	public static interface IRetainWorker<T> {
+		public T apply(Object item) throws Exception;
+	}
+	
+	/**
+	 * Since Mendix 5.3 the GC fires earlier, so to make sure that the result of a Microflow is not
+	 * garbage collected to early after the microflow finishes, we try to retain the result of a Microflow if 
+	 * it is Mendix Object like. The object will be released automatically when the worker finishes. 
+	 */
+	public static <T> T whileRetainingObject(IContext context, Object item, IRetainWorker<T> worker) throws Exception {
+		retain(context, item);
+		try {
+			return worker.apply(item);
+		}
+		finally {
+			release(context, item);
+		}
+	}
 }
