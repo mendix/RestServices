@@ -32,7 +32,7 @@ public class setResponseHeader extends CustomJavaAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		RestServiceRequest.setResponseHeader(headerName, value);
+		RestServiceRequest.setResponseHeader(getContext(), headerName, value);
 		return true;
 		// END USER CODE
 	}

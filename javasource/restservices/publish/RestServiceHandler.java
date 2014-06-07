@@ -170,6 +170,7 @@ public class RestServiceHandler extends RequestHandler{
 			}
 			
 			rsr.startTransaction();
+			RestServiceRequest.setCurrentRequest(rsr);
 			if (mf != null) {
 				if (isMetaDataRequest(method, parts, rsr))
 					mf.serveDescription(rsr);
