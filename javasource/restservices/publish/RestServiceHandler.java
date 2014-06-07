@@ -169,6 +169,7 @@ public class RestServiceHandler extends RequestHandler{
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			}
 			
+			rsr.startTransaction();
 			if (mf != null) {
 				if (isMetaDataRequest(method, parts, rsr))
 					mf.serveDescription(rsr);
