@@ -1,6 +1,9 @@
 package restservices.publish;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -21,8 +24,6 @@ public class RestServiceRequest {
 	public static enum ResponseType { JSON, XML, HTML, PLAIN, BINARY }
 	public static enum RequestContentType { JSON, FORMENCODED, MULTIPART, OTHER }
 
-	private static final ThreadLocal<RestServiceRequest> currentRequest = new ThreadLocal<RestServiceRequest>();
-	
 	HttpServletRequest request;
 	HttpServletResponse response;
 	private ResponseType responseContentType = ResponseType.JSON;
@@ -31,6 +32,7 @@ public class RestServiceRequest {
 	protected DataWriter datawriter;
 	private boolean autoLogout;
 	private ISession activeSession;
+	private UUID transactionId;
 
 	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response) {
 		this.request = request;
@@ -44,12 +46,14 @@ public class RestServiceRequest {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		
-		currentRequest.set(this);
 	}
 
 	private void setContext(IContext context) {
-		this.context = context.getSudoContext();
+		this.context = context;
+	}
+
+	public IContext getContext() {
+		return this.context;
 	}
 
 	boolean authenticate(String role, ISession existingSession) {
@@ -177,9 +181,9 @@ public class RestServiceRequest {
 		}
 		return this;
 	}
-
-	public IContext getContext() {
-		return this.context;
+	
+	private UUID getTransactionId() {
+		return this.transactionId;
 	}
 
 	public void close() {
@@ -233,7 +237,8 @@ public class RestServiceRequest {
 	public void dispose() {
 		if (autoLogout)
 			Core.logout(this.activeSession);
-		clearCurrentRequest();
+		if (getContext() != null)
+			clearCurrentRequest(this);
 	}
 	
 	public IUser getCurrentUser() {
@@ -263,20 +268,30 @@ public class RestServiceRequest {
 		return result == null ? defaultValue : result;
 	}
 	
-	public static void clearCurrentRequest() {
-		currentRequest.set(null);
+	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 
+	
+	public static void clearCurrentRequest(RestServiceRequest rsr) {
+		currentRequests.remove(rsr.getTransactionId().toString());
+	}
+	
+	public static void setCurrentRequest(RestServiceRequest rsr) {
+		currentRequests.put(rsr.getTransactionId().toString(), rsr);
 	}
 
-	public static String getRequestHeader(String headerName) {
-		RestServiceRequest current = currentRequest.get();
+	public static RestServiceRequest getCurrentRequest(IContext context) {
+		return currentRequests.get(context.getTransactionId().toString());
+	}
+
+	public static String getRequestHeader(IContext context, String headerName) {
+		RestServiceRequest current = getCurrentRequest(context);
 		if (current == null)
 			throw new IllegalStateException("Not handling a request currently");
 
 		return current.request.getHeader(headerName);
 	}
 
-	public static void setResponseHeader(String headerName, String value) {
-		RestServiceRequest current = currentRequest.get();
+	public static void setResponseHeader(IContext context, String headerName, String value) {
+		RestServiceRequest current = getCurrentRequest(context);
 		if (current == null)
 			throw new IllegalStateException("Not handling a request currently");
 

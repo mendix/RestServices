@@ -29,7 +29,7 @@ public class getRequestHeader extends UserAction<String>
 	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestServiceRequest.getRequestHeader(headerName);
+		return RestServiceRequest.getRequestHeader(getContext(), headerName);
 		// END USER CODE
 	}
 
