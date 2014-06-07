@@ -21,6 +21,8 @@ public class RestServiceRequest {
 	public static enum ResponseType { JSON, XML, HTML, PLAIN, BINARY }
 	public static enum RequestContentType { JSON, FORMENCODED, MULTIPART, OTHER }
 
+	private static final ThreadLocal<RestServiceRequest> currentRequest = new ThreadLocal<RestServiceRequest>();
+	
 	HttpServletRequest request;
 	HttpServletResponse response;
 	private ResponseType responseContentType = ResponseType.JSON;
@@ -42,6 +44,8 @@ public class RestServiceRequest {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+		
+		currentRequest.set(this);
 	}
 
 	private void setContext(IContext context) {
@@ -228,7 +232,8 @@ public class RestServiceRequest {
 	
 	public void dispose() {
 		if (autoLogout)
-			Core.logout(this.activeSession);		
+			Core.logout(this.activeSession);
+		clearCurrentRequest();
 	}
 	
 	public IUser getCurrentUser() {
@@ -256,5 +261,25 @@ public class RestServiceRequest {
 	public String getRequestParameter(String param, String defaultValue) {
 		String result = request.getParameter(param);
 		return result == null ? defaultValue : result;
+	}
+	
+	public static void clearCurrentRequest() {
+		currentRequest.set(null);
+	}
+
+	public static String getRequestHeader(String headerName) {
+		RestServiceRequest current = currentRequest.get();
+		if (current == null)
+			throw new IllegalStateException("Not handling a request currently");
+
+		return current.request.getHeader(headerName);
+	}
+
+	public static void setResponseHeader(String headerName, String value) {
+		RestServiceRequest current = currentRequest.get();
+		if (current == null)
+			throw new IllegalStateException("Not handling a request currently");
+
+		current.response.setHeader(headerName, value);
 	}
 }

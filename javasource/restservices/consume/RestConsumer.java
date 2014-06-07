@@ -69,12 +69,14 @@ public class RestConsumer {
 		private String eTag;
 		private String url;
 		private String method;
+		private Header[] headers;
 
-		HttpResponseData(String method, String url, int status, String eTag) {
+		HttpResponseData(String method, String url, int status, String eTag, Header[] headers) {
 			this.url = url;
 			this.status = status;
 			this.eTag = eTag;
 			this.method = method;
+			this.headers = headers;
 		}
 		
 		public void setBody(String body) {
@@ -91,9 +93,10 @@ public class RestConsumer {
 			rr.setRawResponseCode(status);
 			rr.setResponseBody(getBody());
 			rr.setResponseCode(asResponseCode());
+			rr.set_ResponseHeaders(getResponseHeadersAsJson().toString());
 			return rr;
 		}
-		
+
 		public ResponseCode asResponseCode() {
 			switch (status) {
 				case IMxRuntimeResponse.NOT_MODIFIED: return ResponseCode.NotModified; 
@@ -126,6 +129,16 @@ public class RestConsumer {
 
 		public String getBody() {
 			return body;
+		}
+		
+		private JSONObject getResponseHeadersAsJson() {
+			JSONObject res = new JSONObject();
+			for(Header header : this.headers) {
+				if (!res.has(header.getName()))
+					res.put(header.getName(), new JSONArray());
+				res.getJSONArray(header.getName()).put(header.getValue());
+			}
+			return res;
 		}
 	}
 	
@@ -203,7 +216,7 @@ public class RestConsumer {
 			int status = client.executeMethod(request);
 			Header responseEtag = request.getResponseHeader(RestServices.HEADER_ETAG);
 			
-			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue());
+			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue(), request.getResponseHeaders());
 			InputStream instream = request.getResponseBodyAsStream(); 
 			if (onSuccess != null && status >= 200 && status < 300 && instream != null) //NO CONENT doesnt yield a stream..
 				onSuccess.apply(instream);
@@ -506,6 +519,15 @@ public class RestConsumer {
 			return null;
 		return res.asRequestResult(context);
 	}
-
 	
+	public static String getResponseHeaderFromRequestResult(
+			RequestResult requestResult, String headerName) {
+		if (requestResult == null)
+			throw new IllegalArgumentException("No request result provided");
+		
+		JSONObject headers = new JSONObject(requestResult.get_ResponseHeaders());
+		if (headers.has(headerName))
+			return headers.getJSONArray(headerName).getString(0); 
+		return null;
+	}
 }
