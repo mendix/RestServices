@@ -283,8 +283,6 @@ public class PublishedService {
 
 		verifyEtag(rsr.getContext(), key, source, etag);
 		
-		rsr.getContext().startTransaction();
-		
 		if (Utils.isNotEmpty(def.getOnDeleteMicroflow()))
 			Core.execute(rsr.getContext(), def.getOnDeleteMicroflow(), source);
 		else
@@ -297,8 +295,6 @@ public class PublishedService {
 	public void servePost(RestServiceRequest rsr, JSONObject data) throws Exception {
 		if (!def.getEnableCreate())
 			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Create (POST) is not enabled for this service");
-
-		rsr.getContext().startTransaction();
 
 		IMendixObject target = Core.instantiate(rsr.getContext(), getSourceEntity());
 		
@@ -325,7 +321,6 @@ public class PublishedService {
 	public void servePut(RestServiceRequest rsr, String key, JSONObject data, String etag) throws Exception {
 
 		IContext context = rsr.getContext();
-		context.startTransaction();
 		
 		IMendixObject target = getObjectByKey(context, key);
 		

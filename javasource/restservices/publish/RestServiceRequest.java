@@ -44,9 +44,13 @@ public class RestServiceRequest {
 		}
 	}
 
+	private void setContext(IContext context) {
+		this.context = context.getSudoContext();
+	}
+
 	boolean authenticate(String role, ISession existingSession) {
 		if ("*".equals(role)) {
-			this.context = Core.createSystemContext();
+			setContext(Core.createSystemContext());
 			return true;
 		}
 
@@ -87,7 +91,7 @@ public class RestServiceRequest {
 				
 			//session found?
 			if (session != null && session.getUser() != null && session.getUser().getUserRoleNames().contains(role)) {
-				this.context = session.createContext().getSudoContext();
+				setContext(session.createContext());
 				this.activeSession = session;
 				return true;
 			}
@@ -215,6 +219,13 @@ public class RestServiceRequest {
 		return request.getHeader(RestServices.HEADER_IFNONEMATCH);
 	}
 
+	public void startTransaction() {
+		if (context == null || transactionId != null)
+			throw new IllegalStateException();
+		context.startTransaction();
+		this.transactionId = context.getTransactionId();
+	}
+	
 	public void dispose() {
 		if (autoLogout)
 			Core.logout(this.activeSession);		
