@@ -76,10 +76,10 @@ public class PublishedMicroflow {
 			this.argType = argtype.getObjectType();
 			this.argName = Utils.getArgumentTypes(microflowname).keySet().iterator().next();
 			isFileSource = Core.isSubClassOf(FileDocument.entityName, argType); 
-		}
 		
-		if (Core.getMetaObject(argType).isPersistable() && !isFileSource)
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
+			if (Core.getMetaObject(argType).isPersistable() && !isFileSource)
+				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
+		}
 		
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
 		this.isReturnTypeString = returnTypeFromMF.getType() == DataTypeEnum.String; 
