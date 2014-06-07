@@ -125,6 +125,8 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.getCollection.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getCollectionAsync.class);
 			component.actionRegistry().registerUserAction(restservices.actions.GetNrOfIncomingConnections.class);
+			component.actionRegistry().registerUserAction(restservices.actions.getRequestHeader.class);
+			component.actionRegistry().registerUserAction(restservices.actions.getResponseHeader.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getRestBaseUrl.class);
 			component.actionRegistry().registerUserAction(restservices.actions.GetTrackingState.class);
 			component.actionRegistry().registerUserAction(restservices.actions.isUrl.class);
@@ -140,6 +142,7 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.resetChangeTracking.class);
 			component.actionRegistry().registerUserAction(restservices.actions.serializeObjectToJson.class);
 			component.actionRegistry().registerUserAction(restservices.actions.ServiceConsistencyCheck.class);
+			component.actionRegistry().registerUserAction(restservices.actions.setResponseHeader.class);
 			component.actionRegistry().registerUserAction(restservices.actions.StartMicroflowServiceJava.class);
 			component.actionRegistry().registerUserAction(restservices.actions.StartPublishesServicesJava.class);
 			component.actionRegistry().registerUserAction(restservices.actions.unfollowChanges.class);

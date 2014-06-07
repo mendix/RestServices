@@ -157,6 +157,7 @@ public class ChangeLogManager {
 				}
 				
 				rsr.response.flushBuffer();
+				RestServiceRequest.clearCurrentRequest(); //Async will start messing around with threads. We no longer want to use ThreadLocals..
 				AsyncContext asyncContext = rsr.request.startAsync();
 				
 				/*
