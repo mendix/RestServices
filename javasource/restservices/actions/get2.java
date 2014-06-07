@@ -11,7 +11,6 @@ package restservices.actions;
 
 import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
-
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 import com.mendix.systemwideinterfaces.core.IMendixObject;

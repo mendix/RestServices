@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.publish.ChangeLogManager;
-
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;

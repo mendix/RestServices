@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
