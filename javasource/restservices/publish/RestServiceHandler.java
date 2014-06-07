@@ -35,11 +35,11 @@ public class RestServiceHandler extends RequestHandler{
 
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
-	
+
 	public static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
-			
+
 			instance = new RestServiceHandler();
 			Core.addRequestHandler(RestServices.PATH_REST, instance);
 			started = true;
@@ -54,7 +54,7 @@ public class RestServiceHandler extends RequestHandler{
 			loadConfig(def, false);
 		}
 	}
-	
+
 	public static void loadConfig(ServiceDefinition def, boolean throwOnFailure) {
 		if (!started)
 			return;
@@ -67,7 +67,7 @@ public class RestServiceHandler extends RequestHandler{
 		catch(Exception e) {
 			errors = "Failed to run consistency checks: " + e.getMessage();
 		}
-		
+
 		if (errors != null) {
 			String msg = "Failed to load service '" + def.getName() + "': \n" + errors;
 			RestServices.LOGPUBLISH.error(msg);
@@ -85,9 +85,9 @@ public class RestServiceHandler extends RequestHandler{
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String path) {
-		
+
 		long start = System.currentTimeMillis();
-		
+
 		HttpServletRequest request = (HttpServletRequest) req.getOriginalRequest();
 		HttpServletResponse response = (HttpServletResponse) resp.getOriginalResponse();
 
@@ -99,7 +99,7 @@ public class RestServiceHandler extends RequestHandler{
 		} catch (MalformedURLException e1) {
 			throw new IllegalStateException(e1);
 		}
-		
+
 		String[] basePath = u.getPath().split("/");
 		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
 
@@ -108,7 +108,7 @@ public class RestServiceHandler extends RequestHandler{
 
 		if (RestServices.LOGPUBLISH.isDebugEnabled())
 			RestServices.LOGPUBLISH.debug("incoming request: " + Utils.getRequestUrl(request));
-	
+
 		RestServiceRequest rsr = new RestServiceRequest(request, response);
 		try {
 			PublishedService service = null;
@@ -116,7 +116,7 @@ public class RestServiceHandler extends RequestHandler{
 			if (parts.length > 0) {
 				service = RestServices.getService(parts[0]);
 				mf = RestServices.getPublishedMicroflow(parts[0]);
-				if (service == null && mf == null) 
+				if (service == null && mf == null)
 					throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 			}
 
@@ -126,11 +126,12 @@ public class RestServiceHandler extends RequestHandler{
 			else if (mf != null && !rsr.authenticate(mf.getRequiredRole(), getSessionFromRequest(req))) {
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			}
-			
+
 			if (rsr.getContext() != null) {
 				rsr.startTransaction();
 				RestServiceRequest.setCurrentRequest(rsr);
 			}
+
 			if (mf != null) {
 				if (isMetaDataRequest(method, parts, rsr))
 					mf.serveDescription(rsr);
@@ -139,17 +140,17 @@ public class RestServiceHandler extends RequestHandler{
 			}
 			else
 				dispatch(method, parts, rsr, service);
-			
+
 			if (rsr.getContext() != null && rsr.getContext().isInTransaction())
 				rsr.getContext().endTransaction();
-			
+
 			if (RestServices.LOGPUBLISH.isDebugEnabled())
 				RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
 		}
 		catch(RestPublishException rre) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
 			rollback(rsr);
-			
+
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
 		}
 		catch(Throwable e) {
@@ -159,13 +160,13 @@ public class RestServiceHandler extends RequestHandler{
 				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
 				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage());
 			}
-			else { 
+			else {
 				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
 				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.");
 			}
 		}
 		finally {
-			rsr.dispose(); 
+			rsr.dispose();
 		}
 	}
 
@@ -177,7 +178,7 @@ public class RestServiceHandler extends RequestHandler{
 		for (String param : rsr.request.getParameterMap().keySet())
 			target.put(param, rsr.request.getParameter(param));
 	}
-	
+
 	private void rollback(RestServiceRequest rsr) {
 		if (rsr != null && rsr.getContext() != null && rsr.getContext().isInTransaction())
 			rsr.getContext().rollbackTransAction();
@@ -187,13 +188,13 @@ public class RestServiceHandler extends RequestHandler{
 			String detail) {
 		rsr.response.reset();
 		rsr.response.setStatus(status);
-		
+
 		//reques authentication
 		if (status == HttpStatus.SC_UNAUTHORIZED)
 			rsr.response.addHeader(RestServices.HEADER_WWWAUTHENTICATE, "Basic realm=\"Rest Services\"");
-		
+
 		rsr.startDoc();
-		
+
 		switch(rsr.getResponseContentType()) {
 		default:
 		case HTML:
@@ -204,7 +205,7 @@ public class RestServiceHandler extends RequestHandler{
 			rsr.datawriter.value(new JSONObject(ImmutableMap.of("error", (Object) title, "status", status, "message", detail)));
 			break;
 		}
-		
+
 		rsr.endDoc();
 	}
 
@@ -212,7 +213,7 @@ public class RestServiceHandler extends RequestHandler{
 			CoreException, RestPublishException {
 		boolean handled = false;
 		boolean isGet = "GET".equals(method);
-		
+
 		switch(parts.length) {
 		case 0:
 			if (isGet) {
@@ -228,9 +229,9 @@ public class RestServiceHandler extends RequestHandler{
 				else if (rsr.request.getParameter(RestServices.PARAM_COUNT) != null)
 					service.serveCount(rsr);
 				else
-					service.serveListing(rsr, 
-							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")), 
-							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")), 
+					service.serveListing(rsr,
+							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")),
+							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")),
 							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_LIMIT, "-1")));
 			}
 			else if ("POST".equals(method)) {
