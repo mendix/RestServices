@@ -4,6 +4,7 @@ package restservices.publish;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -14,6 +15,8 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumeException;
+import restservices.consume.RestConsumer;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.Utils;
@@ -96,9 +99,9 @@ public class RestServiceHandler extends RequestHandler{
 		} catch (MalformedURLException e1) {
 			throw new IllegalStateException(e1);
 		}
-		path = u.getPath().substring(1 + RestServices.PATH_REST.length()); //Path which is passed to this request is already decode and therefor useless...
 		
-		String[] parts = path.isEmpty() ? new String[]{} : path.split("/");
+		String[] basePath = u.getPath().split("/");
+		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
 
 		response.setCharacterEncoding(RestServices.UTF8);
 		response.setHeader("Expires", "-1");
@@ -124,7 +127,10 @@ public class RestServiceHandler extends RequestHandler{
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			}
 			
-			rsr.startTransaction();
+			if (rsr.getContext() != null) {
+				rsr.startTransaction();
+				RestServiceRequest.setCurrentRequest(rsr);
+			}
 			if (mf != null) {
 				if (isMetaDataRequest(method, parts, rsr))
 					mf.serveDescription(rsr);
@@ -155,7 +161,7 @@ public class RestServiceHandler extends RequestHandler{
 			}
 			else { 
 				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
-				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
+				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.");
 			}
 		}
 		finally {
@@ -189,6 +195,7 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.startDoc();
 		
 		switch(rsr.getResponseContentType()) {
+		default:
 		case HTML:
 			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p><p>Status code:" + status + "</p>");
 			break;
