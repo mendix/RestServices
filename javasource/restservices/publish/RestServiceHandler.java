@@ -169,8 +169,10 @@ public class RestServiceHandler extends RequestHandler{
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			}
 			
-			rsr.startTransaction();
-			RestServiceRequest.setCurrentRequest(rsr);
+			if (rsr.getContext() != null) {
+				rsr.startTransaction();
+				RestServiceRequest.setCurrentRequest(rsr);
+			}
 			if (mf != null) {
 				if (isMetaDataRequest(method, parts, rsr))
 					mf.serveDescription(rsr);
@@ -201,7 +203,7 @@ public class RestServiceHandler extends RequestHandler{
 			}
 			else { 
 				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
-				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please contact a system administrator");
+				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.");
 			}
 		}
 		finally {
