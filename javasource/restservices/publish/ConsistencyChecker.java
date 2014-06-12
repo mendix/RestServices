@@ -12,11 +12,15 @@ import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.core.CoreRuntimeException;
 import com.mendix.systemwideinterfaces.core.IDataType;
+import com.mendix.systemwideinterfaces.core.IDataType.DataTypeEnum;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 
+import communitycommons.XPath;
 import restservices.RestServices;
 import restservices.proxies.ServiceDefinition;
 import restservices.util.Utils;
+import system.proxies.User;
+import system.proxies.UserRole;
 
 public class ConsistencyChecker {
 	public static String check(ServiceDefinition def) {
@@ -41,9 +45,38 @@ public class ConsistencyChecker {
 		
 		//TODO: should only one service that defines 'GET object', which will be the default
 		
-		//TODO: check security
+		String secError = checkAccessRole(def.getAccessRole());
+		if (secError != null)
+			errors.add(secError);
 		
 		return errors.size() == 0 ? null : "* " + StringUtils.join(errors, "\n* ");
+	}
+
+	public static String checkAccessRole(String accessRole) {
+		if (accessRole == null || accessRole.trim().isEmpty())
+			return "No access role has been set. Use '*' for all, or provide a Userrole name or Microflow name";
+		
+		if ("*".equals(accessRole))
+			return null;
+		
+		try {
+			if (null != XPath.create(Core.createSystemContext(), UserRole.class).eq(UserRole.MemberNames.Name, accessRole).first())
+				return null;
+		} catch (CoreException e) {
+			throw new RuntimeException(e);
+		}
+		
+		if (!Utils.microflowExists(accessRole))
+			return "'" + accessRole + "' doesn't seem to be an existing userrole or microflow";
+		
+		if (Utils.getArgumentTypes(accessRole).size() != 0)
+			return "The authentication microflow '" + accessRole + "' shouldn' t take any arguments";
+		
+		IDataType rt = Core.getReturnType(accessRole);
+		if (rt.getType() != DataTypeEnum.Object || !Core.isSubClassOf(User.entityName, rt.getObjectType()))
+			return "The authentication microflow '" + accessRole + "' should return a 'System.User' object or derivate thereof";
+		
+		return null;
 	}
 
 	private static void checkOnDeleteMF(ServiceDefinition def,

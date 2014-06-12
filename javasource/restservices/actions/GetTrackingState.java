@@ -34,6 +34,9 @@ public class GetTrackingState extends CustomJavaAction<String>
 		this.feed = __feed == null ? null : restservices.proxies.DataSyncState.initialize(getContext(), __feed);
 
 		// BEGIN USER CODE
+		if (feed == null)
+			throw new IllegalArgumentException();
+		
 		return ChangeLogListener.getTrackingState(feed.getCollectionUrl()).toString();
 		// END USER CODE
 	}

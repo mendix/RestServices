@@ -179,7 +179,7 @@ public class ChangeTests extends TestBase{
 			t2 = XPath.create(c2, TaskCopy.class)
 				.eq(TaskCopy.MemberNames.Nr, t1.getNr())
 				.eq(TaskCopy.MemberNames.Description, "milk")
-				.firstOrWait(1000);
+				.firstOrWait(10000);
 			Assert.assertTrue(t2 != null);
 			
 			t1.setDescription("karnemilk");
@@ -188,7 +188,7 @@ public class ChangeTests extends TestBase{
 			t2 = XPath.create(c2, TaskCopy.class)
 					.eq(TaskCopy.MemberNames.Nr, t1.getNr())
 					.eq(TaskCopy.MemberNames.Description, "karnemilk")
-					.firstOrWait(1000);
+					.firstOrWait(10000);
 			Assert.assertTrue(t2 != null);
 				
 			Thread.sleep(3 * Math.abs(timeout) * 1000); //initial request is over now
@@ -199,7 +199,7 @@ public class ChangeTests extends TestBase{
 			t2 = XPath.create(c2, TaskCopy.class)
 					.eq(TaskCopy.MemberNames.Nr, t1.getNr())
 					.eq(TaskCopy.MemberNames.Description, "twix")
-					.firstOrWait(1000);
+					.firstOrWait(10000);
 			Assert.assertTrue(t2 != null);
 		}
 		finally {

@@ -97,8 +97,9 @@ public class JSONSchemaBuilder {
 		//persistent object, describe this object in the service as well
 		else {
 			buildTypeDefinition(child); //make sure the type is available in the schema
-			type = new JSONObject().put("$ref", "#/definitions/" + typeMap.get(child.getName()));
-			if ("type1".equals(type))
+			String targetType = typeMap.get(child.getName());
+			type = new JSONObject().put("$ref", "#/definitions/" + targetType);
+			if ("type1".equals(targetType))
 				hasReferenceToRoot  = true;
 		}
 

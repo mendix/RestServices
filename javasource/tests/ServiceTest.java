@@ -7,13 +7,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
 import restservices.RestServices;
+import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
+import restservices.proxies.RequestResult;
 import restservices.publish.PublishedMicroflow;
 import restservices.util.Utils;
 import tests.proxies.ReplaceIn;
@@ -58,6 +61,38 @@ public class ServiceTest extends TestBase {
 		output = new ReplaceOut(c);
 		RestConsumer.request(c, HttpMethod.GET, url, input.getMendixObject(), output.getMendixObject(), true);
 		Assert.assertEquals("Yuuluu", output.getresult());
+	}
+	
+	@Test
+	public void testMfServiceImpersonate() throws Exception {
+		String testuser = getTestUser();
+		
+		new PublishedMicroflow("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", "Search & Replace with impersonate");
+		
+		IContext c = Core.createSystemContext();
+		
+		String url = RestServices.getServiceUrl("GetCurrentUsername");
+
+		try {
+			RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+			Assert.assertFalse(true);
+		}
+		catch(RestConsumeException e) {
+			Assert.assertEquals(e.getResponseData().getStatus(), HttpStatus.SC_UNAUTHORIZED);
+		}
+		
+		try {
+			RestConsumer.addHeaderToNextRequest("apikey", "nonsense");
+			RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+			Assert.assertFalse(true);
+		}
+		catch(RestConsumeException e) {
+			Assert.assertEquals(e.getResponseData().getStatus(), HttpStatus.SC_UNAUTHORIZED);
+		}
+
+		RestConsumer.addHeaderToNextRequest("apikey", testuser);
+		RequestResult resp = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+		Assert.assertEquals(resp.getResponseBody(), testuser);
 	}
 	
 	@Test
