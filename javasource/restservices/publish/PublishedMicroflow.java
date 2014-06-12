@@ -224,7 +224,11 @@ public class PublishedMicroflow {
 			.key("name").value(getName())
 			.key("description").value(description)
 			.key("url").value(RestServices.getServiceUrl(getName()))
-			.key("arguments").value(JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname)))
+			.key("arguments").value(
+					hasArgument 
+					? JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname))
+					: null
+			)
 			.key("accepts_binary_data").value(isFileSource)
 			.key("result").value(isFileTarget 
 					? RestServices.CONTENTTYPE_OCTET + " stream"
