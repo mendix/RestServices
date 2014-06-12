@@ -103,7 +103,7 @@ Publishing a microflow is conceptually very similar to publishing a webservice. 
 
 A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
 
-Publishing a microflow is as simple as calling `CreateMicroflowService` with the public name of the operation and the microflow that provides the implementation. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*
+Publishing a microflow is as simple as calling `CreateMicroflowService` with the microflow that provides the implementation. The name of the operation will be derived form the microflow name. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*. For securing your microflow service see [Securing published services](#securing-published-services) 
 
 ## Publishing a data service
 
@@ -149,7 +149,7 @@ Description | (optional) | Description of this services. Will be part of the gen
 Source Entity | (required) | The entity in the data model that should be published. Should be persistable. Example: `MyModule.Task`
 Source Key Attribute | (required) | Attribute that uniquely identifies an object and which will be used as external reference to this object. The attribute should not change over time. Example: `TaskID`
 Source Constraint | (optional) | XPath constraint that limits which objects are readable / writable through this service. It is possible to use the `'[%Current_User%]'` token inside this constraint, unless the *Enable Change Log* flag is set. Example: `[Finished = false() and MyModule.Task_Owner = '[%Current_User%]']`
-Required Role | `*` | Set this property to indicate that authentication is required to use this service. Exactly one project wide role can be specified. If set, the consumer is required to authenticate using Basic Authentication if the consumer doesn't have a normal Mendix client session. Use `*` to make the service world readable / writable.
+Authentication Role / Microflow | `*` | See [Securing published services](#securing-published-services) 
 On Publish Microflow | (optional) | Microflow that transforms a *source object* into some transient object which (the *view*). This view will be serialized into JSON/HTML/XML when data is requested from the service. The speed of this microflow primarily determines the speed of the service as a whole.
 On Update Microflow | (optional) | Microflow that processes incoming changes. Should have two parameters; one of same type as the *source entity*, and one which is a transient entity. The transient object will be constructed with JSON data in the incoming request. This transient object should be processed by the microflow and update the *source* object as desired. Use the `ThrowWebserviceException` method of Community Commons to signal any exceptions to the consumer.
 On Delete Microflow | (optional) | Similar to the *On Update Microflow* but takes a String attribute as argument, that represents the *key* of the object that should be deleted
@@ -165,6 +165,14 @@ Enable Create | `false` | Allows consumers to create new objects using POST at *
 Enable Delete | `false` | Allows consumers to remove existing objects using DELETE at *rest/servicename/objectid*
 Enable Change Log | `false` | See next section
 Use Strict Versioning | `false` | If set to true, all requests that modify data are required to provide an `if-none-match` header, to verify that the request is based on the latest known version. This way conflicting updates are detected and it is not possible to base changes on stale objects
+
+#### Securing published services
+
+For a published service, three authentication models can be used:
+
+1. `*` indicates that a service is world accessible. This holds for both reading and writing (if applicable)
+2. `Rolename` indicates that authentication is required, and that credentials for a user that has a specific role are required. This works similar to webservice authentication, except that the 'WebServiceUser' attribute isn't required to be set. Normal users can perform REST requests as well. The REST module will attempt to pick up any client session that is available (useful when invoking the service from a browser, using Ajax for example). If no such session is found, basic authentication needs to be provided to send credentials to the service. 
+3. `Module.Microflowname` can be used to set up a custom authentication mechanism. This microflow shouldn't require any arguments and return a System.User object or null (if authentication failed). If a user object was returned, the service will be invoked under a fresh session of that user. In the microflow, you can use `getRequestHeader` calls to extract HTTP headers from the request, which can be used to perform authentication. This is very useful if you want to setup authentication using a api key for example. 
 
 #### Enabling the change log
 

@@ -21,7 +21,6 @@ import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IDataType.DataTypeEnum;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
-import communitycommons.XPath;
 import restservices.RestServices;
 import restservices.publish.RestServiceRequest.RequestContentType;
 import restservices.publish.RestServiceRequest.ResponseType;
@@ -31,7 +30,6 @@ import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
-import system.proxies.UserRole;
 
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 
@@ -43,24 +41,25 @@ public class PublishedMicroflow {
 	private boolean isReturnTypeString;
 	private String returnType;
 	private String argName;
-	private String securityRole;
+	private String securityRoleOrMicroflow;
 	private String description;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 	
 	private static final ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory(100000, new File(System.getProperty("java.io.tmpdir"))));
 
-	public PublishedMicroflow(String microflowname, String securityRole, String description) throws CoreException{
+	public PublishedMicroflow(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
 		this.microflowname = microflowname;
-		this.securityRole = securityRole;
+		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;
 		this.consistencyCheck();
 		RestServices.registerPublishedMicroflow(this);
 	}
 
 	private void consistencyCheck() throws CoreException {
-		if (!"*".equals(securityRole) && null == XPath.create(Core.createSystemContext(), UserRole.class).eq(UserRole.MemberNames.Name, securityRole).first())
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", the security role should exists, or the microflow should be marked world readable by using role '*'");
+		String secError = ConsistencyChecker.checkAccessRole(this.securityRoleOrMicroflow);
+		if (secError != null)
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ": " + secError);
 		
 		int argCount = Utils.getArgumentTypes(microflowname).size(); 
 		
@@ -96,6 +95,8 @@ public class PublishedMicroflow {
 					throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a non-persistable object or a file document");
 			}
 		}
+		
+		
 	}
 	
 	void execute(final RestServiceRequest rsr) throws Exception {
@@ -210,8 +211,8 @@ public class PublishedMicroflow {
 		return microflowname.split("\\.")[1];
 	}
 
-	public String getRequiredRole() {
-		return securityRole;
+	public String getRequiredRoleOrMicroflow() {
+		return securityRoleOrMicroflow;
 	}
 
 	public void serveDescription(RestServiceRequest rsr) {

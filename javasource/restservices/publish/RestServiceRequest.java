@@ -1,6 +1,7 @@
 package restservices.publish;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,9 +14,11 @@ import org.apache.commons.httpclient.HttpStatus;
 import restservices.RestServices;
 import restservices.util.DataWriter;
 import restservices.util.Utils;
+import system.proxies.User;
 
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
 
@@ -57,12 +60,21 @@ public class RestServiceRequest {
 		return this.context;
 	}
 
-	boolean authenticate(String role, ISession existingSession) {
+	boolean authenticate(String role, ISession existingSession) throws Exception {
 		if ("*".equals(role)) {
 			setContext(Core.createSystemContext());
 			return true;
 		}
 
+		else if (role.indexOf('.') != -1) //Modeler forbids dots in userrole names, while microflow names always are a qualified name
+			return authenticateWithMicroflow(role);
+		
+		else
+			return authenticateWithCredentials(role, existingSession);
+	}
+
+	private boolean authenticateWithCredentials(String role,
+			ISession existingSession)  throws Exception {
 		String authHeader = request.getHeader(RestServices.HEADER_AUTHORIZATION);
 		String username = null;
 		String password = null;
@@ -108,9 +120,57 @@ public class RestServiceRequest {
 		}
 		catch(Exception e) {
 			RestServices.LOGPUBLISH.warn("Failed to authenticate '" + username + "'" + e.getMessage(), e);
+			throw e;
 		}
 		
 		return false;
+	}
+
+	
+	private static final Map<String, Object> EMPTY_MAP = new HashMap<String, Object>();
+	
+	private boolean authenticateWithMicroflow(String microflowName) throws Exception {
+		
+		
+		try {
+			
+			// Create a context and transaction, so that headers can be inspected during the execution of the authorisation microflow.
+			IContext c = Core.createSystemContext();
+			c.startTransaction();
+			currentRequests.put(c.getTransactionId().toString(), this);
+			
+			boolean exception = false;
+			IUser user;
+			
+			try {
+				IMendixObject userobject = Core.execute(c, microflowName, EMPTY_MAP);
+				if (userobject == null) 
+					return false;
+				else 
+					user = Core.getUser(c, (String) userobject.getValue(c, User.MemberNames.Name.toString()));
+			}
+			catch (Exception e) {
+				exception = true;
+				throw e;
+			}
+			finally {
+				currentRequests.remove(c.getTransactionId().toString());
+				if (exception)
+					c.rollbackTransAction();
+				else
+					c.endTransaction();
+			}
+			
+			ISession session = Core.initializeSession(user, null);
+			this.autoLogout = true;
+			this.activeSession = session;
+			this.setContext(session.createContext());
+			return true;
+
+		} catch (Exception e) {
+			RestServices.LOGPUBLISH.warn("Failed to authenticate request using microflow '" + microflowName + "', microflow threw an unexpected exception: "  + e.getMessage(), e);
+			throw e;
+		}
 	}
 
 	private RequestContentType determineRequestContentType(HttpServletRequest request) {
