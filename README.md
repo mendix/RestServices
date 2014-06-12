@@ -363,3 +363,32 @@ It is also possible do share data using RestServices as the module generates RES
 # HTTP Verbs in Rest
 
 See the table at [http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services](http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services) to get an idea how the `get`, `put`, `post` and `delete` verbs should be used in combination with rest. The RestServices module respects these best practices as well.
+
+# Releases
+
+## Version 1.1
+
+New features:
+
+* Introduced `get2`, which is similar to get, but takes an argument object as well, which is converted to url parameters
+* Introduced sandbox compatibility by falling back to `ws-doc/` because the `rest/` handler cannot be opened on sandboxes
+* Introduced `getBaseUrl` java action which returns the base endpoint of published restservices
+* Improved the rendering and styling of generated HTML pages
+* Introduced `getRestConsumeError` to be able to inspect response data after an exception has occured (fixes issue #3)
+* Introduced methods to be able to work with HTTP headers: `getResponseHeader`, `getRequestHeader` and `setResponseHeader`
+* Introduced new authentication method: a microflow can now be used for authentication. This microflow can perform authentication on, for example, apikey headers. 
+
+Fixes:
+* Reduced the number of layout dependencies on the hosting project project
+* Improved parameter names
+* Fixed issue with the garbage collector while publishing referenced data
+* Improved transaction handling
+* Fixed several minor bugs & exceptions
+
+## Version 1.0.1
+
+Initial release for Mendix 5
+
+## Version 1.0
+
+Initial release for Mendix 4
