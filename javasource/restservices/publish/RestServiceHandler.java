@@ -19,6 +19,7 @@ import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
+import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
 
 import com.google.common.collect.ImmutableMap;
@@ -111,50 +112,47 @@ public class RestServiceHandler extends RequestHandler{
 
 		RestServiceRequest rsr = new RestServiceRequest(request, response);
 		try {
-			PublishedService service = null;
-			PublishedMicroflow mf = null;
-			if (parts.length > 0) {
-				service = RestServices.getService(parts[0]);
-				mf = RestServices.getPublishedMicroflow(parts[0]);
-				if (service == null && mf == null)
-					throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+			//service overview requiest
+			if ("GET".equals(method) && parts.length == 0) {
+				ServiceDescriber.serveServiceOverview(rsr);
 			}
 
-			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticate(service.getRequiredRoleOrMicroflow(), getSessionFromRequest(req))){
-				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
-			}
-			else if (mf != null && !rsr.authenticate(mf.getRequiredRoleOrMicroflow(), getSessionFromRequest(req))) {
-				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
-			}
+			else {
+				//Find the service being invoked
+				PublishedService service = null;
+				PublishedMicroflow mf = null;
 
-			if (rsr.getContext() != null) {
-				rsr.startTransaction();
-				RestServiceRequest.setCurrentRequest(rsr);
+				if (parts.length > 0) {
+					service = RestServices.getService(parts[0]);
+					mf = RestServices.getPublishedMicroflow(parts[0]);
+					if (service == null && mf == null)
+						throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+				}
+
+				//Find request meta data
+				boolean isMeta = isMetaDataRequest(method, parts, rsr);
+				String authRole = service != null ? service.getRequiredRoleOrMicroflow() : mf.getRequiredRoleOrMicroflow();
+
+				//authenticate
+				if (!isMeta && (mf != null || service != null)) {
+					//authenticate sets up session as side-effect
+					if (!rsr.authenticate(authRole, getSessionFromRequest(req)))
+						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+				}
+
+				executeRequest(method, parts, rsr, service, mf);
+
+				if (RestServices.LOGPUBLISH.isDebugEnabled())
+					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
 			}
-
-			if (mf != null) {
-				if (isMetaDataRequest(method, parts, rsr))
-					mf.serveDescription(rsr);
-				else
-					mf.execute(rsr);
-			}
-			else
-				dispatch(method, parts, rsr, service);
-
-			if (rsr.getContext() != null && rsr.getContext().isInTransaction())
-				rsr.getContext().endTransaction();
-
-			if (RestServices.LOGPUBLISH.isDebugEnabled())
-				RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
 		}
 		catch(RestPublishException rre) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
-			rollback(rsr);
 
+>>>>>>> 06ca250... Cleaned up transaction handling
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
 		}
 		catch(Throwable e) {
-			rollback(rsr);
 			Throwable cause = ExceptionUtils.getRootCause(e);
 			if (cause instanceof WebserviceException) {
 				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
@@ -170,6 +168,29 @@ public class RestServiceHandler extends RequestHandler{
 		}
 	}
 
+	private void executeRequest(final String method, final String[] parts,
+			final RestServiceRequest rsr, final PublishedService service,
+			final PublishedMicroflow mf) throws Exception {
+
+		rsr.withTransaction(new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
+				if (service == null) {
+					if (isMetaDataRequest(method, parts, rsr))
+						mf.serveDescription(rsr);
+					else
+						mf.execute(rsr);
+				}
+				else
+					dispatchDataService(method, parts, rsr, service);
+
+				return true;
+			}
+
+		});
+	}
+
 	private boolean isMetaDataRequest(String method, String[] parts, RestServiceRequest rsr) {
 		return "GET".equals(method) && parts.length == 1 && rsr.request.getParameter(RestServices.PARAM_ABOUT) != null;
 	}
@@ -178,12 +199,16 @@ public class RestServiceHandler extends RequestHandler{
 		for (String param : rsr.request.getParameterMap().keySet())
 			target.put(param, rsr.request.getParameter(param));
 	}
+<<<<<<< HEAD
 
 	private void rollback(RestServiceRequest rsr) {
 		if (rsr != null && rsr.getContext() != null && rsr.getContext().isInTransaction())
 			rsr.getContext().rollbackTransAction();
 	}
 
+=======
+
+>>>>>>> 06ca250... Cleaned up transaction handling
 	private void serveErrorPage(RestServiceRequest rsr, int status, String title,
 			String detail) {
 		rsr.response.reset();
@@ -209,18 +234,12 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.endDoc();
 	}
 
-	private void dispatch(String method, String[] parts, RestServiceRequest rsr, PublishedService service) throws Exception, IOException,
+	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, PublishedService service) throws Exception, IOException,
 			CoreException, RestPublishException {
 		boolean handled = false;
 		boolean isGet = "GET".equals(method);
 
 		switch(parts.length) {
-		case 0:
-			if (isGet) {
-				handled = true;
-				ServiceDescriber.serveServiceOverview(rsr);
-			}
-			break;
 		case 1:
 			if (isGet) {
 				handled = true;
