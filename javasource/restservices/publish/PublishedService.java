@@ -49,7 +49,7 @@ public class PublishedService {
 		String constraint = def.getSourceConstraint() == null ? "" : def.getSourceConstraint();
 		
 		if (constraint.contains(RestServices.CURRENTUSER_TOKEN))
-			constraint.replace(RestServices.CURRENTUSER_TOKEN, "'" + context.getSession().getUser().getMendixObject().getId() + "'");
+			constraint = constraint.replace(RestServices.CURRENTUSER_TOKEN, "'" + context.getSession().getUser().getMendixObject().getId() + "'");
 
 		return constraint;
 	}
@@ -411,7 +411,7 @@ public class PublishedService {
 
 		String currentETag = getETag(context, key, source);
 		
-		if (currentETag == null | !currentETag.equals(etag))
+		if (currentETag == null || !currentETag.equals(etag))
 			throw new RestPublishException(RestExceptionType.CONFLICTED, "Update conflict detected, expected change based on version '" + currentETag + "', but found '" + etag + "'");
 	}
 

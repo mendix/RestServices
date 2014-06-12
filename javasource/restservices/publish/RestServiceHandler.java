@@ -39,7 +39,7 @@ public class RestServiceHandler extends RequestHandler{
 	private static boolean started = false;
 	
 	@SuppressWarnings("deprecation")
-	public static void start(IContext context) throws Exception {
+	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
 			
