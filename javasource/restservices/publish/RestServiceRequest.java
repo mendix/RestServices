@@ -151,7 +151,7 @@ public class RestServiceRequest {
 				return false;
 			
 			IUser user = Core.getUser(c, (String) userobject.getValue(c, User.MemberNames.Name.toString()));
-			ISession session = Core.initializeSession(user, null);
+			ISession session = Core.initializeSession(c, user, null, null);
 			
 			this.autoLogout = true;
 			this.activeSession = session;

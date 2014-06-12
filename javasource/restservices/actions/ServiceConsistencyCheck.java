@@ -33,6 +33,9 @@ public class ServiceConsistencyCheck extends UserAction<String>
 		this.def = __def == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __def);
 
 		// BEGIN USER CODE
+		if (def == null)
+			throw new IllegalArgumentException();
+		
 		return ConsistencyChecker.check(def);
 		// END USER CODE
 	}

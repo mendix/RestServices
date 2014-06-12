@@ -13,19 +13,19 @@ import restservices.publish.PublishedMicroflow;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
- *
+ * 
  */
 public class StartMicroflowServiceJava extends UserAction<Boolean>
 {
 	private String microflowName;
-	private String securityRoleOrMicroflow;
+	private String securityRole;
 	private String description;
 
 	public StartMicroflowServiceJava(String microflowName, String securityRole, String description)
 	{
 		super();
 		this.microflowName = microflowName;
-		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
+		this.securityRole = securityRole;
 		this.description = description;
 	}
 
@@ -33,7 +33,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new PublishedMicroflow(microflowName, securityRoleOrMicroflow, description);
+		new PublishedMicroflow(microflowName, securityRole, description);
 		return true;
 		// END USER CODE
 	}

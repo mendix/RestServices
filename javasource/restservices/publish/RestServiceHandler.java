@@ -37,7 +37,8 @@ public class RestServiceHandler extends RequestHandler{
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
 
-	public static void start(IContext context) throws Exception {
+	@SuppressWarnings("deprecation")
+	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
 
@@ -149,7 +150,6 @@ public class RestServiceHandler extends RequestHandler{
 		catch(RestPublishException rre) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
 
->>>>>>> 06ca250... Cleaned up transaction handling
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
 		}
 		catch(Throwable e) {
@@ -199,16 +199,7 @@ public class RestServiceHandler extends RequestHandler{
 		for (String param : rsr.request.getParameterMap().keySet())
 			target.put(param, rsr.request.getParameter(param));
 	}
-<<<<<<< HEAD
 
-	private void rollback(RestServiceRequest rsr) {
-		if (rsr != null && rsr.getContext() != null && rsr.getContext().isInTransaction())
-			rsr.getContext().rollbackTransAction();
-	}
-
-=======
-
->>>>>>> 06ca250... Cleaned up transaction handling
 	private void serveErrorPage(RestServiceRequest rsr, int status, String title,
 			String detail) {
 		rsr.response.reset();

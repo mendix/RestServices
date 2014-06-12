@@ -35,7 +35,17 @@ public class GetNrOfIncomingConnections extends UserAction<Long>
 		this.index = __index == null ? null : restservices.proxies.ChangeLog.initialize(getContext(), __index);
 
 		// BEGIN USER CODE
-		ServiceDefinition def = index.getChangeLog_ServiceDefinition();
+		if (index == null)
+			throw new IllegalArgumentException();
+
+		ServiceDefinition def;
+		try {
+			//The next line can throw when the id is created but cannot be retrieve yet when it is being instantiated.....
+			def = index.getChangeLog_ServiceDefinition();
+		}
+		catch (IllegalArgumentException e) {
+			return 0L;
+		}
 		if (def == null)
 			return 0L;
 		PublishedService service = RestServices.getService(def.getName());

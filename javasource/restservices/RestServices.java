@@ -134,9 +134,13 @@ public class RestServices {
 		names.addAll(microflowServices.keySet());
 		return names;
 	}
+	
+	public static String getBaseUrl() {
+		return Core.getConfiguration().getApplicationRootUrl() + PATH_REST;
+	}
 
 	public static String getServiceUrl(String name) {
-		return Core.getConfiguration().getApplicationRootUrl() + "rest/" + name + (microflowServices.containsKey(name) ? "" : "/");
+		return getBaseUrl() + name + (microflowServices.containsKey(name) ? "" : "/");
 	}
 
 	public static void registerPublishedMicroflow(PublishedMicroflow s) {
