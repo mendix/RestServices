@@ -483,7 +483,7 @@ public class PublishedService {
 		return "*".equals(def.getAccessRole().trim());
 	}
 
-	public String getRequiredRole() {
+	public String getRequiredRoleOrMicroflow() {
 		return def.getAccessRole().trim();
 	}
 

@@ -30,82 +30,84 @@ import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
-import system.proxies.UserRole;
 
 public class PublishedMicroflow {
-	
+
 	private String microflowname;
 	private boolean hasArgument;
 	private String argType;
 	private boolean isReturnTypeString;
 	private String returnType;
 	private String argName;
-	private String securityRole;
+	private String securityRoleOrMicroflow;
 	private String description;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 
-	public PublishedMicroflow(String microflowname, String securityRole, String description) throws CoreException{
+	public PublishedMicroflow(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
 		this.microflowname = microflowname;
-		this.securityRole = securityRole;
+		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;
 		this.consistencyCheck();
 		RestServices.registerPublishedMicroflow(this);
 	}
 
 	private void consistencyCheck() throws CoreException {
-		if (!"*".equals(securityRole) && null == XPath.create(Core.createSystemContext(), UserRole.class).eq(UserRole.MemberNames.Name, securityRole).first())
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", the security role should exists, or the microflow should be marked world readable by using role '*'");
-		
-		int argCount = Utils.getArgumentTypes(microflowname).size(); 
-		
+		String secError = ConsistencyChecker.checkAccessRole(this.securityRoleOrMicroflow);
+		if (secError != null)
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ": " + secError);
+
+		int argCount = Utils.getArgumentTypes(microflowname).size();
+
 		if (argCount > 1)
 			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should exist and have exactly zero or one argument");
-		
+
 		hasArgument = argCount == 1;
 		if (hasArgument) {
-			
+
 			IDataType argtype = Utils.getFirstArgumentType(microflowname);
 			if (!argtype.isMendixObject())
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a single object as input argument");
 			this.argType = argtype.getObjectType();
 			this.argName = Utils.getArgumentTypes(microflowname).keySet().iterator().next();
-			isFileSource = Core.isSubClassOf(FileDocument.entityName, argType); 
-		
+			isFileSource = Core.isSubClassOf(FileDocument.entityName, argType);
+
 			if (Core.getMetaObject(argType).isPersistable() && !isFileSource)
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
 		}
-		
+
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
-		this.isReturnTypeString = returnTypeFromMF.getType() == DataTypeEnum.String; 
+		this.isReturnTypeString = returnTypeFromMF.getType() == DataTypeEnum.String;
 		if (!isReturnTypeString) {
-			
+
 			if (!returnTypeFromMF.isMendixObject() && !returnTypeFromMF.isList())
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a String, List or Object type");
 			if (returnTypeFromMF.isMendixObject() || returnTypeFromMF.isList()){
-				
+
 				this.returnType = returnTypeFromMF.getObjectType();
-				isFileTarget = Core.isSubClassOf(FileDocument.entityName, this.returnType); 
+				isFileTarget = Core.isSubClassOf(FileDocument.entityName, this.returnType);
 
 				if (Core.getMetaObject(this.returnType).isPersistable()  && !isFileTarget)
 					throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a non-persistable object or a file document");
 			}
 		}
+
+
 	}
-	
+
 	void execute(final RestServiceRequest rsr) throws Exception {
-		
+
 		Map<String, Object> args = new HashMap<String, Object>();
 
 		parseInputData(rsr, args);
-		
+
 		if (isReturnTypeString)
 			rsr.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
 		else if (isFileTarget)
 			rsr.setResponseContentType(ResponseType.BINARY);
-		
+
 		Object result = Core.execute(rsr.getContext(), microflowname, args);
-		
+
 		Utils.whileRetainingObject(rsr.getContext(), result, new IRetainWorker<Boolean>() {
 
 			@Override
@@ -150,26 +152,26 @@ public class PublishedMicroflow {
 		if (hasArgument) {
 			IMendixObject argO = Core.instantiate(rsr.getContext(), argType);
 			JSONObject data = new JSONObject();
-			
+
 			//multipart data
 			if (rsr.getRequestContentType() == RequestContentType.MULTIPART) {
 				parseMultipartData(rsr, argO, data);
 			}
 
 			//json data
-			else if (rsr.getRequestContentType() == RequestContentType.JSON) { 
+			else if (rsr.getRequestContentType() == RequestContentType.JSON) {
 				String body = IOUtils.toString(rsr.request.getInputStream());
 				data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 			}
-			
+
 			//not multipart but expecting a file?
 			else if (isFileSource) {
 				Core.storeFileDocumentContent(rsr.getContext(), argO, rsr.request.getInputStream());
 			}
-			
+
 			//read request parameters (this picks up form encoded data as well)
 			RestServiceHandler.requestParamsToJsonMap(rsr, data);
-			
+
 			//serialize to Mendix Object
 			JsonDeserializer.readJsonDataIntoMendixObject(rsr.getContext(), data, argO, false);
 			args.put(argName, argO);
@@ -179,7 +181,7 @@ public class PublishedMicroflow {
 	private void parseMultipartData(RestServiceRequest rsr, IMendixObject argO,
 			JSONObject data) throws IOException, ServletException {
 		boolean hasFile = false;
-		
+
 
 		for(Part part : rsr.request.getParts()) {
 			String filename = ((MultiPart)part).getContentDispositionFilename();
@@ -202,31 +204,31 @@ public class PublishedMicroflow {
 		return microflowname.split("\\.")[1];
 	}
 
-	public String getRequiredRole() {
-		return securityRole;
+	public String getRequiredRoleOrMicroflow() {
+		return securityRoleOrMicroflow;
 	}
 
 	public void serveDescription(RestServiceRequest rsr) {
 		rsr.startDoc();
-		
+
 		if (rsr.getResponseContentType() == ResponseType.HTML)
 			rsr.write("<h1>Operation: ").write(getName()).write("</h1>");
-		
+
 		rsr.datawriter.object()
 			.key("name").value(getName())
 			.key("description").value(description)
 			.key("url").value(RestServices.getServiceUrl(getName()))
 			.key("arguments").value(
-					hasArgument 
+					hasArgument
 					? JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname))
 					: null
 			)
 			.key("accepts_binary_data").value(isFileSource)
-			.key("result").value(isFileTarget 
+			.key("result").value(isFileTarget
 					? RestServices.CONTENTTYPE_OCTET + " stream"
 					: JSONSchemaBuilder.build(Core.getReturnType(microflowname)))
 			.endObject();
-		
+
 		rsr.endDoc();
 	}
 }

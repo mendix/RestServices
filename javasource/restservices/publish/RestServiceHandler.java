@@ -120,10 +120,10 @@ public class RestServiceHandler extends RequestHandler{
 					throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 			}
 
-			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticate(service.getRequiredRole(), getSessionFromRequest(req))){
+			if (service != null && !isMetaDataRequest(method, parts, rsr) && !rsr.authenticate(service.getRequiredRoleOrMicroflow(), getSessionFromRequest(req))){
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			}
-			else if (mf != null && !rsr.authenticate(mf.getRequiredRole(), getSessionFromRequest(req))) {
+			else if (mf != null && !rsr.authenticate(mf.getRequiredRoleOrMicroflow(), getSessionFromRequest(req))) {
 				throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 			}
 
