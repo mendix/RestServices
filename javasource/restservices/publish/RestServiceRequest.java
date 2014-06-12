@@ -3,7 +3,6 @@ package restservices.publish;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,6 +16,7 @@ import restservices.util.Utils;
 import system.proxies.User;
 
 import com.mendix.core.Core;
+import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
@@ -36,7 +36,6 @@ public class RestServiceRequest {
 	protected DataWriter datawriter;
 	private boolean autoLogout;
 	private ISession activeSession;
-	private UUID transactionId;
 
 	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response) {
 		this.request = request;
@@ -129,41 +128,35 @@ public class RestServiceRequest {
 	
 	private static final Map<String, Object> EMPTY_MAP = new HashMap<String, Object>();
 	
-	private boolean authenticateWithMicroflow(String microflowName) throws Exception {
+	private boolean authenticateWithMicroflow(final String microflowName) throws Exception {
 		
 		
 		try {
 			
-			// Create a context and transaction, so that headers can be inspected during the execution of the authorisation microflow.
-			IContext c = Core.createSystemContext();
-			c.startTransaction();
-			currentRequests.put(c.getTransactionId().toString(), this);
+			// Create a context and transaction, so that headers can be inspected during the execution of the authorization microflow.
+			final IContext c = Core.createSystemContext();
+			this.setContext(c);
 			
-			boolean exception = false;
-			IUser user;
+			IMendixObject userobject = withTransaction(new Function<IMendixObject>() {
+
+				@Override
+				public IMendixObject apply() throws CoreException {
+					return Core.execute(c, microflowName, EMPTY_MAP);
+				}
 			
-			try {
-				IMendixObject userobject = Core.execute(c, microflowName, EMPTY_MAP);
-				if (userobject == null) 
-					return false;
-				else 
-					user = Core.getUser(c, (String) userobject.getValue(c, User.MemberNames.Name.toString()));
-			}
-			catch (Exception e) {
-				exception = true;
-				throw e;
-			}
-			finally {
-				currentRequests.remove(c.getTransactionId().toString());
-				if (exception)
-					c.rollbackTransAction();
-				else
-					c.endTransaction();
-			}
+			});
 			
+			this.setContext(null); //authentication was in system context, but execution will be in user context
+			
+			if (userobject == null) 
+				return false;
+			
+			IUser user = Core.getUser(c, (String) userobject.getValue(c, User.MemberNames.Name.toString()));
 			ISession session = Core.initializeSession(user, null);
+			
 			this.autoLogout = true;
 			this.activeSession = session;
+
 			this.setContext(session.createContext());
 			return true;
 
@@ -243,10 +236,6 @@ public class RestServiceRequest {
 		return this;
 	}
 	
-	private UUID getTransactionId() {
-		return this.transactionId;
-	}
-
 	public void close() {
 		try {
 			this.response.getOutputStream().close();
@@ -258,7 +247,6 @@ public class RestServiceRequest {
 	private void startHTMLDoc() {
 		this.write("<!DOCTYPE HTML><html><head><style>" + RestServices.STYLESHEET + "</style><head><body>");		
 	}
-
 
 	private void endHTMLDoc() {
 		String url = Utils.getRequestUrl(request);
@@ -288,18 +276,9 @@ public class RestServiceRequest {
 		return request.getHeader(RestServices.HEADER_IFNONEMATCH);
 	}
 
-	public void startTransaction() {
-		if (context == null || transactionId != null)
-			throw new IllegalStateException();
-		context.startTransaction();
-		this.transactionId = context.getTransactionId();
-	}
-	
 	public void dispose() {
 		if (autoLogout)
 			Core.logout(this.activeSession);
-		if (getContext() != null)
-			clearCurrentRequest(this);
 	}
 	
 	public IUser getCurrentUser() {
@@ -331,12 +310,37 @@ public class RestServiceRequest {
 	
 	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 
 	
-	public static void clearCurrentRequest(RestServiceRequest rsr) {
-		currentRequests.remove(rsr.getTransactionId().toString());
+	public static interface Function<T> {
+		T apply() throws Exception;
 	}
 	
-	public static void setCurrentRequest(RestServiceRequest rsr) {
-		currentRequests.put(rsr.getTransactionId().toString(), rsr);
+	public <T> T withTransaction(Function<T> worker) throws Exception {
+		IContext c = getContext();
+		if (c == null)
+			return worker.apply();
+		
+		if (c.isInTransaction())
+			throw new IllegalStateException("Already in transaction");
+		
+		c.startTransaction();
+		
+		String transactionId = c.getTransactionId().toString();
+		currentRequests.put(transactionId, this);
+		
+		boolean hasException = true;
+		try {
+			T res = worker.apply();
+			hasException = false;
+			return res;
+		}
+		finally {
+			currentRequests.remove(transactionId);
+			
+			if (hasException)
+				c.rollbackTransAction();
+			else
+				c.endTransaction();
+		}
 	}
 
 	public static RestServiceRequest getCurrentRequest(IContext context) {
