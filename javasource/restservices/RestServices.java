@@ -47,7 +47,7 @@ public class RestServices {
 			"body { font-family: Arial; font-size: 0.8em; padding: 0px 60px; margin: 0px; }"+
 			"h1 { margin: 0 -60px 20px; background-color: #5c3566; font-size: em; padding: 20px 60px; color: white; box-shadow: 3px 3px 2px #666;text-transform:uppercase }"+
 			"table { border-spacing: 0px; margin-top:-4px } "+
-			"td:first-child { border-right: 1px dotted #ccc; font-weight: bold; text-align: right; color: #666;text-transform:uppercase;font-size:0.8em;padding-top:6px}"+
+			"td:first-child { border-right: 1px dotted #ccc; font-weight: bold; text-align: right; color: #666;font-size:0.8em;padding-top:6px}"+
 			"td:first-child, th:first-child { background-color: #f9f9f9; }"+
 			"td { padding: 4px 8px; vertical-align: top; min-width: 100px; }"+
 			"a, a:active, a:visited { color: #5c3566 }"+
