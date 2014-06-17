@@ -21,7 +21,6 @@ import restservices.util.Utils.IRetainWorker;
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
-import com.mendix.core.CoreRuntimeException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.connectionbus.requests.IRetrievalSchema;
 import com.mendix.systemwideinterfaces.connectionbus.requests.ISortExpression.SortDirection;

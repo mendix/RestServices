@@ -19,7 +19,6 @@ import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IDataType.DataTypeEnum;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-import communitycommons.XPath;
 
 import restservices.RestServices;
 import restservices.publish.RestServiceRequest.RequestContentType;

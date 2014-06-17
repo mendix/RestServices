@@ -16,7 +16,6 @@ import restservices.proxies.ChangeLog;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.JSONSchemaBuilder;
-import restservices.util.JsonSerializer;
 import restservices.util.RestServiceRuntimeException;
 import restservices.util.Utils;
 

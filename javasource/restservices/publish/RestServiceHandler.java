@@ -15,8 +15,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.consume.RestConsumeException;
-import restservices.consume.RestConsumer;
 import restservices.proxies.ServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
@@ -37,7 +35,6 @@ public class RestServiceHandler extends RequestHandler{
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
 
-	@SuppressWarnings("deprecation")
 	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
