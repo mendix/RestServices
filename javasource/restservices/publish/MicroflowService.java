@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IDataType;
-import com.mendix.systemwideinterfaces.core.IDataType.DataTypeEnum;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 import restservices.RestServices;
@@ -35,7 +34,7 @@ public class MicroflowService {
 	private String microflowname;
 	private boolean hasArgument;
 	private String argType;
-	private boolean isReturnTypeString;
+	private boolean isReturnTypePrimitive;
 	private String returnType;
 	private String argName;
 	private String securityRoleOrMicroflow;
@@ -76,22 +75,16 @@ public class MicroflowService {
 		}
 
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
-		this.isReturnTypeString = returnTypeFromMF.getType() == DataTypeEnum.String;
-		if (!isReturnTypeString) {
+		if (returnTypeFromMF.isMendixObject() || returnTypeFromMF.isList()){
+			
+			this.returnType = returnTypeFromMF.getObjectType();
+			isFileTarget = Core.isSubClassOf(FileDocument.entityName, this.returnType); 
 
-			if (!returnTypeFromMF.isMendixObject() && !returnTypeFromMF.isList())
-				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a String, List or Object type");
-			if (returnTypeFromMF.isMendixObject() || returnTypeFromMF.isList()){
-
-				this.returnType = returnTypeFromMF.getObjectType();
-				isFileTarget = Core.isSubClassOf(FileDocument.entityName, this.returnType);
-
-				if (Core.getMetaObject(this.returnType).isPersistable()  && !isFileTarget)
-					throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a non-persistable object or a file document");
-			}
+			if (Core.getMetaObject(this.returnType).isPersistable()  && !isFileTarget)
+				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", its return type should be a non-persistable object or a file document");
 		}
-
-
+		else
+			isReturnTypePrimitive = true;
 	}
 
 	void execute(final RestServiceRequest rsr) throws Exception {
@@ -99,8 +92,8 @@ public class MicroflowService {
 		Map<String, Object> args = new HashMap<String, Object>();
 
 		parseInputData(rsr, args);
-
-		if (isReturnTypeString)
+		
+		if (isReturnTypePrimitive)
 			rsr.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
 		else if (isFileTarget)
 			rsr.setResponseContentType(ResponseType.BINARY);
@@ -130,8 +123,8 @@ public class MicroflowService {
 			InputStream stream  = Core.getFileDocumentContent(rsr.getContext(), (IMendixObject)result);
 			IOUtils.copy(stream, rsr.response.getOutputStream());
 		}
-		else if (this.isReturnTypeString) {
-			rsr.write(String.valueOf(result));
+		else if (this.isReturnTypePrimitive) {
+			rsr.write(result == null ? "" : String.valueOf(result));
 		}
 		else if (result instanceof List<?>) {
 			rsr.startDoc();
