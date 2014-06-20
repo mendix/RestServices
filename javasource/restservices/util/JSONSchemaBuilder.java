@@ -145,7 +145,7 @@ public class JSONSchemaBuilder {
 	
 	private static JSONObject orNull(JSONObject type) {
 		return new JSONObject().put("oneOf", new JSONArray()
-			.put(new JSONObject().put("type", JSONObject.NULL))
+			.put(new JSONObject().put("type", "null"))
 			.put(type)
 		);
 	}
