@@ -137,7 +137,7 @@ public class JSONSchemaBuilder {
 			return orNull(new JSONObject().put("type", "string")); //TODO: use enum from the meta model!
 		case HashString:
 		case String:
-			return /*orNull*/(new JSONObject().put("type", "string")); //MWE: is it allowed to pass 'null' as string value, probably not, although it is semantically the same as not passing a value...
+			return orNull(new JSONObject().put("type", "string")); 
 		default:
 			throw new IllegalStateException("Unspported primitive type:  " + type);
 		}

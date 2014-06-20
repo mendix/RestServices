@@ -148,6 +148,8 @@ public class JsonDeserializer {
 		case Enum:
 		case HashString:
 		case String:
+			if (object.isNull(attr))
+				return null;
 			return object.getString(attr);
 		case AutoNumber:
 		case Long:

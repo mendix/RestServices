@@ -408,6 +408,36 @@ public class BasicTests extends TestBase {
 		Assert.assertEquals(0, ar.length());
 	}
 
-
+	@Test 
+	public void nullStringTest() throws Exception{
+		IContext c = Core.createSystemContext();
+		IContext c2 = Core.createSystemContext();
+		
+		def.setSourceKeyAttribute("Nr");
+		def.setUseStrictVersioning(false);
+		def.setEnableCreate(true);
+		def.setEnableUpdate(true);
+		def.setEnableDelete(true);
+		def.setEnableGet(true);
+		def.setEnableListing(true);
+		def.commit();
+		
+		Task t = new Task(c);
+		t.setDescription("bla");
+		t.commit();
+		
+		CTaskView copy = new CTaskView(c2);
+		RestConsumer.getObject(c2, baseUrl + t.getNr(), null, copy.getMendixObject());
+		Assert.assertEquals("bla", copy.getDescription());
+		
+		copy.setDescription(null);
+		RestConsumer.putObject(c2, baseUrl + t.getNr(), copy.getMendixObject(), null);
+		
+		copy = new CTaskView(c2);
+		
+		RestConsumer.getObject(c2, baseUrl + t.getNr(), null, copy.getMendixObject());
+		Assert.assertEquals(null, copy.getDescription());
+		
+	}
 	
 }
