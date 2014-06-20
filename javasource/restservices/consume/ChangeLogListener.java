@@ -98,7 +98,7 @@ public class ChangeLogListener {
 		String requestUrl = getChangesRequestUrl(true);
 		
 		GetMethod get = this.currentRequest = new GetMethod(requestUrl);
-		get.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_TEXTJSON);
+		get.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
 		
 		RestConsumer.includeHeaders(get, headers);
 		int status = RestConsumer.client.executeMethod(get);

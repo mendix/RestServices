@@ -198,7 +198,7 @@ public class RestConsumer {
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
 		
-		request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_TEXTJSON);
+		request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
 
 		if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
 			request.addRequestHeader(e.getKey(), e.getValue());
@@ -407,7 +407,7 @@ public class RestConsumer {
 		else if (asFormData && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
 		else if (data != null)
-			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_TEXTJSON, RestServices.UTF8);
+			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_APPLICATIONJSON, RestServices.UTF8);
 		
 		final StringBuilder bodyBuffer = new StringBuilder();
 		HttpResponseData response = doRequest(method.toString(), url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {

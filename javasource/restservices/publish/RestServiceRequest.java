@@ -180,7 +180,7 @@ public class RestServiceRequest {
 		String ct = request.getHeader(RestServices.HEADER_CONTENTTYPE);
 		if (ct == null) 
 			return RequestContentType.OTHER;
-		if (ct.contains("text/json"))
+		if (ct.contains("json"))
 			return RequestContentType.JSON;
 		else if (ct.contains(RestServices.CONTENTTYPE_FORMENCODED))
 			return RequestContentType.FORMENCODED;
@@ -196,7 +196,7 @@ public class RestServiceRequest {
 		if (ct == null)
 			ct = request.getHeader(RestServices.HEADER_ACCEPT);
 		if (ct != null) {
-			if (ct.contains("text/json"))
+			if (ct.contains("json"))
 				return ResponseType.JSON;
 			if (ct.contains("html"))
 				return ResponseType.HTML;
