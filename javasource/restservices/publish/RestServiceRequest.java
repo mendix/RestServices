@@ -21,7 +21,6 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
-
 import communitycommons.StringUtils;
 
 public class RestServiceRequest {
@@ -89,8 +88,14 @@ public class RestServiceRequest {
 		try {
 			//Check credentials provided by request
 			if (username != null) {
-				session = Core.login(username, password);
+				try {
+					session = Core.login(username, password);
+				}
+				catch (Exception e) { //can throw both authentication exceptions and core runtime exceptions, depending on whether the password or the username is wrong...
+					//Invalid credentials
+				}
 				if (session == null) {
+					RestServices.LOGPUBLISH.warn("Invalid credentials for user '" + username + "'");
 					setStatus(HttpStatus.SC_UNAUTHORIZED);
 					write("Invalid credentials");
 					return false;
@@ -151,7 +156,12 @@ public class RestServiceRequest {
 			if (userobject == null) 
 				return false;
 			
-			IUser user = Core.getUser(c, (String) userobject.getValue(c, User.MemberNames.Name.toString()));
+			String username = (String) userobject.getValue(c, User.MemberNames.Name.toString());
+			
+			if (username == null || username.isEmpty())
+				throw new IllegalStateException("Trying to authenticate a user without a name"); //yes, this actually went wrong once during testing, due to a broken DB record...
+			
+			IUser user = Core.getUser(c, username);
 			ISession session = Core.initializeSession(user, null);
 			
 			this.autoLogout = true;
@@ -277,7 +287,7 @@ public class RestServiceRequest {
 	}
 
 	public void dispose() {
-		if (autoLogout)
+		if (autoLogout && this.activeSession != null)
 			Core.logout(this.activeSession);
 	}
 	
