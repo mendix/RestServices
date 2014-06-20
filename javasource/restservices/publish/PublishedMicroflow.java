@@ -123,6 +123,10 @@ public class PublishedMicroflow {
 			//write nothing
 		}
 		else if (this.isFileTarget) {
+			if (!Core.getMetaObject(argType).hasMetaDataAccess(rsr.getContext()))
+				throw new IllegalStateException("Cannot serialize filedocument of type '" + argType + "', the object is not accessiable for users with role " + rsr.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
+
+			
 			InputStream stream  = Core.getFileDocumentContent(rsr.getContext(), (IMendixObject)result);
 			IOUtils.copy(stream, rsr.response.getOutputStream());
 		}
@@ -149,6 +153,9 @@ public class PublishedMicroflow {
 	private void parseInputData(RestServiceRequest rsr, Map<String, Object> args)
 			throws IOException, ServletException, Exception {
 		if (hasArgument) {
+			if (!Core.getMetaObject(argType).hasMetaDataAccess(rsr.getContext()))
+				throw new IllegalStateException("Cannot instantiate object of type '" + argType + "', the object is not accessiable for users with role " + rsr.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
+			
 			IMendixObject argO = Core.instantiate(rsr.getContext(), argType);
 			JSONObject data = new JSONObject();
 
