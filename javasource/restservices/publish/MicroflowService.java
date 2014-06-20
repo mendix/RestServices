@@ -33,7 +33,7 @@ import system.proxies.FileDocument;
 
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 
-public class PublishedMicroflow {
+public class MicroflowService {
 	
 	private String microflowname;
 	private boolean hasArgument;
@@ -48,7 +48,7 @@ public class PublishedMicroflow {
 	
 	private static final ServletFileUpload servletFileUpload = new ServletFileUpload(new DiskFileItemFactory(100000, new File(System.getProperty("java.io.tmpdir"))));
 
-	public PublishedMicroflow(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
+	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
 		this.microflowname = microflowname;
 		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;

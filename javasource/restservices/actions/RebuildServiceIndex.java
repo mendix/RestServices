@@ -20,7 +20,7 @@ import com.mendix.webui.CustomJavaAction;
 public class RebuildServiceIndex extends CustomJavaAction<Boolean>
 {
 	private IMendixObject __serviceDefinition;
-	private restservices.proxies.ServiceDefinition serviceDefinition;
+	private restservices.proxies.DataServiceDefinition serviceDefinition;
 
 	public RebuildServiceIndex(IContext context, IMendixObject serviceDefinition)
 	{
@@ -31,7 +31,7 @@ public class RebuildServiceIndex extends CustomJavaAction<Boolean>
 	@Override
 	public Boolean executeAction() throws Exception
 	{
-		this.serviceDefinition = __serviceDefinition == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __serviceDefinition);
+		this.serviceDefinition = __serviceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __serviceDefinition);
 
 		// BEGIN USER CODE
 		if (serviceDefinition == null)

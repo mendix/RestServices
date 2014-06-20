@@ -13,7 +13,7 @@ import org.json.JSONObject;
 import restservices.RestServices;
 import restservices.proxies.ChangeItem;
 import restservices.proxies.ChangeLog;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.RestServiceRuntimeException;
@@ -31,12 +31,12 @@ import communitycommons.XPath.IBatchProcessor;
 
 public class ChangeLogManager {
 	
-	private PublishedService service;
+	private DataService service;
 	private final List<ChangeLogConsumer> consumers = new Vector<ChangeLogConsumer>(); 
 	private volatile ChangeLog changeLog;
 	private volatile boolean isRebuildingChangeLog = false;
 	
-	public ChangeLogManager(PublishedService service) throws CoreException {
+	public ChangeLogManager(DataService service) throws CoreException {
 		this.service = service;
 		if (service.def.getEnableChangeLog() && service.def.getEnableGet()) {
 			IContext context = Core.createSystemContext();
@@ -289,7 +289,7 @@ public class ChangeLogManager {
 			return;
 		
 		//publishDelete has no checksonraint, since, if the object was not published yet, there will be no objectstate created or updated if source is deleted
-		PublishedService service = RestServices.getServiceForEntity(source.getType());
+		DataService service = RestServices.getServiceForEntity(source.getType());
 		
 		if (!service.def.getEnableChangeLog()) {
 			RestServices.LOGPUBLISH.warn("Skipped publishing delete, changetracking is not enabled for service " + service.getName());
@@ -319,7 +319,7 @@ public class ChangeLogManager {
 		if (source == null)
 			return;
 		
-		PublishedService service = RestServices.getServiceForEntity(source.getType());
+		DataService service = RestServices.getServiceForEntity(source.getType());
 		
 		if (!service.def.getEnableChangeLog()) {
 			RestServices.LOGPUBLISH.warn("Skipped publishing update, changetracking is not enabled for service " + service.getName());
@@ -448,7 +448,7 @@ public class ChangeLogManager {
 	 * @param def
 	 * @return
 	 */
-	private String calculateServiceConfigurationHash(ServiceDefinition def) {
+	private String calculateServiceConfigurationHash(DataServiceDefinition def) {
 		IMetaObject returnType = Core.getMetaObject(Core.getReturnType(def.getOnPublishMicroflow()).getObjectType());
 		JSONObject exporttype = JSONSchemaBuilder.build(returnType);
 		

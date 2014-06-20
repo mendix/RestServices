@@ -17,13 +17,13 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 
 import communitycommons.XPath;
 import restservices.RestServices;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.util.Utils;
 import system.proxies.User;
 import system.proxies.UserRole;
 
 public class ConsistencyChecker {
-	public static String check(ServiceDefinition def) {
+	public static String check(DataServiceDefinition def) {
 		List<String> errors = new ArrayList<String>();
 		
 		if (!Utils.isValidKey(def.getName()))
@@ -79,23 +79,23 @@ public class ConsistencyChecker {
 		return null;
 	}
 
-	private static void checkOnDeleteMF(ServiceDefinition def,
+	private static void checkOnDeleteMF(DataServiceDefinition def,
 			List<String> errors) {
 		// TODO Auto-generated method stub
 		
 	}
 
-	private static void checkOnUpdateMF(ServiceDefinition def,
+	private static void checkOnUpdateMF(DataServiceDefinition def,
 			List<String> errors) {
 		try {
-			PublishedService.extractArgInfoForUpdateMicroflow(def);
+			DataService.extractArgInfoForUpdateMicroflow(def);
 		}
 		catch(Exception e) {
 			errors.add("Invalid update microflow: " + e.getMessage());
 		}
 	}
 
-	private static void checkOnPublishMf(ServiceDefinition def,
+	private static void checkOnPublishMf(DataServiceDefinition def,
 			List<String> errors) {
 		if (Core.getInputParameters(def.getOnPublishMicroflow()) == null)
 			errors.add("OnPublishMicroflow is not a valid microflow");
@@ -112,7 +112,7 @@ public class ConsistencyChecker {
 		}
 	}
 
-	private static void checkSource(ServiceDefinition def, List<String> errors) {
+	private static void checkSource(DataServiceDefinition def, List<String> errors) {
 		if (def.getSourceEntity() == null || Core.getMetaObject(def.getSourceEntity()) == null)
 			errors.add("Invalid source entity");
 		else {

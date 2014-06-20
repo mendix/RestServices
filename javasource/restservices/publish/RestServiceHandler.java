@@ -17,7 +17,7 @@ import org.json.JSONObject;
 import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
@@ -93,12 +93,12 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private static void loadConfig(IContext context) throws CoreException {
-		for (ServiceDefinition def : XPath.create(context, ServiceDefinition.class).all()) {
+		for (DataServiceDefinition def : XPath.create(context, DataServiceDefinition.class).all()) {
 			loadConfig(def, false);
 		}
 	}
 	
-	public static void loadConfig(ServiceDefinition def, boolean throwOnFailure) {
+	public static void loadConfig(DataServiceDefinition def, boolean throwOnFailure) {
 		if (!started)
 			return;
 
@@ -119,7 +119,7 @@ public class RestServiceHandler extends RequestHandler{
 		}
 		else {
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
-			PublishedService service = new PublishedService(def);
+			DataService service = new DataService(def);
 			RestServices.registerService(service.getName(), service);
 			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
 		}
@@ -162,28 +162,28 @@ public class RestServiceHandler extends RequestHandler{
 			
 			else {
 				//Find the service being invoked
-				PublishedService service = null;
-				PublishedMicroflow mf = null;
+				DataService dataService = null;
+				MicroflowService mfService = null;
 	
 				if (parts.length > 0) {
-					service = RestServices.getService(parts[0]);
-					mf = RestServices.getPublishedMicroflow(parts[0]);
-					if (service == null && mf == null) 
+					dataService = RestServices.getService(parts[0]);
+					mfService = RestServices.getPublishedMicroflow(parts[0]);
+					if (dataService == null && mfService == null) 
 						throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 				}
 	
 				//Find request meta data
 				boolean isMeta = isMetaDataRequest(method, parts, rsr);
-				String authRole = service != null ? service.getRequiredRoleOrMicroflow() : mf.getRequiredRoleOrMicroflow();
+				String authRole = dataService != null ? dataService.getRequiredRoleOrMicroflow() : mfService.getRequiredRoleOrMicroflow();
 				
 				//authenticate
-				if (!isMeta && (mf != null || service != null)) {
+				if (!isMeta && (mfService != null || dataService != null)) {
 					//authenticate sets up session as side-effect
 					if (!rsr.authenticate(authRole, getSessionFromRequest(req)))
 						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 				}
 				
-				executeRequest(method, parts, rsr, service, mf);
+				executeRequest(method, parts, rsr, dataService, mfService);
 				
 				if (RestServices.LOGPUBLISH.isDebugEnabled())
 					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
@@ -211,8 +211,8 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private void executeRequest(final String method, final String[] parts,
-			final RestServiceRequest rsr, final PublishedService service,
-			final PublishedMicroflow mf) throws Exception {
+			final RestServiceRequest rsr, final DataService service,
+			final MicroflowService mf) throws Exception {
 		
 		rsr.withTransaction(new Function<Boolean>() {
 
@@ -267,7 +267,7 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.endDoc();
 	}
 
-	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, PublishedService service) throws Exception, IOException,
+	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, DataService service) throws Exception, IOException,
 			CoreException, RestPublishException {
 		boolean handled = false;
 		boolean isGet = "GET".equals(method);

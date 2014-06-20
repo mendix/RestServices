@@ -17,7 +17,7 @@ import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
-import restservices.publish.PublishedMicroflow;
+import restservices.publish.MicroflowService;
 import restservices.util.Utils;
 import tests.proxies.ReplaceIn;
 import tests.proxies.ReplaceOut;
@@ -33,7 +33,7 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testMfService() throws Exception {
-		new PublishedMicroflow("Tests.ReplaceService", "*", "Search & Replace");
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -67,7 +67,7 @@ public class ServiceTest extends TestBase {
 	public void testMfServiceImpersonate() throws Exception {
 		String testuser = getTestUser();
 		
-		new PublishedMicroflow("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", "Search & Replace with impersonate");
+		new MicroflowService("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", "Search & Replace with impersonate");
 		
 		IContext c = Core.createSystemContext();
 		
@@ -99,7 +99,7 @@ public class ServiceTest extends TestBase {
 	public void testFileTransfer() throws Exception {
 		IContext c = Core.createSystemContext();
 		try {
-			new PublishedMicroflow("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
+			new MicroflowService("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
 			String url = RestServices.getServiceUrl("FileMultiplier");
 			
 			TestFile source = new TestFile(c);

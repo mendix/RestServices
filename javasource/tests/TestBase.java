@@ -11,7 +11,7 @@ import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.publish.ChangeLogManager;
 import system.proxies.User;
 import system.proxies.UserRole;
@@ -27,7 +27,7 @@ import communitycommons.StringUtils;
 import communitycommons.XPath;
 
 public class TestBase {
-	ServiceDefinition def;
+	DataServiceDefinition def;
 	String baseUrl;
 	RequestResult lastRequestResult;
 	String username;
@@ -41,9 +41,9 @@ public class TestBase {
 		XPath.create(c, TaskCopy.class).deleteAll();
 		XPath.create(c, SecuredObject.class).deleteAll();
 		
-		XPath.create(c, ServiceDefinition.class).eq(ServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
+		XPath.create(c, DataServiceDefinition.class).eq(DataServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
 		
-		this.def = XPath.create(c, ServiceDefinition.class).findOrCreateNoCommit(ServiceDefinition.MemberNames.Name, "tasks");
+		this.def = XPath.create(c, DataServiceDefinition.class).findOrCreateNoCommit(DataServiceDefinition.MemberNames.Name, "tasks");
 		def.setEnableGet(true);
 		def.setEnableListing(true);
 		def.setAccessRole("*");

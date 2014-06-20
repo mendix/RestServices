@@ -9,7 +9,7 @@
 
 package restservices.actions;
 
-import restservices.publish.PublishedMicroflow;
+import restservices.publish.MicroflowService;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
@@ -34,7 +34,7 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new PublishedMicroflow(microflowName, securityRoleOrMicroflow, description); 
+		new MicroflowService(microflowName, securityRoleOrMicroflow, description); 
 		return true;
 		// END USER CODE
 	}

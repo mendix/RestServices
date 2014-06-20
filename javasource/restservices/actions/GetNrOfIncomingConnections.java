@@ -10,8 +10,8 @@
 package restservices.actions;
 
 import restservices.RestServices;
-import restservices.proxies.ServiceDefinition;
-import restservices.publish.PublishedService;
+import restservices.proxies.DataServiceDefinition;
+import restservices.publish.DataService;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
@@ -39,7 +39,7 @@ public class GetNrOfIncomingConnections extends CustomJavaAction<Long>
 		if (index == null)
 			throw new IllegalArgumentException();
 		
-		ServiceDefinition def;
+		DataServiceDefinition def;
 		try {
 			//The next line can throw when the id is created but cannot be retrieve yet when it is being instantiated.....
 			def = index.getChangeLog_ServiceDefinition();
@@ -49,7 +49,7 @@ public class GetNrOfIncomingConnections extends CustomJavaAction<Long>
 		}
 		if (def == null)
 			return 0L;
-		PublishedService service = RestServices.getService(def.getName());
+		DataService service = RestServices.getService(def.getName());
 		if (service == null)
 			return 0L;
 		return service.getChangeLogManager().getNrOfConnections();

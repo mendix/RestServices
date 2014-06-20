@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.ChangeItem;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JsonDeserializer;
@@ -32,11 +32,11 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
 
-public class PublishedService {
+public class DataService {
 
-	ServiceDefinition def;
+	DataServiceDefinition def;
 
-	public PublishedService(ServiceDefinition def) {
+	public DataService(DataServiceDefinition def) {
 		this.def = def;
 		try {
 			changeLogManager = new ChangeLogManager(this);
@@ -368,7 +368,7 @@ public class PublishedService {
 	 * Or throws an exception if the microflow does not supplies these argements
 	 * @return
 	 */
-	static String[] extractArgInfoForUpdateMicroflow(ServiceDefinition serviceDef) {
+	static String[] extractArgInfoForUpdateMicroflow(DataServiceDefinition serviceDef) {
 		Map<String, String> argtypes = Utils.getArgumentTypes(serviceDef.getOnUpdateMicroflow());
 		
 		if (argtypes.size() != 2)
