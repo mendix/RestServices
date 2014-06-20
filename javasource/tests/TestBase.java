@@ -8,7 +8,6 @@ import restservices.RestServices;
 import restservices.consume.ChangeLogListener;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
-import restservices.proxies.DataSyncState;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
@@ -17,6 +16,7 @@ import restservices.publish.ChangeLogManager;
 import system.proxies.User;
 import system.proxies.UserRole;
 import tests.proxies.CTaskView;
+import tests.proxies.SecuredObject;
 import tests.proxies.Task;
 import tests.proxies.TaskCopy;
 
@@ -31,12 +31,15 @@ public class TestBase {
 	String baseUrl;
 	RequestResult lastRequestResult;
 	String username;
+	User user;
+	static final String PASSWORD = "Password1!";
 
 	@Before
 	public void setup() throws CoreException {
 		IContext c = Core.createSystemContext();
 		XPath.create(c, Task.class).deleteAll();
 		XPath.create(c, TaskCopy.class).deleteAll();
+		XPath.create(c, SecuredObject.class).deleteAll();
 		
 		XPath.create(c, ServiceDefinition.class).eq(ServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
 		
@@ -60,6 +63,7 @@ public class TestBase {
 		if (username != null) {
 			XPath.create(Core.createSystemContext(), User.class).eq(User.MemberNames.Name, username).deleteAll();
 			username = null;
+			user = null;
 		}
 		ChangeLogListener.unfollow(baseUrl);
 	}
@@ -69,11 +73,12 @@ public class TestBase {
 			IContext c = Core.createSystemContext();
 			User user = XPath.create(c, User.class).findOrCreate(
 					User.MemberNames.Name, StringUtils.randomHash(),
-					User.MemberNames.Password, "Password1!");
+					User.MemberNames.Password, PASSWORD);
 
 			user.setUserRoles(XPath.create(c, UserRole.class).eq(UserRole.MemberNames.Name, "User").all());
 			user.commit();
-			username = user.getName();
+			this.username = user.getName();
+			this.user = user;
 		}
 		return username;
 	}
