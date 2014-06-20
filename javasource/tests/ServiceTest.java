@@ -78,7 +78,7 @@ public class ServiceTest extends TestBase {
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException e) {
-			Assert.assertEquals(e.getResponseData().getStatus(), HttpStatus.SC_UNAUTHORIZED);
+			Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, e.getResponseData().getStatus());
 		}
 		
 		try {
