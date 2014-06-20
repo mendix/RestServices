@@ -53,7 +53,7 @@ public class RestServices {
 			"h2 { margin-top: 40px; color: white; background-color:#333; border-radius:2px; padding: 8px 16px;}"+
 			"h2 small { font-size: 0.5em; } h2 a { color: white !important; text-decoration: none; }";
 
-	public static final String CONTENTTYPE_TEXTJSON = "text/json";
+	public static final String CONTENTTYPE_APPLICATIONJSON = "application/json";
 	public static final String CONTENTTYPE_FORMENCODED = "application/x-www-form-urlencoded";
 	public static final String CONTENTTYPE_MULTIPART = "multipart/form-data";
 	public static final String CONTENTTYPE_OCTET = "application/octet-stream";
