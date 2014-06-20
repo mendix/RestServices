@@ -29,8 +29,8 @@ public class RestServiceRequest {
 
 	HttpServletRequest request;
 	HttpServletResponse response;
-	private ResponseType responseContentType = ResponseType.JSON;
-	private RequestContentType requestContentType = RequestContentType.OTHER;
+	private ResponseType responseContentType;
+	private RequestContentType requestContentType;
 	private IContext context;
 	protected DataWriter datawriter;
 	private boolean autoLogout;
