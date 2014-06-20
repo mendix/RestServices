@@ -359,7 +359,7 @@ public class PublishedService {
 	}
 	
 	private boolean keyExists(IContext context, String key) throws CoreException {
-		return getObjectByKey(context, key) != null; //context is always sudo, so that should work fine
+		return getObjectByKey(context.isSudo() ? context : context.getSudoContext(), key) != null; 
 	}
 	
 	/**
@@ -439,7 +439,10 @@ public class PublishedService {
 	}
 	
 	public IMendixObject convertSourceToView(IContext context, IMendixObject source) throws CoreException {
-		return (IMendixObject) Core.execute(context, def.getOnPublishMicroflow(), source);
+		IMendixObject res = (IMendixObject) Core.execute(context, def.getOnPublishMicroflow(), source);
+		if (res == null)
+			throw new IllegalStateException("Exception during serialization: " + def.getOnPublishMicroflow() + " microflow didn't return an object");
+		return res;
 	}
 	
 	JSONObject serializeToJson(final IContext context,
