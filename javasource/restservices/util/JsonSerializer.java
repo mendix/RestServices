@@ -82,8 +82,11 @@ public class JsonSerializer {
 		if (view == null)
 			throw new IllegalArgumentException("Mendix to JSON conversion expects an object");
 		
-		JSONObject res = new JSONObject();
+		if (!view.getMetaObject().hasMetaDataAccess(context))
+			throw new IllegalStateException("During JSON serialization: Object of type '" + view.getType() + "' has no readable members for users with role(s) " + context.getSession().getUserRolesNames() + ". Please check the security rules");
 		
+		JSONObject res = new JSONObject();
+
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
 			serializeMember(context, res, e.getValue(), view.getMetaObject(), alreadySeen);
