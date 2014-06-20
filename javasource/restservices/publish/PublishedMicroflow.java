@@ -165,7 +165,7 @@ public class PublishedMicroflow {
 			}
 
 			//json data
-			else if (rsr.getRequestContentType() == RequestContentType.JSON) {
+			else if (rsr.getRequestContentType() == RequestContentType.JSON || (rsr.getRequestContentType() == RequestContentType.OTHER && !isFileSource)) { 
 				String body = IOUtils.toString(rsr.request.getInputStream());
 				data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 			}
