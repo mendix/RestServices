@@ -117,28 +117,29 @@ public class RestServiceHandler extends RequestHandler{
 
 			else {
 				//Find the service being invoked
-				DataService service = null;
-				MicroflowService mf = null;
+				DataService dataService = null;
+				MicroflowService mfService = null;
 
 				if (parts.length > 0) {
-					service = RestServices.getService(parts[0]);
-					mf = RestServices.getPublishedMicroflow(parts[0]);
-					if (service == null && mf == null)
+					parts[0] = parts[0].toLowerCase();
+					dataService = RestServices.getService(parts[0]);
+					mfService = RestServices.getPublishedMicroflow(parts[0]);
+					if (dataService == null && mfService == null) 
 						throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
 				}
 
 				//Find request meta data
 				boolean isMeta = isMetaDataRequest(method, parts, rsr);
-				String authRole = service != null ? service.getRequiredRoleOrMicroflow() : mf.getRequiredRoleOrMicroflow();
+				String authRole = dataService != null ? dataService.getRequiredRoleOrMicroflow() : mfService.getRequiredRoleOrMicroflow();
 
 				//authenticate
-				if (!isMeta && (mf != null || service != null)) {
+				if (!isMeta && (mfService != null || dataService != null)) {
 					//authenticate sets up session as side-effect
 					if (!rsr.authenticate(authRole, getSessionFromRequest(req)))
 						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
 				}
 
-				executeRequest(method, parts, rsr, service, mf);
+				executeRequest(method, parts, rsr, dataService, mfService);
 
 				if (RestServices.LOGPUBLISH.isDebugEnabled())
 					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");

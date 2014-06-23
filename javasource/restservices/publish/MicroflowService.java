@@ -200,7 +200,7 @@ public class MicroflowService {
 	}
 
 	public String getName() {
-		return microflowname.split("\\.")[1];
+		return microflowname.split("\\.")[1].toLowerCase();
 	}
 
 	public String getRequiredRoleOrMicroflow() {
