@@ -29,6 +29,9 @@ public class ConsistencyChecker {
 		if (!Utils.isValidKey(def.getName()))
 			errors.add("Invalid service name");
 		
+		if (!def.getName().toLowerCase().equals(def.getName()))
+			errors.add("Service name should be lowercased");
+		
 		checkSource(def, errors);
 		
 		if (def.getEnableChangeLog() && def.getEnableGet())

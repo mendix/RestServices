@@ -166,6 +166,7 @@ public class RestServiceHandler extends RequestHandler{
 				MicroflowService mfService = null;
 	
 				if (parts.length > 0) {
+					parts[0] = parts[0].toLowerCase();
 					dataService = RestServices.getService(parts[0]);
 					mfService = RestServices.getPublishedMicroflow(parts[0]);
 					if (dataService == null && mfService == null) 
