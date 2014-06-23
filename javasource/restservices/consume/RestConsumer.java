@@ -19,6 +19,7 @@ import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.cookie.CookiePolicy;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
@@ -198,8 +199,9 @@ public class RestConsumer {
 		else 
 			throw new IllegalStateException("Unsupported method: " + method);
 		
+		request.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
 		request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
-
+		
 		if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
 			request.addRequestHeader(e.getKey(), e.getValue());
 		includeHeaders(request);
