@@ -35,7 +35,7 @@ public class JsonDeserializer {
 	
 	public static void readJsonDataIntoMendixObject(IContext context,
 			Object jsonValue, IMendixObject target, boolean autoResolveReferences) throws Exception {
-		if (!target.getMetaObject().hasMetaDataAccess(context))
+		if (!Utils.hasDataAccess(target.getMetaObject(), context))
 			throw new IllegalStateException("During JSON deserialization: Object of type '" + target.getType() + "' cannot be altered by users with role(s) " + context.getSession().getUserRolesNames() + ". Please check the security rules");
 	
 		String targetType = target.getType();

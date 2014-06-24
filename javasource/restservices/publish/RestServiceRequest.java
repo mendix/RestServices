@@ -162,7 +162,7 @@ public class RestServiceRequest {
 				throw new IllegalStateException("Trying to authenticate a user without a name"); //yes, this actually went wrong once during testing, due to a broken DB record...
 			
 			IUser user = Core.getUser(c, username);
-			ISession session = Core.initializeSession(user, null);
+			ISession session = Core.initializeSession(c, user, null, null);
 			
 			this.autoLogout = true;
 			this.activeSession = session;
