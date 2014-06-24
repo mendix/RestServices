@@ -8,8 +8,8 @@ import java.util.Set;
 
 
 
-import restservices.publish.PublishedMicroflow;
-import restservices.publish.PublishedService;
+import restservices.publish.MicroflowService;
+import restservices.publish.DataService;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
@@ -87,18 +87,18 @@ public class RestServices {
 	public static final String CHANGE_URL = "url";
 
 
-	static Map<String, PublishedService> services = new HashMap<String, PublishedService>();
-	static Map<String, PublishedService> servicesByEntity = new HashMap<String, PublishedService>();
-	static Map<String, PublishedMicroflow> microflowServices = new HashMap<String, PublishedMicroflow>();
+	static Map<String, DataService> services = new HashMap<String, DataService>();
+	static Map<String, DataService> servicesByEntity = new HashMap<String, DataService>();
+	static Map<String, MicroflowService> microflowServices = new HashMap<String, MicroflowService>();
 
-	public static PublishedService getServiceForEntity(String entityType) {
+	public static DataService getServiceForEntity(String entityType) {
 		if (servicesByEntity.containsKey(entityType))
 			return servicesByEntity.get(entityType);
 		
 		//if not look into super entitites as well!
 		IMetaObject meta = Core.getMetaObject(entityType);
 		if (meta.getSuperObject() != null) {
-			PublishedService superService = getServiceForEntity(meta.getSuperName());
+			DataService superService = getServiceForEntity(meta.getSuperName());
 			if (superService != null) {
 				servicesByEntity.put(entityType, superService);
 				return superService;
@@ -108,8 +108,8 @@ public class RestServices {
 		return null;
 	}
 	
-	public static void registerService(String name, PublishedService def) {
-		PublishedService current = services.put(name,  def);
+	public static void registerService(String name, DataService def) {
+		DataService current = services.put(name,  def);
 		
 		if (current != null)
 			current.dispose();
@@ -125,7 +125,7 @@ public class RestServices {
 		LOGPUBLISH.info("Registered data service '" + def.getName() + "'");
 	}
 
-	public static PublishedService getService(String name) {
+	public static DataService getService(String name) {
 		return services.get(name);
 	}
 
@@ -143,12 +143,12 @@ public class RestServices {
 		return getBaseUrl() + name + (microflowServices.containsKey(name) ? "" : "/");
 	}
 
-	public static void registerPublishedMicroflow(PublishedMicroflow s) {
+	public static void registerPublishedMicroflow(MicroflowService s) {
 		microflowServices.put(s.getName(), s);
 		LOGPUBLISH.info("Registered microflow service '" + s.getName() + "'");
 	}
 	
-	public static PublishedMicroflow getPublishedMicroflow(String name) {
+	public static MicroflowService getPublishedMicroflow(String name) {
 		return microflowServices.get(name);
 	}
 }

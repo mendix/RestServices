@@ -8,7 +8,7 @@ import com.mendix.core.Core;
 import communitycommons.StringUtils;
 
 import restservices.RestServices;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JSONSchemaBuilder;
 
@@ -35,10 +35,10 @@ public class ServiceDescriber {
 	}
 
 	private RestServiceRequest rsr;
-	private ServiceDefinition def;
+	private DataServiceDefinition def;
 	private boolean isHTML;
 	
-	public ServiceDescriber(RestServiceRequest rsr, ServiceDefinition def) {
+	public ServiceDescriber(RestServiceRequest rsr, DataServiceDefinition def) {
 		this.rsr = rsr;
 		this.def = def;
 		this.isHTML = rsr.getResponseContentType() == ResponseType.HTML;

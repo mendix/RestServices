@@ -18,25 +18,25 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
  */
 public class RebuildServiceIndex extends UserAction<Boolean>
 {
-	private IMendixObject __serviceDefinition;
-	private restservices.proxies.ServiceDefinition serviceDefinition;
+	private IMendixObject __dataServiceDefinition;
+	private restservices.proxies.DataServiceDefinition dataServiceDefinition;
 
-	public RebuildServiceIndex(IMendixObject serviceDefinition)
+	public RebuildServiceIndex(IMendixObject dataServiceDefinition)
 	{
 		super();
-		this.__serviceDefinition = serviceDefinition;
+		this.__dataServiceDefinition = dataServiceDefinition;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
-		this.serviceDefinition = __serviceDefinition == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __serviceDefinition);
+		this.dataServiceDefinition = __dataServiceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __dataServiceDefinition);
 
 		// BEGIN USER CODE
-		if (serviceDefinition == null)
+		if (dataServiceDefinition == null)
 			throw new IllegalArgumentException();
 		
-		RestServices.getService(serviceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
+		RestServices.getService(dataServiceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
 		return true;
 		// END USER CODE
 	}

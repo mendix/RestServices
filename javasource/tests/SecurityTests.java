@@ -9,8 +9,8 @@ import org.junit.Test;
 import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
-import restservices.proxies.ServiceDefinition;
-import restservices.publish.PublishedMicroflow;
+import restservices.proxies.DataServiceDefinition;
+import restservices.publish.MicroflowService;
 import tests.proxies.SecuredObject;
 import tests.proxies.SecuredObjectView;
 
@@ -28,7 +28,7 @@ public class SecurityTests extends TestBase {
 		
 		this.getTestUser();
 		
-		new PublishedMicroflow("Tests.SecuredObjectCount", "Administrator", "");
+		new MicroflowService("Tests.SecuredObjectCount", "Administrator", "");
 		String serviceurl = RestServices.getServiceUrl("SecuredObjectCount");
 		
 		IContext c = Core.createSystemContext();
@@ -52,7 +52,7 @@ public class SecurityTests extends TestBase {
 		}
 		
 		//no credentials
-		new PublishedMicroflow("Tests.SecuredObjectCount", "User", "");
+		new MicroflowService("Tests.SecuredObjectCount", "User", "");
 		try {
 			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
 			Assert.assertFalse(true);
@@ -92,7 +92,7 @@ public class SecurityTests extends TestBase {
 		String username = this.getTestUser();
 		IContext c = Core.createSystemContext();
 		
-		ServiceDefinition def = XPath.create(c, ServiceDefinition.class).findOrCreateNoCommit(ServiceDefinition.MemberNames.Name, "securedobjects");
+		DataServiceDefinition def = XPath.create(c, DataServiceDefinition.class).findOrCreateNoCommit(DataServiceDefinition.MemberNames.Name, "securedobjects");
 		def.setEnableGet(true);
 		def.setEnableListing(true);
 		def.setAccessRole("User");

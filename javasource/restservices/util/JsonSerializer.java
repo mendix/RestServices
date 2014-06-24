@@ -10,7 +10,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.publish.PublishedService;
+import restservices.publish.DataService;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;
@@ -48,7 +48,7 @@ public class JsonSerializer {
 		/* persistable object, generate url */
 		if (Core.getMetaObject(id.getObjectType()).isPersistable()) {
 		
-			PublishedService service = RestServices.getServiceForEntity(id.getObjectType());
+			DataService service = RestServices.getServiceForEntity(id.getObjectType());
 			if (service == null) {
 				RestServices.LOGUTIL.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
 				return null;

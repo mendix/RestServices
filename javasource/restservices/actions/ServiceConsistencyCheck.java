@@ -19,7 +19,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class ServiceConsistencyCheck extends UserAction<String>
 {
 	private IMendixObject __def;
-	private restservices.proxies.ServiceDefinition def;
+	private restservices.proxies.DataServiceDefinition def;
 
 	public ServiceConsistencyCheck(IMendixObject def)
 	{
@@ -30,7 +30,7 @@ public class ServiceConsistencyCheck extends UserAction<String>
 	@Override
 	public String executeAction() throws Exception
 	{
-		this.def = __def == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __def);
+		this.def = __def == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __def);
 
 		// BEGIN USER CODE
 		if (def == null)

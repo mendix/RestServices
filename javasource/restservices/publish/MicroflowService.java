@@ -30,7 +30,7 @@ import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
 
-public class PublishedMicroflow {
+public class MicroflowService {
 
 	private String microflowname;
 	private boolean hasArgument;
@@ -43,7 +43,7 @@ public class PublishedMicroflow {
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 
-	public PublishedMicroflow(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
+	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
 		this.microflowname = microflowname;
 		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;

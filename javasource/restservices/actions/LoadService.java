@@ -19,7 +19,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 public class LoadService extends UserAction<Boolean>
 {
 	private IMendixObject __def;
-	private restservices.proxies.ServiceDefinition def;
+	private restservices.proxies.DataServiceDefinition def;
 
 	public LoadService(IMendixObject def)
 	{
@@ -30,7 +30,7 @@ public class LoadService extends UserAction<Boolean>
 	@Override
 	public Boolean executeAction() throws Exception
 	{
-		this.def = __def == null ? null : restservices.proxies.ServiceDefinition.initialize(getContext(), __def);
+		this.def = __def == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __def);
 
 		// BEGIN USER CODE
 		RestServiceHandler.loadConfig(def, true);

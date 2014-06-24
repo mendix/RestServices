@@ -15,7 +15,7 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.proxies.ServiceDefinition;
+import restservices.proxies.DataServiceDefinition;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
@@ -49,12 +49,12 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private static void loadConfig(IContext context) throws CoreException {
-		for (ServiceDefinition def : XPath.create(context, ServiceDefinition.class).all()) {
+		for (DataServiceDefinition def : XPath.create(context, DataServiceDefinition.class).all()) {
 			loadConfig(def, false);
 		}
 	}
 
-	public static void loadConfig(ServiceDefinition def, boolean throwOnFailure) {
+	public static void loadConfig(DataServiceDefinition def, boolean throwOnFailure) {
 		if (!started)
 			return;
 
@@ -75,7 +75,7 @@ public class RestServiceHandler extends RequestHandler{
 		}
 		else {
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
-			PublishedService service = new PublishedService(def);
+			DataService service = new DataService(def);
 			RestServices.registerService(service.getName(), service);
 			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
 		}
@@ -117,8 +117,8 @@ public class RestServiceHandler extends RequestHandler{
 
 			else {
 				//Find the service being invoked
-				PublishedService service = null;
-				PublishedMicroflow mf = null;
+				DataService service = null;
+				MicroflowService mf = null;
 
 				if (parts.length > 0) {
 					service = RestServices.getService(parts[0]);
@@ -166,8 +166,8 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private void executeRequest(final String method, final String[] parts,
-			final RestServiceRequest rsr, final PublishedService service,
-			final PublishedMicroflow mf) throws Exception {
+			final RestServiceRequest rsr, final DataService service,
+			final MicroflowService mf) throws Exception {
 
 		rsr.withTransaction(new Function<Boolean>() {
 
@@ -222,7 +222,7 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.endDoc();
 	}
 
-	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, PublishedService service) throws Exception, IOException,
+	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, DataService service) throws Exception, IOException,
 			CoreException, RestPublishException {
 		boolean handled = false;
 		boolean isGet = "GET".equals(method);
