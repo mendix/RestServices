@@ -82,7 +82,7 @@ public class JsonSerializer {
 		if (view == null)
 			throw new IllegalArgumentException("Mendix to JSON conversion expects an object");
 		
-		if (!view.getMetaObject().hasMetaDataAccess(context))
+		if (!Utils.hasDataAccess(view.getMetaObject(), context))
 			throw new IllegalStateException("During JSON serialization: Object of type '" + view.getType() + "' has no readable members for users with role(s) " + context.getSession().getUserRolesNames() + ". Please check the security rules");
 		
 		JSONObject res = new JSONObject();

@@ -19,6 +19,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
@@ -220,5 +221,9 @@ public class Utils {
 			//mf does not exist.
 			return false;
 		}
+	}
+	
+	public static boolean hasDataAccess(IMetaObject meta, IContext context) {
+		return meta.hasMetaDataAccess(context);
 	}
 }

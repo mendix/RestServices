@@ -121,7 +121,7 @@ public class MicroflowService {
 			//write nothing
 		}
 		else if (this.isFileTarget) {
-			if (!Core.getMetaObject(argType).hasMetaDataAccess(rsr.getContext()))
+			if (!Utils.hasDataAccess(Core.getMetaObject(argType), rsr.getContext()))
 				throw new IllegalStateException("Cannot serialize filedocument of type '" + argType + "', the object is not accessiable for users with role " + rsr.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
 
 			
@@ -151,7 +151,7 @@ public class MicroflowService {
 	private void parseInputData(RestServiceRequest rsr, Map<String, Object> args)
 			throws IOException, Exception {
 		if (hasArgument) {
-			if (!Core.getMetaObject(argType).hasMetaDataAccess(rsr.getContext()))
+			if (!Utils.hasDataAccess(Core.getMetaObject(argType), rsr.getContext()))
 				throw new IllegalStateException("Cannot instantiate object of type '" + argType + "', the object is not accessiable for users with role " + rsr.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
 			
 			IMendixObject argO = Core.instantiate(rsr.getContext(), argType);
