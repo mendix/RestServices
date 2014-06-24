@@ -224,6 +224,6 @@ public class Utils {
 	}
 	
 	public static boolean hasDataAccess(IMetaObject meta, IContext context) {
-		return meta.getMetaObjectAccessesWithoutXPath(context).size() > 0 || meta.getMetaObjectAccessesWithXPath(context).size() > 0;
+		return context.isSudo() || meta.getMetaObjectAccessesWithoutXPath(context).size() > 0 || meta.getMetaObjectAccessesWithXPath(context).size() > 0;
 	}
 }
