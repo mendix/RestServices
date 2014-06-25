@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import restservices.RestServices;
@@ -194,6 +195,11 @@ public class RestServiceHandler extends RequestHandler{
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
 			
 			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
+		}
+		catch(JSONException je) {
+			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
+
+			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data.", je.getMessage());
 		}
 		catch(Throwable e) {
 			Throwable cause = ExceptionUtils.getRootCause(e);
