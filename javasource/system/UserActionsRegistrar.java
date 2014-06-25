@@ -110,6 +110,7 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(communitycommons.actions.waitForLock.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.XSSSanitize.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.YearsBetween.class);
+			component.actionRegistry().registerUserAction(restservices.actions.addCookieToNextRequest.class);
 			component.actionRegistry().registerUserAction(restservices.actions.addCredentialsToNextRequest.class);
 			component.actionRegistry().registerUserAction(restservices.actions.addHeaderToNextRequest.class);
 			component.actionRegistry().registerUserAction(restservices.actions.addIfNoneMatchHeader.class);
@@ -125,7 +126,9 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.getCollection.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getCollectionAsync.class);
 			component.actionRegistry().registerUserAction(restservices.actions.GetNrOfIncomingConnections.class);
+			component.actionRegistry().registerUserAction(restservices.actions.getRequestCookies.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getRequestHeader.class);
+			component.actionRegistry().registerUserAction(restservices.actions.getResponseCookies.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getResponseHeader.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getRestBaseUrl.class);
 			component.actionRegistry().registerUserAction(restservices.actions.getRestConsumeError.class);
@@ -143,6 +146,7 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.resetChangeTracking.class);
 			component.actionRegistry().registerUserAction(restservices.actions.serializeObjectToJson.class);
 			component.actionRegistry().registerUserAction(restservices.actions.ServiceConsistencyCheck.class);
+			component.actionRegistry().registerUserAction(restservices.actions.setResponseCookie.class);
 			component.actionRegistry().registerUserAction(restservices.actions.setResponseHeader.class);
 			component.actionRegistry().registerUserAction(restservices.actions.StartMicroflowServiceJava.class);
 			component.actionRegistry().registerUserAction(restservices.actions.StartPublishesServicesJava.class);
