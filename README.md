@@ -12,6 +12,22 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 * RestServices on [GitHub](https://github.com/mweststrate/RestServices)
 * Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
 * Blog post: [Consuming your first REST service](http://www.mendix.com/blog/consuming-first-rest-service/)
+* Blog post: [REST Part II: Publishing Microflows with REST](http://www.mendix.com/blog/rest-part-ii-publishing-microflows-rest/)
+
+# Table of Contents
+
+* [Getting Started](#getting-started)
+* [Consuming REST services](#consuming-rest-services)
+* [Publishing REST services](#publishing-rest-services)
+  - [Microflows](#publishing-a-microflow)
+  - [Data](#publishing-a-data-service)
+* [(Real time) data synchronization](#data-synchronization)
+* [About JSON serialization](#json-serialization)
+* [About JSON deserialization](#json-deserialization)
+* [Working with files / binary data](#sending-and-receiving-files)
+* [Overview of all functions](#complete-function-reference)
+* [Notes for contributers](#development-notes)
+* [Changelog](#changelog)
 
 # Getting Started
 
@@ -98,6 +114,8 @@ Publishing a REST service is pretty straight forward with this modules. The modu
 PLEASE NOTE THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHSERVICES` SHOULD BE CALLED DURING STARTUP OF THE APP!
 
 ## Publishing a microflow
+
+*This readme is the reference guide. For a quick how-to about publishing microflows you might take a look at this [blog post](http://www.mendix.com/blog/rest-part-ii-publishing-microflows-rest/)*
 
 Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms) or raw binary data (for efficient downloads for example).
 
@@ -333,6 +351,131 @@ It is possible to send binary data using the `post` java action. If the `submitA
 
 If the consumed service responds with binary data, this is picked up properly by the generic `request` java action if the `optResponseData` parameter inherits from `System.FileDocument.`
 
+# Complete function reference
+
+## Consume
+
+#### addCookieToNextRequest
+Sends a cookie along with the next request that will be made
+
+#### addCredentialsToNextRequest
+Sends a username / password combination along with the next request, using Basic authentication.
+
+#### addHeaderToNextRequest
+Sends a header along with the next request. 
+
+#### addIfNoneMatchHeader
+Sends an If-None-Match header along with the next request, to compare an [ETag](http://en.wikipedia.org/wiki/HTTP_ETag) from a cache with the latest version on the server. Data services published with the Rest Services module support the ETag mechanism out of the box. 
+
+#### delete
+Delete an object on a remote service by permorming a HTTP DELETE request
+
+#### fetchChanges
+Fetches any missing changes from a remote collection (published by a change-tracking enabled data service) that is being tracked by this app. 
+
+#### followChanges
+Fetches any missing changes from a remote collection (published by a change-tracking enabled data service) that is being tracked by this app and keeps the connection open to listen to any new incoming changes. 
+
+#### get
+Fetches a (JSON) resource from a remote server by performing a HTTP GET request.
+
+#### get2
+See `get`, but automatically converts request data into URL parameters.
+
+#### getCollection
+Fetches a collection from a remote server by performing a HTTP GET request. In contrast to `get`, getCollection excpects an JSON array instead of a JSON object as response. 
+
+#### getCollectionAsync
+See `getCollection`. The `Async` variation is suitable for very large collections which might not fit in memory otherwise. Each item of the collection will be streamed, parsed and processed by a callback to minimize memory consumption.
+
+#### getResponseCookies
+Returns a list of cookies that where set by the remote server as part of the response to the latest request. 
+
+#### getResponseHeader
+Returns a specific header that was set by the remote server as part of the response to the latest request. 
+
+#### getRestConsumeError
+Returns the meta data and response body of the latest (failed) request. 
+
+#### post
+Adds an object to a remote collection or performs a form post, using HTTP POST.
+
+#### put
+Adds/ updates an object in a remote collection using HTTP PUT.
+
+#### registerCredentials
+Similar to `addCredentialsToNextRequest`, but the credentials will be reused automatically by any subsequent request to the same domain.
+
+#### request
+Generic method to make a HTTP request. `post`, `put`, `get`, `delete` are wrapper methods around this function. Request allows for less common combinations of parameters. 
+
+#### resetChangeTracking
+Resets any state information this app has about a remote collection that is being tracked. 
+
+#### unfollowChanges
+Stops tracking a remote collection, which was being followed as result of a `followChanges` call. 
+
+## Publish
+
+#### CreateMicroflowService (microflow)
+Registers a new microflow service. The microflow will be available for consumption through the REST module. 
+
+#### GetOrCreateDataService (microflow)
+Registers a data service. This can be used to open a REST based data service on a part of your domain model. 
+
+#### getRequestCookies
+Returns a list of cookies that was send to this service by the client. Can be used in the context of a microflow or data service. 
+
+#### getRequestHeader
+Returns a header that was send to this service by the client. Can be used in the context of a microflow or data service. 
+
+#### publishDelete
+Distributes (possibly real-time using server push) the deletion of an object to all consumers of a data service. Can only be used in combination with data services that has change tracking enabled. 
+
+#### publishUpdate
+Distributes (possibly real-time using server push) the creation or update of an object to all consumers of a data service. Can only be used in combination with data services that has change tracking enabled. 
+
+#### setResponseCookie
+Sends a cookie to the client using the `Set-Cookie` header. 
+
+#### setResponseHeader
+Sets a specific header on the response. 
+
+## Util
+
+#### appendParamToUrl
+Appends an url parameter to an url. The method takes care of properly appending the parameter and URL encoding the value.
+
+#### appendSlashToUrl
+Appends a forward slash `/` to an url, if its not there yet. 
+
+#### copyAttributes
+Copies similarly named primitive attributes from one object to another. 
+
+#### deserializeJsonToObject
+See [JSON deserialization](#json-deserialization)
+
+#### getRestBaseUrl
+Returns the base url on which the rest services are published for this app. For example: `http://localhost:8080/rest/`
+
+#### isUrl
+Checks whether a string is a valid URL. 
+
+#### isValidObjectKey
+Checks whether a value can be used as object key in a data service
+
+#### IVK_OpenServiceOverview
+Shows an overviw of all data service definitions.
+
+#### serializeObjectToJson
+See [JSON serialization](#json-serialization)
+
+#### StartPublishServices
+Should be called from the apps startup microflow. Without, no microflow or data service will be served. 
+
+#### urlEncode
+Escapes a string in such a way that it can be used as part of an URL. 
+
 # Known Integrations
 
 We know that the RestSevices module has already been used successfully to integrate with the following services:
@@ -364,7 +507,21 @@ It is also possible do share data using RestServices as the module generates RES
 
 See the table at [http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services](http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services) to get an idea how the `get`, `put`, `post` and `delete` verbs should be used in combination with rest. The RestServices module respects these best practices as well.
 
-# Releases
+# Changelog
+
+## Version 1.2
+
+New features:
+* Introduced cookie management, both when consuming and publishing: `addCookieToNextRequest`, `getRequestCookies`, `getResponseCookies`, `setResponseCookie`. Fixes #6, #11, #12
+* Implemented #7: Service names will always be presented lowercase, but interpreted case-insensitive. 
+* Implemented #8: Microflow services are now allowed to return any type of data. 
+
+Fixes:
+* Wrongly typed JSON request data will now respond with status code `400 BAD REQUEST` (instead of `500`). Fixes #10.
+* Cookies will not be parsed and send automatically. Fixes #6.
+* Null values are now accepted as string values. Fixes #9. 
+* Request data is now parsed as JSON if no content-type is set. 
+* All requests are now served and send with content-type `application/json` instead of `text/json`. Fixes #5.
 
 ## Version 1.1
 
