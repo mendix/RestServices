@@ -107,8 +107,8 @@ public class RestServiceHandler extends RequestHandler{
 
 		if (RestServices.LOGPUBLISH.isDebugEnabled())
 			RestServices.LOGPUBLISH.debug("incoming request: " + Utils.getRequestUrl(request));
-
-		RestServiceRequest rsr = new RestServiceRequest(request, response);
+	
+		RestServiceRequest rsr = new RestServiceRequest(request, response, resp);
 		try {
 			//service overview requiest
 			if ("GET".equals(method) && parts.length == 0) {

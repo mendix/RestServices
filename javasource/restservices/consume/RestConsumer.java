@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.cookie.CookiePolicy;
+import org.apache.commons.httpclient.cookie.CookieSpec;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
@@ -39,6 +41,7 @@ import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import restservices.RestServices;
+import restservices.proxies.Cookie;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.ReferableObject;
 import restservices.proxies.RequestResult;
@@ -55,6 +58,7 @@ import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+
 import communitycommons.StringUtils;
 
 public class RestConsumer {
@@ -90,6 +94,7 @@ public class RestConsumer {
 		
 		public RequestResult asRequestResult(IContext context) {
 			RequestResult rr = new RequestResult(context);
+			rr.setRequestUrl(url);
 			rr.setETag(getETag());
 			rr.setRawResponseCode(status);
 			rr.setResponseBody(getBody());
@@ -145,15 +150,33 @@ public class RestConsumer {
 	
 	static ThreadLocal<Map<String, String>> nextHeaders = new ThreadLocal<Map<String, String>>();
 	
-	public static void addHeaderToNextRequest(String header, String value) {
+	private static Map<String, String> prepareNextHeadersMap() {
 		Map<String, String> headers = nextHeaders.get();
 		
 		if (headers == null) {
 			headers = new HashMap<String, String>();
 			nextHeaders.set(headers);
 		}
+		return headers;
+	}
+	
+	public static void addHeaderToNextRequest(String header, String value) {
+		prepareNextHeadersMap().put(header, value);
+	}
+	
+	public static void addCookieToNextRequest(Cookie cookie) {
+		if (cookie == null || cookie.getName().isEmpty())
+			throw new IllegalArgumentException();
 		
-		headers.put(header, value);
+		Map<String, String> headers = prepareNextHeadersMap();
+		
+		org.apache.commons.httpclient.Cookie rq = new org.apache.commons.httpclient.Cookie("", cookie.getName(), cookie.getValue());
+		String cookiestr = CookiePolicy.getDefaultSpec().formatCookie(rq);
+		
+		if (!headers.containsKey("Cookie"))
+			headers.put("Cookie", cookiestr);
+		else
+			headers.put("Cookie", headers.get("Cookie") + "; " + cookiestr);
 	}
 	
 	static void includeHeaders(HttpMethodBase request) {
@@ -514,13 +537,6 @@ public class RestConsumer {
 		if (eTag != null)
 			addHeaderToNextRequest(RestServices.HEADER_IFNONEMATCH, eTag);
 	}
-
-	public static RequestResult getLastConsumeError(IContext context) {
-		HttpResponseData res = lastConsumeError.get();
-		if (res == null)
-			return null;
-		return res.asRequestResult(context);
-	}
 	
 	public static String getResponseHeaderFromRequestResult(
 			RequestResult requestResult, String headerName) {
@@ -531,5 +547,45 @@ public class RestConsumer {
 		if (headers.has(headerName))
 			return headers.getJSONArray(headerName).getString(0); 
 		return null;
+	}
+
+	public static List<Cookie> getResponseCookiesFromRequestResult(IContext context, RequestResult requestResult) throws MalformedURLException {
+		if (requestResult == null)
+			throw new IllegalArgumentException("No request result provided");
+		
+		List<Cookie> res = new ArrayList<Cookie>();
+		JSONObject headers = new JSONObject(requestResult.get_ResponseHeaders());
+		
+		URL requestUrl = new URL(requestResult.getRequestUrl());
+		CookieSpec spec = CookiePolicy.getDefaultSpec();
+		
+		if (headers.has("Set-Cookie")) {
+			JSONArray cookies = headers.getJSONArray("Set-Cookie");
+			for(int i = 0; i < cookies.length(); i++) {
+				try {
+					org.apache.commons.httpclient.Cookie[] innercookies = spec.parse(requestUrl.getHost(), requestUrl.getPort(), requestUrl.getPath(), "https".equals(requestUrl.getProtocol()), cookies.getString(i));
+					for(org.apache.commons.httpclient.Cookie innercookie : innercookies) {
+						Cookie cookie = new Cookie(context);
+						cookie.setName(innercookie.getName());
+						cookie.setValue(innercookie.getValue());
+						cookie.setDomain(innercookie.getDomain());
+						cookie.setPath(innercookie.getPath());
+						cookie.setMaxAgeSeconds(innercookie.getExpiryDate() == null ? -1 : Math.round((innercookie.getExpiryDate().getTime() - System.currentTimeMillis()) / 1000L));
+						res.add(cookie);
+					}
+				} catch (Exception e) {
+					RestServices.LOGCONSUME.warn("Failed to parse cookie: " + e.getMessage(), e);
+				}
+			}
+		}
+		
+		return res;
+	}
+	
+	public static RequestResult getLastConsumeError(IContext context) {
+		HttpResponseData res = lastConsumeError.get();
+		if (res == null)
+			return null;
+		return res.asRequestResult(context);
 	}
 }

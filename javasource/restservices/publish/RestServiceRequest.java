@@ -1,7 +1,9 @@
 package restservices.publish;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -11,16 +13,19 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.http.HttpStatus;
 
 import restservices.RestServices;
+import restservices.proxies.Cookie;
 import restservices.util.DataWriter;
 import restservices.util.Utils;
 import system.proxies.User;
 
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
+import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
+
 import communitycommons.StringUtils;
 
 public class RestServiceRequest {
@@ -35,10 +40,12 @@ public class RestServiceRequest {
 	protected DataWriter datawriter;
 	private boolean autoLogout;
 	private ISession activeSession;
+	private IMxRuntimeResponse mxresponse;
 
-	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response) {
+	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response, IMxRuntimeResponse mxresponse) {
 		this.request = request;
 		this.response = response;
+		this.mxresponse = mxresponse;
 		
 		this.requestContentType = determineRequestContentType(request);
 		this.responseContentType = determineResponseContentType(request);
@@ -365,11 +372,41 @@ public class RestServiceRequest {
 		return current.request.getHeader(headerName);
 	}
 
+	public static List<Cookie> getRequestCookies(IContext context) {
+		RestServiceRequest current = getCurrentRequest(context);
+		if (current == null)
+			throw new IllegalStateException("Not handling a request currently");
+
+		List<Cookie> cookies = new ArrayList<Cookie>();
+		for (javax.servlet.http.Cookie c : current.request.getCookies()) {
+			Cookie r = new Cookie(context);
+			cookies.add(r);
+			
+			r.setDomain(c.getDomain());
+			r.setName(c.getName());
+			r.setValue(c.getValue());
+			r.setPath(c.getPath());
+			r.setMaxAgeSeconds(c.getMaxAge());
+		}
+		
+		return cookies;
+	}
+	
 	public static void setResponseHeader(IContext context, String headerName, String value) {
 		RestServiceRequest current = getCurrentRequest(context);
 		if (current == null)
 			throw new IllegalStateException("Not handling a request currently");
 
 		current.response.setHeader(headerName, value);
+	}
+
+	public static void setResponseCookie(IContext context, Cookie cookie) {
+		RestServiceRequest current = getCurrentRequest(context);
+		if (current == null)
+			throw new IllegalStateException("Not handling a request currently");
+		if (cookie == null || cookie.getName().isEmpty())
+			throw new IllegalArgumentException("Not a valid cookie");
+		
+		current.mxresponse.addCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getDomain() == null ? "" : cookie.getDomain(), cookie.getMaxAgeSeconds(), cookie.getHttpOnly());
 	}
 }
