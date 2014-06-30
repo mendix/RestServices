@@ -104,17 +104,12 @@ public class RestConsumer {
 		}
 
 		public ResponseCode asResponseCode() {
-			switch (status) {
-				case IMxRuntimeResponse.NOT_MODIFIED: return ResponseCode.NotModified; 
-				case 201: //created
-				case 204: //no content
-				case IMxRuntimeResponse.OK: 
-					return ResponseCode.OK;
-				default:
-					if (status >= 400)
-						return ResponseCode.Error;
-					throw new IllegalArgumentException("Unexpected response code in " + this.toString());
-			}
+			if (status == IMxRuntimeResponse.NOT_MODIFIED)
+				return ResponseCode.NotModified;
+			else if (status >= 400)
+				return ResponseCode.Error;
+			else 
+				return ResponseCode.OK; //We consider all other responses 'OK-ish', even redirects and such.. Users can check the actual response code with the RawResponse field
 		}
 		
 		@Override public String toString() {
