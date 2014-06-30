@@ -21,7 +21,6 @@ import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
 
-import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.externalinterface.connector.RequestHandler;
@@ -148,24 +147,29 @@ public class RestServiceHandler extends RequestHandler{
 			}
 		}
 		catch(RestPublishException rre) {
-			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
+			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": " + rre.getType() + " " + rre.getMessage());
 
-			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
+			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage(), null);
 		}
 		catch(JSONException je) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
 
-			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data.", je.getMessage());
+			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data.", je.getMessage(), null);
 		}
 		catch(Throwable e) {
 			Throwable cause = ExceptionUtils.getRootCause(e);
-			if (cause instanceof WebserviceException) {
+			if (cause instanceof CustomRestServiceException) {
+				CustomRestServiceException rse = (CustomRestServiceException) cause;
+				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getFaultCode(), rse.getFaultString()));
+				serveErrorPage(rsr, rse.getHttpStatus(), rse.getFaultString(), rse.getDetail(), rse.getFaultCode());
+			}
+			else if (cause instanceof WebserviceException) {
 				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
-				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage());
+				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage(), ((WebserviceException) cause).getFaultCode());
 			}
 			else {
 				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
-				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.");
+				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.", null);
 			}
 		}
 		finally {
@@ -206,7 +210,7 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	private void serveErrorPage(RestServiceRequest rsr, int status, String title,
-			String detail) {
+			String detail, String errorCode) {
 		rsr.response.reset();
 		rsr.response.setStatus(status);
 
@@ -219,11 +223,22 @@ public class RestServiceHandler extends RequestHandler{
 		switch(rsr.getResponseContentType()) {
 		default:
 		case HTML:
-			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p><p>Status code:" + status + "</p>");
+			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p>");
+			if (errorCode != null)
+				rsr.write("<p>Error code: " + errorCode + "</p>");
+			rsr.write("<p>Http status code: " + status + "</p>");
 			break;
 		case JSON:
 		case XML:
-			rsr.datawriter.value(new JSONObject(ImmutableMap.of("error", (Object) title, "status", status, "message", detail)));
+			JSONObject data = new JSONObject();
+			data.put("error", title);
+			data.put("status", status);
+			data.put("message", detail);
+			
+			if (errorCode != null)
+				data.put("errorCode", errorCode);
+			
+			rsr.datawriter.value(data);
 			break;
 		}
 
