@@ -309,4 +309,8 @@ public class RestServiceHandler extends RequestHandler{
 			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
 	}
 
+	public static boolean isStarted() {
+		return started;
+	}
+
 }

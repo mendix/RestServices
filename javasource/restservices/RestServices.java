@@ -65,7 +65,7 @@ public class RestServices {
 	public static final String HEADER_CONTENTTYPE = "Content-Type";
 	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
 	
-	public final static String PATH_REST = "rest/";
+	public static String PATH_REST = "rest/";
 	public static final String PATH_LIST = "list";
 	public static final String PATH_FEED = "feed";
 	public static final String PATH_CHANGES = "changes";

@@ -483,6 +483,9 @@ Shows an overviw of all data service definitions.
 #### serializeObjectToJson
 See [JSON serialization](#json-serialization)
 
+#### setRestBasePath
+Sets an alternative base path for the RestServices modules. (Default: `rest/`). Note that in sandbox deployments, `ws-doc/` will be used automatically. 
+
 #### StartPublishServices
 Should be called from the apps startup microflow. Without, no microflow or data service will be served. 
 
