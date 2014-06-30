@@ -409,4 +409,14 @@ public class RestServiceRequest {
 		
 		current.mxresponse.addCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getDomain() == null ? "" : cookie.getDomain(), cookie.getMaxAgeSeconds(), cookie.getHttpOnly());
 	}
+
+	public static void setResponseStatus(IContext context, int status) {
+		RestServiceRequest current = getCurrentRequest(context);
+		if (current == null)
+			throw new IllegalStateException("Not handling a request currently");
+		if (status < 200 || status >= 600)
+			throw new IllegalArgumentException("Response status should be between 200 and 599");
+		
+		current.setStatus(status);
+	}
 }

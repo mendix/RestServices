@@ -441,6 +441,9 @@ Sends a cookie to the client using the `Set-Cookie` header.
 #### setResponseHeader
 Sets a specific header on the response. 
 
+#### setResponseStatus
+Sets the HTTP response status of a request. 
+
 ## Util
 
 #### appendParamToUrl
