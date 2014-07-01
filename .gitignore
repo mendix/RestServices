@@ -17,3 +17,4 @@ proxies
 /*.mpr.right*
 /releases
 #mxgit-marker-end
+/bin

@@ -13,7 +13,12 @@ import restservices.publish.CustomRestServiceException;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
- * 
+ * Throws a RestService exception, accepts the following attributes:
+ * 
+ * * httpStatus: The HTTP status of the request. Has to be between 400 and 599
+ * * message:	The error message
+ * * detail: Additional explanation to the error message
+ * * errorCode: Custom error code for this exception, to make the error easier recognizable and referable. 
  */
 public class throwRestServiceException extends UserAction<Boolean>
 {
