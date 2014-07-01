@@ -12,6 +12,7 @@ import javax.servlet.http.Part;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.MultiPartInputStream.MultiPart;
+import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONObject;
 
 import com.mendix.core.Core;
@@ -39,15 +40,24 @@ public class MicroflowService {
 	private String argName;
 	private String securityRoleOrMicroflow;
 	private String description;
+	private String httpMethod;
+	private UriTemplate pathTemplate;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 
-	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException{
+	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description,
+			String verb, String pathTemplate) throws CoreException {
 		this.microflowname = microflowname;
 		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;
+		this.httpMethod = verb;
+		this.pathTemplate = new UriTemplate(pathTemplate);
 		this.consistencyCheck();
 		RestServices.registerPublishedMicroflow(this);
+	}
+	
+	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException {
+		this(microflowname, securityRoleOrMicroflow, description, null, null);
 	}
 
 	private void consistencyCheck() throws CoreException {
@@ -229,5 +239,13 @@ public class MicroflowService {
 			.endObject();
 
 		rsr.endDoc();
+	}
+	
+	public String getVerb() {
+		return httpMethod;
+	}
+	
+	public UriTemplate getPathTemplate() {
+		return pathTemplate;
 	}
 }

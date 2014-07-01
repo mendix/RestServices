@@ -122,11 +122,16 @@ public class RestServiceHandler extends RequestHandler{
 				MicroflowService mfService = null;
 
 				if (parts.length > 0) {
+					mfService = RestServices.getPublishedMicroflow(request.getMethod(), path.toLowerCase());
 					parts[0] = parts[0].toLowerCase();
-					dataService = RestServices.getService(parts[0]);
-					mfService = RestServices.getPublishedMicroflow(parts[0]);
-					if (dataService == null && mfService == null) 
-						throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+					
+					if (mfService == null) {
+						dataService = RestServices.getService(parts[0]);
+						mfService = RestServices.getPublishedMicroflow(parts[0]);
+						
+						if (dataService == null && mfService == null) 
+							throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+					}
 				}
 
 				//Find request meta data
