@@ -15,6 +15,7 @@ import org.junit.Test;
 import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
+import restservices.consume.RestConsumer.InputFormat;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.publish.MicroflowService;
@@ -60,6 +61,25 @@ public class ServiceTest extends TestBase {
 		
 		output = new ReplaceOut(c);
 		RestConsumer.request(c, HttpMethod.GET, url, input.getMendixObject(), output.getMendixObject(), true);
+		Assert.assertEquals("Yuuluu", output.getresult());
+	}
+	
+	@Test
+	public void testMfServiceWithPathParams() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}-{replacement}";
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "POST", pathTemplate);
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate;
+		
+		input.sethaystack("Yolo");
+		input.setneedle("o");
+		input.setreplacement("uu");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.POST, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
 		Assert.assertEquals("Yuuluu", output.getresult());
 	}
 	

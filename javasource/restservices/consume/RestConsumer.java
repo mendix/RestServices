@@ -36,6 +36,7 @@ import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.io.IOUtils;
+import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -62,7 +63,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import communitycommons.StringUtils;
 
 public class RestConsumer {
-	
+	public enum InputFormat { JSON, FORM_DATA, URL_PATH }
 	private static ThreadLocal<HttpResponseData> lastConsumeError = new ThreadLocal<HttpResponseData>();
 	
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
@@ -192,18 +193,25 @@ public class RestConsumer {
 	 * @throws IOException 
 	 * @throws HttpException 
 	 */
-	private static HttpResponseData doRequest(String method, String url,
-			Map<String, String> requestHeaders, Map<String, String> params,
-			RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
+	private static HttpResponseData doRequest(String method, String url, Map<String, String> requestHeaders,
+			Map<String, String> params, RequestEntity requestEntity,
+			InputFormat inputFormat, Predicate<InputStream> onSuccess) throws HttpException, IOException {
 		if (RestServices.LOGCONSUME.isDebugEnabled())
 			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
 		
 		HttpMethodBase request;
 
-		if (params != null && !"POST".equals(method)) {
-			//append params to url. Do *not* use request.setQueryString; that will override any args already in there
-			for(Entry<String, String> e : params.entrySet())
-				url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
+		if (params != null) {
+			if(inputFormat == InputFormat.URL_PATH)
+			{
+				UriTemplate uriTemplate = new UriTemplate(url);
+				url = uriTemplate.createURI(params);
+			}
+			else if(!"POST".equals(method)) {
+				//append params to url. Do *not* use request.setQueryString; that will override any args already in there
+				for(Entry<String, String> e : params.entrySet())
+					url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
+			}
 		}
 		
 		if ("GET".equals(method))
@@ -263,7 +271,7 @@ public class RestConsumer {
 	}
 	
 	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
-		HttpResponseData response = doRequest("GET", url, null,null, null, new Predicate<InputStream>() {
+		HttpResponseData response = doRequest("GET", url, null, null, null, null, new Predicate<InputStream>() {
 
 			@Override
 			public boolean apply(InputStream stream) {
@@ -377,9 +385,13 @@ public class RestConsumer {
 		});
 	}
 	
-
 	public static RequestResult request(final IContext context, HttpMethod method, final String url, 
 			final IMendixObject source, final IMendixObject target, final boolean asFormData) throws Exception {
+		return request(context, method, url, source, target, asFormData ? InputFormat.FORM_DATA : InputFormat.JSON);
+	}
+
+	public static RequestResult request(final IContext context, HttpMethod method, final String url, 
+			final IMendixObject source, final IMendixObject target, final InputFormat inputFormat) throws Exception {
 		lastConsumeError.set(null);
 		
 		if (context == null)
@@ -404,7 +416,7 @@ public class RestConsumer {
 		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		//register params, if its a GET request or formData format is used
-		if (source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE)) {
+		if (source != null && (inputFormat == InputFormat.FORM_DATA || inputFormat == InputFormat.URL_PATH || method == HttpMethod.GET || method == HttpMethod.DELETE)) {
 			for(String key : JSONObject.getNames(data)) {
 				if (isFileSource && isFileDocAttr(key)) 
 					continue; //Do not pick up default filedoc attrs!
@@ -418,19 +430,19 @@ public class RestConsumer {
 		}
 			
 		//Setup request entity for file
-		if (!asFormData && isFileSource) {
+		if (inputFormat != InputFormat.FORM_DATA && isFileSource) {
 			requestEntity = new InputStreamRequestEntity(Core.getFileDocumentContent(context, source));
 		}
-		else if (source != null && asFormData && isFileSource) {
+		else if (source != null && inputFormat == InputFormat.FORM_DATA && isFileSource) {
 			requestEntity = buildMultiPartEntity(context, source, params);
 		}
-		else if (asFormData && !isFileSource)
+		else if (inputFormat == InputFormat.FORM_DATA && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
-		else if (data != null)
+		else if (data != null && inputFormat != InputFormat.URL_PATH)
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_APPLICATIONJSON, RestServices.UTF8);
 		
 		final StringBuilder bodyBuffer = new StringBuilder();
-		HttpResponseData response = doRequest(method.toString(), url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {
+		HttpResponseData response = doRequest(method.toString(), url, requestHeaders, params, requestEntity, inputFormat, new Predicate<InputStream>() {
 
 			@Override
 			public boolean apply(InputStream stream) {

@@ -325,6 +325,10 @@ public class RestServiceRequest {
 		return result == null ? defaultValue : result;
 	}
 	
+	public String getPath() {
+		return request.getPathInfo();
+	}
+	
 	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 
 	
 	public static interface Function<T> {
