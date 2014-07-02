@@ -46,6 +46,7 @@ import restservices.proxies.HttpMethod;
 import restservices.proxies.ReferableObject;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
+import restservices.proxies.RestServiceError;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
@@ -93,13 +94,30 @@ public class RestConsumer {
 		}
 		
 		public RequestResult asRequestResult(IContext context) {
+			JSONObject jsonHeaders = getResponseHeadersAsJson();
+
 			RequestResult rr = new RequestResult(context);
 			rr.setRequestUrl(url);
 			rr.setETag(getETag());
 			rr.setRawResponseCode(status);
 			rr.setResponseBody(getBody());
 			rr.setResponseCode(asResponseCode());
-			rr.set_ResponseHeaders(getResponseHeadersAsJson().toString());
+			rr.set_ResponseHeaders(jsonHeaders.toString());
+			
+			if (
+					status >= 400 && status < 600 
+					&& jsonHeaders.has(RestServices.HEADER_CONTENTTYPE)
+					&& jsonHeaders.getJSONArray(RestServices.HEADER_CONTENTTYPE).getString(0).contains("json")
+			) {
+				RestServiceError rse = new RestServiceError(context);
+				try {
+					JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONObject(getBody()), rse.getMendixObject(), false);
+					rr.setErrorDetails(rse);
+				} catch (Exception e) {
+					RestServices.LOGCONSUME.warn("Failed to parse error message to JSON: " + getBody());
+				}
+			}
+			
 			return rr;
 		}
 
