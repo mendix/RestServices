@@ -106,7 +106,7 @@ public class RestConsumer {
 		public ResponseCode asResponseCode() {
 			if (status == IMxRuntimeResponse.NOT_MODIFIED)
 				return ResponseCode.NotModified;
-			else if (status >= 400)
+			else if (status >= 400 || status <= 0) //-1 is used if making the connection failed
 				return ResponseCode.Error;
 			else 
 				return ResponseCode.OK; //We consider all other responses 'OK-ish', even redirects and such.. Users can check the actual response code with the RawResponse field
@@ -115,7 +115,7 @@ public class RestConsumer {
 		@Override public String toString() {
 			return String.format("[HTTP Request: %s '%s' --> Response status: %d %s, ETag: %s, body: '%s']", 
 					method, url, 
-					status, HttpStatus.getStatusText(status), 
+					status, status < 0 ? "CONNECTION FAILED" : HttpStatus.getStatusText(status), 
 					eTag, 
 					RestServices.LOGCONSUME.isDebugEnabled() || status != 200  ? body : "(omitted)");
 		}
@@ -134,7 +134,7 @@ public class RestConsumer {
 		
 		private JSONObject getResponseHeadersAsJson() {
 			JSONObject res = new JSONObject();
-			for(Header header : this.headers) {
+			if (headers != null) for(Header header : headers) {
 				if (!res.has(header.getName()))
 					res.put(header.getName(), new JSONArray());
 				res.getJSONArray(header.getName()).put(header.getValue());
@@ -198,41 +198,41 @@ public class RestConsumer {
 		if (RestServices.LOGCONSUME.isDebugEnabled())
 			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
 		
-		HttpMethodBase request;
+		HttpMethodBase request = null;
 
-		if (params != null && !"POST".equals(method)) {
-			//append params to url. Do *not* use request.setQueryString; that will override any args already in there
-			for(Entry<String, String> e : params.entrySet())
-				url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
-		}
-		
-		if ("GET".equals(method))
-			request = new GetMethod(url);
-		else if ("DELETE".equals(method))
-			request = new DeleteMethod(url);
-		else if ("POST".equals(method)) 
-			request = new PostMethod(url);
-		else if ("PUT".equals(method)) 
-			request = new PutMethod(url);
-		else 
-			throw new IllegalStateException("Unsupported method: " + method);
-		
-		request.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
-		request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
-		
-		if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
-			request.addRequestHeader(e.getKey(), e.getValue());
-		includeHeaders(request);
-		
-		if (params != null && request instanceof PostMethod) 
-			((PostMethod)request).addParameters(mapToNameValuePairs(params));
-		
-		if (request instanceof PostMethod && requestEntity != null)
-			((PostMethod)request).setRequestEntity(requestEntity);
-		else if (request instanceof PutMethod && requestEntity != null)
-			((PutMethod)request).setRequestEntity(requestEntity);
-		
 		try {
+			if (params != null && !"POST".equals(method)) {
+				//append params to url. Do *not* use request.setQueryString; that will override any args already in there
+				for(Entry<String, String> e : params.entrySet())
+					url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
+			}
+			
+			if ("GET".equals(method))
+				request = new GetMethod(url);
+			else if ("DELETE".equals(method))
+				request = new DeleteMethod(url);
+			else if ("POST".equals(method)) 
+				request = new PostMethod(url);
+			else if ("PUT".equals(method)) 
+				request = new PutMethod(url);
+			else 
+				throw new IllegalStateException("Unsupported method: " + method);
+			
+			request.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
+			request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
+			
+			if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
+				request.addRequestHeader(e.getKey(), e.getValue());
+			includeHeaders(request);
+			
+			if (params != null && request instanceof PostMethod) 
+				((PostMethod)request).addParameters(mapToNameValuePairs(params));
+			
+			if (request instanceof PostMethod && requestEntity != null)
+				((PostMethod)request).setRequestEntity(requestEntity);
+			else if (request instanceof PutMethod && requestEntity != null)
+				((PutMethod)request).setRequestEntity(requestEntity);
+		
 			int status = client.executeMethod(request);
 			Header responseEtag = request.getResponseHeader(RestServices.HEADER_ETAG);
 			
@@ -247,8 +247,17 @@ public class RestConsumer {
 			
 			return response;
 		}
+
+		catch(Exception e) {
+			HttpResponseData response = new HttpResponseData(method, url, -1, null, null);
+			response.setBody(e.getClass().getName() + ": " + e.getMessage());
+			RestServices.LOGCONSUME.error("Failed to connect to " + url + ": " + e.getMessage(), e);
+			return response;
+		}
+		
 		finally {
-			request.releaseConnection();
+			if (request != null)
+				request.releaseConnection();
 		}
 	}
 	
@@ -385,9 +394,6 @@ public class RestConsumer {
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
 		
-		if (!Utils.isUrl(url))
-			throw new IllegalArgumentException("Requested resource seems to be an invalid URL: " + url);
-
 		if (method == null)
 			method = HttpMethod.GET;
 		
