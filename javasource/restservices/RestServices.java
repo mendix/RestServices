@@ -156,12 +156,8 @@ public class RestServices {
 	}
 
 	public static void registerPublishedMicroflow(MicroflowService microflowService) {
-		if(microflowService.getPathTemplate() != null) {
-			if(microflowService.getVerb() == null)
-				LOGPUBLISH.error("Microflow service '" + microflowService.getName() + "' has a template but no verb defined.");
-			else
-				microflowServicesByVerb.put(microflowService.getVerb(), microflowService);
-		}
+		if(microflowService.getPathTemplate() != null)
+			microflowServicesByVerb.put(microflowService.getHttpMethod(), microflowService);
 		else
 			microflowServices.put(microflowService.getName(), microflowService);
 		

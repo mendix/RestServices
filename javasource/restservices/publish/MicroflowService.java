@@ -52,7 +52,14 @@ public class MicroflowService {
 		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;
 		this.httpMethod = httpMethod;
-		if(pathTemplateString != null) this.pathTemplate = new UriTemplate(pathTemplateString);
+		
+		if(pathTemplateString != null) {
+			if (pathTemplateString.startsWith("/"))
+				pathTemplateString = pathTemplateString.substring(1);
+		
+			this.pathTemplate = new UriTemplate(pathTemplateString);
+		}
+		
 		this.consistencyCheck();
 		RestServices.registerPublishedMicroflow(this);
 	}
@@ -83,10 +90,10 @@ public class MicroflowService {
 
 			if (Core.getMetaObject(argType).isPersistable() && !isFileSource)
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
-			
-			if(pathTemplate != null && httpMethod == null)
-				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it has a path template but no HTTP method defined.");
 		}
+
+		if(pathTemplate != null && httpMethod == null)
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it has a path template but no HTTP method defined.");
 
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
 		
@@ -105,7 +112,8 @@ public class MicroflowService {
 		Map<String, Object> args = new HashMap<String, Object>();
 		IMendixObject inputObject = parseInputData(rsRequest);
 		
-		if(inputObject != null) args.put(argName, inputObject);
+		if(inputObject != null) 
+			args.put(argName, inputObject);
 		
 		if (isReturnTypePrimitive)
 			rsRequest.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
@@ -255,7 +263,7 @@ public class MicroflowService {
 		rsr.endDoc();
 	}
 	
-	public String getVerb() {
+	public String getHttpMethod() {
 		return httpMethod;
 	}
 	

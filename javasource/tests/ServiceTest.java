@@ -66,8 +66,36 @@ public class ServiceTest extends TestBase {
 	
 	@Test
 	public void testMfServiceWithPathParams() throws Exception {
-		String pathTemplate = "piet/{haystack}/{needle}-{replacement}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "POST", pathTemplate);
+		String pathTemplate = "piet/{haystack}/{needle}";
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "PUT", pathTemplate);
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate + "?replacement={replacement}";
+		
+		input.sethaystack("Yolo");
+		input.setneedle("o");
+		input.setreplacement("uu");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
+		Assert.assertEquals("Yuuluu", output.getresult());
+		
+		input.sethaystack("Yolo?x=&://%$_-%2f");
+		input.setneedle("%");
+		input.setreplacement("u%?&=u");
+		
+		output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
+		Assert.assertEquals("Yolo?x=&://u%?&=u$_-u%?&=u2f", output.getresult());
+	}
+	
+	
+	@Test
+	public void testMfServiceWithPathParamsCaseSensitive() throws Exception {
+		String pathTemplate = "piet/{haYstack}/{NEEDLE}-{repLacement}";
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "PUT", pathTemplate);
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -79,8 +107,21 @@ public class ServiceTest extends TestBase {
 		input.setreplacement("uu");
 		
 		ReplaceOut output = new ReplaceOut(c);
-		RestConsumer.request(c, HttpMethod.POST, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
 		Assert.assertEquals("Yuuluu", output.getresult());
+	}
+	
+	@Test
+	public void testMfServiceWithoutParams() throws Exception {
+		String pathTemplate = "/piet/jan";
+		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", "GET", pathTemplate);
+		
+		IContext c = Core.createSystemContext();
+		
+		String url = RestServices.getBaseUrl() + pathTemplate;
+		
+		RequestResult requestData = RestConsumer.request(c, HttpMethod.POST, url, null, null, InputFormat.URL_PATH);
+		Assert.assertEquals(202, (int) requestData.getRawResponseCode());
 	}
 	
 	@Test
