@@ -372,9 +372,9 @@ public class BasicTests extends TestBase {
 		CTaskView t = new CTaskView(c);
 		t.setDescription(key);
 		
-		String assignedKey = RestConsumer.postObject(c, baseUrl, t.getMendixObject(), false).getResponseBody();
+		RestConsumer.postObject(c, baseUrl, t.getMendixObject(), t.getMendixObject());
 		
-		Assert.assertEquals(key, assignedKey);
+		Assert.assertEquals(key, t.getDescription());
 		//GET with wrong key
 		//assertErrorcode(c, HttpMethod.GET, baseUrl + key, 404);
 		

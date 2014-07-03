@@ -305,15 +305,14 @@ public class DataService {
 		if (!Utils.isValidKey(key))
 			throw new RuntimeException("Failed to serve POST request: microflow '" + def.getOnPublishMicroflow() + "' should have created a new key");
 			
-		rsr.setResponseContentType(ResponseType.PLAIN);
 		rsr.setStatus(201); //created
 		
 		String eTag = getETag(rsr.getContext(), key, target);
 		if (eTag != null)
 			rsr.response.setHeader(RestServices.HEADER_ETAG, eTag);
-		//question: write url, or write key?
-		//rsr.write(getObjecturl(rsr.getContext(), target));
-		rsr.write(key);
+
+		rsr.datawriter.object().key(getKeyAttribute()).value(key).endObject();
+		
 		rsr.close();
 	}
 

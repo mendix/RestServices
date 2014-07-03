@@ -37,7 +37,7 @@ public class UpdateTests extends TestBase {
 		RequestResult response = RestConsumer.postObject(c, baseUrl, t.getMendixObject(), false);
 		Assert.assertEquals(201L, (long) response.getRawResponseCode());
 		
-		String nr = response.getResponseBody();
+		String nr = new JSONObject(response.getResponseBody()).getString("Nr");
 		Assert.assertTrue(nr != null && !nr.isEmpty());
 		Assert.assertTrue(null != response.getETag());
 		
