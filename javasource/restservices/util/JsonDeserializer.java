@@ -2,8 +2,10 @@ package restservices.util;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -22,6 +24,9 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IMendixObjectMember;
+import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
+import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
 public class JsonDeserializer {
@@ -78,18 +83,11 @@ public class JsonDeserializer {
 	private static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, boolean autoResolve) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
 
+		Map<String, String> attributeNameMap = buildAttributeNameMap(target.getMetaObject());
+		
 		while(it.hasNext()) {
 			String attr = it.next();
-			String targetattr =  null;
-			
-			if (target.hasMember(attr)) 
-				targetattr = attr;
-			else if (target.hasMember(target.getMetaObject().getModuleName() + "." + attr)) 
-				targetattr = target.getMetaObject().getModuleName() + "." + attr;
-			if (target.hasMember("_" + attr)) //To support attributes with names which are reserved names in Mendix 
-				targetattr = "_" + attr;
-			else if (target.hasMember(target.getMetaObject().getModuleName() + "._" + attr)) 
-				targetattr = target.getMetaObject().getModuleName() + "._" + attr;
+			String targetattr =  attributeNameMap.get(attr.toLowerCase().replace('-', '_').replace('$', '_'));
 			
 			if (targetattr == null) {
 				if (RestServices.LOGUTIL.isDebugEnabled())
@@ -132,6 +130,32 @@ public class JsonDeserializer {
 			}
 		}
 		Core.commit(context, target);
+	}
+
+	private static final Map<String, Map<String,String>> metaAttributeMaps = new HashMap<String, Map<String, String>>();
+	
+	private static Map<String, String> buildAttributeNameMap(IMetaObject metaObject) {
+		if (metaAttributeMaps.containsKey(metaObject.getName()))
+			return metaAttributeMaps.get(metaObject.getName());
+		
+		Map<String, String> attrMap = new HashMap<String,String>();
+		
+		for(IMetaAssociation assoc : metaObject.getMetaAssociationsParent()) {
+			String name = assoc.getName().split("\\.")[1];
+			attrMap.put(name.toLowerCase(), assoc.getName());
+			if (name.startsWith("_"))
+				attrMap.put(name.substring(1).toLowerCase(), assoc.getName());
+		}
+		
+		for(IMetaPrimitive prim : metaObject.getMetaPrimitives()) {
+			String name = prim.getName();
+			attrMap.put(name.toLowerCase(), name);
+			if (name.startsWith("_"))
+				attrMap.put(name.substring(1).toLowerCase(), name);
+		}
+		
+		metaAttributeMaps.put(metaObject.getName(), attrMap);
+		return attrMap;
 	}
 
 	private static Object jsonAttributeToPrimitive(PrimitiveType type,	JSONObject object, String attr) throws Exception {
