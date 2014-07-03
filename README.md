@@ -400,6 +400,9 @@ Returns the meta data and response body of the latest (failed) request.
 #### post
 Adds an object to a remote collection or performs a form post, using HTTP POST.
 
+#### post2
+Adds an object to a remote collection, using HTTP POST, parses the response data into a Mendix object.
+
 #### put
 Adds/ updates an object in a remote collection using HTTP PUT.
 

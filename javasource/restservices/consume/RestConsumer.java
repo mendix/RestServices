@@ -552,6 +552,11 @@ public class RestConsumer {
 		return request(context, HttpMethod.POST, collectionUrl, dataObject, null, asFormData);
 	}
 	
+	public static RequestResult postObject(IContext context, String collectionUrl,
+			IMendixObject dataObject, IMendixObject targetObject) throws Exception {
+		return request(context, HttpMethod.POST, collectionUrl, dataObject, targetObject, false);
+	}
+	
 	public static void useETagInNextRequest(String eTag) {
 		if (eTag != null)
 			addHeaderToNextRequest(RestServices.HEADER_IFNONEMATCH, eTag);
