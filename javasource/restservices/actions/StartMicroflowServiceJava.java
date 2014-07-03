@@ -20,7 +20,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 	private String microflowName;
 	private String securityRole;
 	private String description;
-	private String httpMethod;
+	private restservices.proxies.HttpMethod httpMethod;
 	private String pathTemplate;
 
 	public StartMicroflowServiceJava(String microflowName, String securityRole, String description, String httpMethod, String pathTemplate)
@@ -29,7 +29,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 		this.microflowName = microflowName;
 		this.securityRole = securityRole;
 		this.description = description;
-		this.httpMethod = httpMethod;
+		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
 		this.pathTemplate = pathTemplate;
 	}
 

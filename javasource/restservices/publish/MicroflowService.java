@@ -22,6 +22,7 @@ import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 import restservices.RestServices;
+import restservices.proxies.HttpMethod;
 import restservices.publish.RestServiceRequest.RequestContentType;
 import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JSONSchemaBuilder;
@@ -41,13 +42,13 @@ public class MicroflowService {
 	private String argName;
 	private String securityRoleOrMicroflow;
 	private String description;
-	private String httpMethod;
+	private HttpMethod httpMethod;
 	private UriTemplate pathTemplate;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 
 	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description,
-			String httpMethod, String pathTemplateString) throws CoreException {
+			HttpMethod httpMethod, String pathTemplateString) throws CoreException {
 		this.microflowname = microflowname;
 		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;
@@ -265,7 +266,7 @@ public class MicroflowService {
 	}
 	
 	public String getHttpMethod() {
-		return httpMethod;
+		return httpMethod == null ? null : httpMethod.toString();
 	}
 	
 	public UriTemplate getPathTemplate() {

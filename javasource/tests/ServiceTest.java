@@ -66,7 +66,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithPathParams() throws Exception {
 		String pathTemplate = "piet/{haystack}/{needle}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "PUT", pathTemplate);
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.PUT, pathTemplate);
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -93,7 +93,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithPathParamsCaseSensitivity() throws Exception {
 		String pathTemplate = "piet/{haystack}/{needle}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "PUT", pathTemplate);
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.PUT, pathTemplate);
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -112,7 +112,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithPathParamsCaseSensitive() throws Exception {
 		String pathTemplate = "piet/{haYstack}/{NEEDLE}-{repLacement}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "PUT", pathTemplate);
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.PUT, pathTemplate);
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -131,7 +131,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithoutParams() throws Exception {
 		String pathTemplate = "piet/jan";
-		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", "GET", "/" + pathTemplate);
+		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", HttpMethod.GET, "/" + pathTemplate);
 		
 		IContext c = Core.createSystemContext();
 		
