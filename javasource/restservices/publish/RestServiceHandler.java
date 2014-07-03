@@ -84,7 +84,7 @@ public class RestServiceHandler extends RequestHandler{
 
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
-			String path) {
+			String _) {
 
 		long start = System.currentTimeMillis();
 
@@ -92,7 +92,6 @@ public class RestServiceHandler extends RequestHandler{
 		HttpServletResponse response = (HttpServletResponse) resp.getOriginalResponse();
 
 		String method = request.getMethod();
-		String requestStr =  method + " " + path;
 		URL u;
 		try {
 			u = new URL(request.getRequestURL().toString());
@@ -102,6 +101,8 @@ public class RestServiceHandler extends RequestHandler{
 
 		String[] basePath = u.getPath().split("/");
 		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
+		String relpath = u.getPath().substring(RestServices.PATH_REST.length() + 1);
+		String requestStr =  method + " " + relpath;
 
 		response.setCharacterEncoding(RestServices.UTF8);
 		response.setHeader("Expires", "-1");
@@ -109,7 +110,7 @@ public class RestServiceHandler extends RequestHandler{
 		if (RestServices.LOGPUBLISH.isDebugEnabled())
 			RestServices.LOGPUBLISH.debug("incoming request: " + Utils.getRequestUrl(request));
 	
-		RestServiceRequest rsr = new RestServiceRequest(request, response, resp);
+		RestServiceRequest rsr = new RestServiceRequest(request, response, resp, relpath);
 		try {
 			//service overview requiest
 			if ("GET".equals(method) && parts.length == 0) {
@@ -122,11 +123,16 @@ public class RestServiceHandler extends RequestHandler{
 				MicroflowService mfService = null;
 
 				if (parts.length > 0) {
-					parts[0] = parts[0].toLowerCase();
-					dataService = RestServices.getService(parts[0]);
-					mfService = RestServices.getPublishedMicroflow(parts[0]);
-					if (dataService == null && mfService == null) 
-						throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+					mfService = RestServices.getPublishedMicroflow(request.getMethod(), relpath);
+					
+					if (mfService == null) {
+						parts[0] = parts[0].toLowerCase();
+						dataService = RestServices.getService(parts[0]);
+						mfService = RestServices.getPublishedMicroflow(parts[0]);
+						
+						if (dataService == null && mfService == null) 
+							throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
+					}
 				}
 
 				//Find request meta data

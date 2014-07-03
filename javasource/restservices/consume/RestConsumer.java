@@ -6,10 +6,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.collections.map.CaseInsensitiveMap;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
@@ -36,6 +38,7 @@ import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.io.IOUtils;
+import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -63,7 +66,6 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import communitycommons.StringUtils;
 
 public class RestConsumer {
-	
 	private static ThreadLocal<HttpResponseData> lastConsumeError = new ThreadLocal<HttpResponseData>();
 	
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
@@ -210,9 +212,8 @@ public class RestConsumer {
 	 * @throws IOException 
 	 * @throws HttpException 
 	 */
-	private static HttpResponseData doRequest(String method, String url,
-			Map<String, String> requestHeaders, Map<String, String> params,
-			RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
+	private static HttpResponseData doRequest(String method, String url, Map<String, String> requestHeaders,
+			Map<String, String> params, RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
 		if (RestServices.LOGCONSUME.isDebugEnabled())
 			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
 		
@@ -290,7 +291,7 @@ public class RestConsumer {
 	}
 	
 	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
-		HttpResponseData response = doRequest("GET", url, null,null, null, new Predicate<InputStream>() {
+		HttpResponseData response = doRequest("GET", url, null, null, null, new Predicate<InputStream>() {
 
 			@Override
 			public boolean apply(InputStream stream) {
@@ -404,8 +405,7 @@ public class RestConsumer {
 		});
 	}
 	
-
-	public static RequestResult request(final IContext context, HttpMethod method, final String url, 
+	public static RequestResult request(final IContext context, HttpMethod method, String url, 
 			final IMendixObject source, final IMendixObject target, final boolean asFormData) throws Exception {
 		lastConsumeError.set(null);
 		
@@ -427,19 +427,8 @@ public class RestConsumer {
 		
 		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
 		
-		//register params, if its a GET request or formData format is used
-		if (source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE)) {
-			for(String key : JSONObject.getNames(data)) {
-				if (isFileSource && isFileDocAttr(key)) 
-					continue; //Do not pick up default filedoc attrs!
-				if (Utils.isSystemAttribute(key))
-					continue;
-				Object value = data.get(key);
-				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
-					params.put(key, String.valueOf(value));
-			}
-			
-		}
+		boolean appendDataToUrl = source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE);
+		url = updateUrlWithParams(url, appendDataToUrl, isFileSource, data, params);
 			
 		//Setup request entity for file
 		if (!asFormData && isFileSource) {
@@ -450,7 +439,7 @@ public class RestConsumer {
 		}
 		else if (asFormData && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
-		else if (data != null)
+		else if (data != null && data.length() != 0)
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_APPLICATIONJSON, RestServices.UTF8);
 		
 		final StringBuilder bodyBuffer = new StringBuilder();
@@ -492,6 +481,46 @@ public class RestConsumer {
 		}
 		
 		return response.asRequestResult(context);
+	}
+
+	private static String updateUrlWithParams(String url, boolean appendDataToUrl, final boolean isFileSource,	final JSONObject data, Map<String, String> params) {
+		//substitute template variable in the uri, and make sure they are not send along as body / params data
+		UriTemplate uriTemplate = new UriTemplate(url);
+		
+		CaseInsensitiveMap keyMapping = new CaseInsensitiveMap();
+		if (data != null) for (Iterator<String> iterator = data.keys(); iterator.hasNext();) {
+			String key = iterator.next();
+			keyMapping.put(key, key);
+		}
+		
+		Map<String, String> values = new HashMap<String, String>();
+		if (data != null) for(String templateVar : uriTemplate.getTemplateVariables()) {
+			if (keyMapping.containsKey(templateVar)) {
+				String realkey = (String) keyMapping.get(templateVar);
+				Object value = data.get(realkey);
+				if (!(value instanceof JSONObject) && !(value instanceof JSONArray)) {
+					data.remove(realkey);
+					values.put(templateVar, Utils.urlEncode((String) value));
+				}
+			}
+		}
+		
+		url = uriTemplate.createURI(values);
+
+		//register params, if its a GET request or formData format is used
+		if (data != null && data.length() > 0 && appendDataToUrl) {
+			for(String key : JSONObject.getNames(data)) {
+				if (isFileSource && isFileDocAttr(key)) 
+					continue; //Do not pick up default filedoc attrs!
+				if (Utils.isSystemAttribute(key))
+					continue;
+				Object value = data.get(key);
+				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
+					params.put(key, String.valueOf(value));
+			}
+			
+		}
+		return url;
 	}
 
 	private static RequestEntity buildMultiPartEntity(final IContext context,

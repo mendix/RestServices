@@ -1,9 +1,18 @@
 package restservices;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+
+
+
+
+
+
 
 
 
@@ -11,6 +20,8 @@ import java.util.Set;
 import restservices.publish.MicroflowService;
 import restservices.publish.DataService;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
@@ -90,6 +101,7 @@ public class RestServices {
 	static Map<String, DataService> services = new HashMap<String, DataService>();
 	static Map<String, DataService> servicesByEntity = new HashMap<String, DataService>();
 	static Map<String, MicroflowService> microflowServices = new HashMap<String, MicroflowService>();
+	static ListMultimap<String, MicroflowService> microflowServicesByVerb = ArrayListMultimap.create();
 
 	public static DataService getServiceForEntity(String entityType) {
 		if (servicesByEntity.containsKey(entityType))
@@ -143,12 +155,40 @@ public class RestServices {
 		return getBaseUrl() + name + (microflowServices.containsKey(name) ? "" : "/");
 	}
 
-	public static void registerPublishedMicroflow(MicroflowService s) {
-		microflowServices.put(s.getName(), s);
-		LOGPUBLISH.info("Registered microflow service '" + s.getName() + "'");
+	public static void registerPublishedMicroflow(MicroflowService microflowService) {
+		if(microflowService.getPathTemplate() != null)
+			microflowServicesByVerb.put(microflowService.getHttpMethod(), microflowService);
+		else
+			microflowServices.put(microflowService.getName(), microflowService);
+		
+		LOGPUBLISH.info("Registered microflow service '" + microflowService.getName() + "'");
 	}
 	
 	public static MicroflowService getPublishedMicroflow(String name) {
 		return microflowServices.get(name);
+	}
+
+	public static MicroflowService getPublishedMicroflow(String httpMethod, String path) {
+		List<MicroflowService> services = microflowServicesByVerb.get(httpMethod);
+		
+		if (services == null)
+			return null;
+		
+		for (MicroflowService microflowService : services) {
+			if(microflowService.getPathTemplate().match(path, new ArrayList<String>()))
+				return microflowService;
+		}
+		
+		return null;
+	}
+
+	/**
+	 * For unit testing only!
+	 */
+	public static void clearServices() {
+		services.clear();
+		servicesByEntity.clear();
+		microflowServices.clear();
+		microflowServicesByVerb.clear();
 	}
 }
