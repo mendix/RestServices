@@ -15,7 +15,6 @@ import org.junit.Test;
 import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
-import restservices.consume.RestConsumer.InputFormat;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.publish.MicroflowService;
@@ -79,7 +78,7 @@ public class ServiceTest extends TestBase {
 		input.setreplacement("uu");
 		
 		ReplaceOut output = new ReplaceOut(c);
-		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), false);
 		Assert.assertEquals("Yuuluu", output.getresult());
 		
 		input.sethaystack("Yolo?x=&://%$_-%2f");
@@ -87,8 +86,26 @@ public class ServiceTest extends TestBase {
 		input.setreplacement("u%?&=u");
 		
 		output = new ReplaceOut(c);
-		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), true);
 		Assert.assertEquals("Yolo?x=&://u%?&=u$_-u%?&=u2f", output.getresult());
+	}
+	
+	@Test
+	public void testMfServiceWithPathParamsCaseSensitivity() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}";
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", "PUT", pathTemplate);
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate + "?replacement=UU";
+		
+		input.sethaystack("Yolo");
+		input.setneedle("o");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), false);
+		Assert.assertEquals("YUUlUU", output.getresult());
 	}
 	
 	
@@ -107,21 +124,29 @@ public class ServiceTest extends TestBase {
 		input.setreplacement("uu");
 		
 		ReplaceOut output = new ReplaceOut(c);
-		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), InputFormat.URL_PATH);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), false);
 		Assert.assertEquals("Yuuluu", output.getresult());
 	}
 	
 	@Test
 	public void testMfServiceWithoutParams() throws Exception {
-		String pathTemplate = "/piet/jan";
-		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", "GET", pathTemplate);
+		String pathTemplate = "piet/jan";
+		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", "GET", "/" + pathTemplate);
 		
 		IContext c = Core.createSystemContext();
 		
 		String url = RestServices.getBaseUrl() + pathTemplate;
 		
-		RequestResult requestData = RestConsumer.request(c, HttpMethod.POST, url, null, null, InputFormat.URL_PATH);
+		RequestResult requestData = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
 		Assert.assertEquals(202, (int) requestData.getRawResponseCode());
+		
+		try {
+			requestData = RestConsumer.request(c, HttpMethod.PUT, url, null, null, false);
+			Assert.fail();
+		}
+		catch(RestConsumeException e1) {
+			Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (int) e1.getStatus());
+		}
 	}
 	
 	@Test

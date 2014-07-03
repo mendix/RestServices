@@ -101,7 +101,7 @@ public class RestServiceHandler extends RequestHandler{
 
 		String[] basePath = u.getPath().split("/");
 		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
-		String relpath = u.getPath().substring(RestServices.PATH_REST.length()).toLowerCase();
+		String relpath = u.getPath().substring(RestServices.PATH_REST.length() + 1);
 		String requestStr =  method + " " + relpath;
 
 		response.setCharacterEncoding(RestServices.UTF8);
@@ -110,7 +110,7 @@ public class RestServiceHandler extends RequestHandler{
 		if (RestServices.LOGPUBLISH.isDebugEnabled())
 			RestServices.LOGPUBLISH.debug("incoming request: " + Utils.getRequestUrl(request));
 	
-		RestServiceRequest rsr = new RestServiceRequest(request, response, resp);
+		RestServiceRequest rsr = new RestServiceRequest(request, response, resp, relpath);
 		try {
 			//service overview requiest
 			if ("GET".equals(method) && parts.length == 0) {

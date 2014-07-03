@@ -66,6 +66,7 @@ public class TestBase {
 			user = null;
 		}
 		ChangeLogListener.unfollow(baseUrl);
+		RestServices.clearServices();
 	}
 	
 	String getTestUser() throws CoreException {

@@ -198,10 +198,11 @@ public class MicroflowService {
 		// request path parameters
 		if(pathTemplate != null) {
 			Map<String, String> pathValues = new HashMap<String, String>();
-			pathTemplate.match(rsRequest.getPath(), pathValues);
+			if (!pathTemplate.match(rsRequest.getPath(), pathValues))
+				throw new IllegalStateException();
 	
 			for(Entry<String, String> pathValue : pathValues.entrySet())
-				data.put(pathValue.getKey(), pathValue.getValue());
+				data.put(pathValue.getKey(), Utils.urlDecode(pathValue.getValue()));
 		}
 		
 		//serialize to Mendix Object

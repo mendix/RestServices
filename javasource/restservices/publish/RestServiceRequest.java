@@ -41,11 +41,13 @@ public class RestServiceRequest {
 	private boolean autoLogout;
 	private ISession activeSession;
 	private IMxRuntimeResponse mxresponse;
+	private String relpath;
 
-	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response, IMxRuntimeResponse mxresponse) {
+	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response, IMxRuntimeResponse mxresponse, String relpath) {
 		this.request = request;
 		this.response = response;
 		this.mxresponse = mxresponse;
+		this.relpath = relpath;
 		
 		this.requestContentType = determineRequestContentType(request);
 		this.responseContentType = determineResponseContentType(request);
@@ -326,7 +328,7 @@ public class RestServiceRequest {
 	}
 	
 	public String getPath() {
-		return request.getPathInfo();
+		return relpath;
 	}
 	
 	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 

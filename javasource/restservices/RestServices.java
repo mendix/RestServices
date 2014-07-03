@@ -181,4 +181,14 @@ public class RestServices {
 		
 		return null;
 	}
+
+	/**
+	 * For unit testing only!
+	 */
+	public static void clearServices() {
+		services.clear();
+		servicesByEntity.clear();
+		microflowServices.clear();
+		microflowServicesByVerb.clear();
+	}
 }
