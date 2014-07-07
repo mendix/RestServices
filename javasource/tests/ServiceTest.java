@@ -129,6 +129,27 @@ public class ServiceTest extends TestBase {
 	}
 	
 	@Test
+	public void testMfServiceWithComplexParams() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}-{repLacement}";
+		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.GET, pathTemplate);
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate;
+		
+		String key = "http://www.nu.nl/bla?q=3&param=value;  !@#$%^&*()_-+={}|[]\"\\:;\'<>?,./~`\n\r\t\b\fENDOFKEY";
+		
+		input.sethaystack(key+key);
+		input.setneedle(key);
+		input.setreplacement("uu?uu");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.GET, url, input.getMendixObject(), output.getMendixObject(), false);
+		Assert.assertEquals("uu?uuuu?uu", output.getresult());
+	}
+	
+	@Test
 	public void testMfServiceWithoutParams() throws Exception {
 		String pathTemplate = "piet/jan";
 		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", HttpMethod.GET, "/" + pathTemplate);
