@@ -341,6 +341,10 @@ For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json
 ```
 ![Domain Model](images/deserializeexample.png)
 
+## Deserialization and optional / missing attributes
+
+When it comes to deserializing attributes for incoming objects (in, for example, a microflow service), attributes will keep their default values from the domain model if they are lacking in the input. For some primitive types this can be confusing, especially for booleans. For booleans, you can use the `RestServices.BooleanValue` enumeration to be able to distinguish the absence of a value in your transient object, by putting the default value to empty.
+
 # Sending and receiving files
 
 ## Publishing operations that work with files

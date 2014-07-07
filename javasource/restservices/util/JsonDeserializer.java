@@ -16,6 +16,7 @@ import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.Primitive;
 import restservices.proxies.RestPrimitiveType;
+import restservices.proxies.BooleanValue;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;
@@ -124,9 +125,9 @@ public class JsonDeserializer {
 			
 			//Primitive member
 			else if (target.hasMember(targetattr)){
-				PrimitiveType attrtype = target.getMetaObject().getMetaPrimitive(targetattr).getType();
-				if (attrtype != PrimitiveType.AutoNumber)
-					target.setValue(context, targetattr, jsonAttributeToPrimitive(attrtype, object, attr));
+				IMetaPrimitive primitive = target.getMetaObject().getMetaPrimitive(targetattr);
+				if (primitive.getType() != PrimitiveType.AutoNumber)
+					target.setValue(context, targetattr, jsonAttributeToPrimitive(primitive, object, attr));
 			}
 		}
 		Core.commit(context, target);
@@ -158,8 +159,8 @@ public class JsonDeserializer {
 		return attrMap;
 	}
 
-	private static Object jsonAttributeToPrimitive(PrimitiveType type,	JSONObject object, String attr) throws Exception {
-		switch(type) {
+	private static Object jsonAttributeToPrimitive(IMetaPrimitive primitive,	JSONObject object, String attr) throws Exception {
+		switch(primitive.getType()) {
 		case Currency:
 		case Float:
 			return object.getDouble(attr);
@@ -170,6 +171,14 @@ public class JsonDeserializer {
 				return null;
 			return new Date(object.getLong(attr));
 		case Enum:
+			// support for built-in BooleanValue enumeration
+			if ("RestServices.BooleanValue".equals(primitive.getEnumeration().getName())) {
+				if(object.isNull(attr))
+					return null;
+				return object.getBoolean(attr) ? BooleanValue._true.toString() : BooleanValue._false.toString();
+			}
+			
+			// fall-through intentional
 		case HashString:
 		case String:
 			if (object.isNull(attr))
@@ -182,7 +191,7 @@ public class JsonDeserializer {
 			return object.getInt(attr);
 		case Binary:
 		default:
-			throw new Exception("Unsupported attribute type '" + type + "' in attribute '" + attr + "'");
+			throw new Exception("Unsupported attribute type '" + primitive.getType() + "' in attribute '" + attr + "'");
 		}	
 	}
 
