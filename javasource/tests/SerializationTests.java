@@ -6,7 +6,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import restservices.util.JsonDeserializer;
+import restservices.util.JsonSerializer;
 import tests.proxies.A;
+import tests.proxies.BooleanValue;
+import tests.proxies.CustomBooleanTest;
 import tests.proxies.Task;
 
 import com.mendix.core.Core;
@@ -99,5 +102,32 @@ public class SerializationTests extends TestBase {
 		Assert.assertEquals(2, a.get_A_Bs().size());
 		Assert.assertEquals("test2", a.get_A_Bs().get(0).getattr());
 		Assert.assertEquals("test3", a.get_A_Bs().get(1).getattr());
+	}
+	
+	@Test
+	public void testBooleanEnumSerialization() throws Exception {
+		IContext c = Core.createSystemContext();
+		CustomBooleanTest bt;
+		
+		//true
+		bt = new CustomBooleanTest(c);
+		JsonDeserializer.readJsonDataIntoMendixObject(c, new JSONObject("{test:true}"), bt.getMendixObject(), true);
+		Assert.assertEquals(BooleanValue._true, bt.gettest());
+
+		Assert.assertEquals(true, new JSONObject(JsonSerializer.writeMendixObjectToJson(c, bt.getMendixObject())).getBoolean("test"));
+		
+		//false
+		bt = new CustomBooleanTest(c);
+		JsonDeserializer.readJsonDataIntoMendixObject(c, new JSONObject("{test:false}"), bt.getMendixObject(), true);
+		Assert.assertEquals(BooleanValue._false, bt.gettest());
+
+		Assert.assertEquals(false, new JSONObject(JsonSerializer.writeMendixObjectToJson(c, bt.getMendixObject())).getBoolean("test"));
+
+		//empty
+		bt = new CustomBooleanTest(c);
+		JsonDeserializer.readJsonDataIntoMendixObject(c, new JSONObject("{}"), bt.getMendixObject(), true);
+		Assert.assertEquals(null, bt.gettest());
+
+		Assert.assertEquals(false, new JSONObject(JsonSerializer.writeMendixObjectToJson(c, bt.getMendixObject())).has("test"));
 	}
 }
