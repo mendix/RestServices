@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.DataServiceDefinition;
+import restservices.proxies.RestServiceError;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
@@ -236,9 +237,9 @@ public class RestServiceHandler extends RequestHandler{
 		case JSON:
 		case XML:
 			JSONObject data = new JSONObject();
-			data.put("error", error);
+			data.put(RestServiceError.MemberNames.errorMessage.toString(), error);
 			if (errorCode != null && !errorCode.isEmpty())
-				data.put("errorCode", errorCode);
+				data.put(RestServiceError.MemberNames.errorCode.toString(), errorCode);
 			rsr.datawriter.value(data);
 			break;
 		}

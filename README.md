@@ -455,7 +455,7 @@ Sets the HTTP response status of a request.
 Throws a RestService exception, accepts the following attributes:
 
 * httpStatus: The HTTP status of the request. Has to be between 400 and 599
-* error:	The error message
+* errorMessage:	The error message
 * errorCode: Custom error code for this exception, to make the error easier recognizable and referable.
 
 RestServiceExceptions are compatible with Webservice exceptions, so they can be used safely in microflows that are published through webservices as well. 

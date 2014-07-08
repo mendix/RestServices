@@ -16,20 +16,20 @@ import com.mendix.systemwideinterfaces.core.UserAction;
  * Throws a RestService exception, accepts the following attributes:
  * 
  * * httpStatus: The HTTP status of the request. Has to be between 400 and 599
- * * error:	The error message
+ * * errorMessage:	The error message
  * * errorCode: Custom error code for this exception, to make the error easier recognizable and referable. 
  */
 public class throwRestServiceException extends UserAction<Boolean>
 {
 	private Long httpStatus;
-	private String error;
+	private String errorMessage;
 	private String errorCode;
 
-	public throwRestServiceException(Long httpStatus, String error, String errorCode)
+	public throwRestServiceException(Long httpStatus, String errorMessage, String errorCode)
 	{
 		super();
 		this.httpStatus = httpStatus;
-		this.error = error;
+		this.errorMessage = errorMessage;
 		this.errorCode = errorCode;
 	}
 
@@ -37,7 +37,7 @@ public class throwRestServiceException extends UserAction<Boolean>
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		throw new CustomRestServiceException(errorCode, error, (int)(long) httpStatus);
+		throw new CustomRestServiceException(errorCode, errorMessage, (int)(long) httpStatus);
 		// END USER CODE
 	}
 

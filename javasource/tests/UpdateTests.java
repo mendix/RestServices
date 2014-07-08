@@ -8,6 +8,7 @@ import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
+import restservices.proxies.RestServiceError;
 import tests.proxies.CTaskView;
 
 import com.mendix.core.Core;
@@ -96,7 +97,7 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(500, e.getStatus());
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertTrue(result.getString("error").contains("internal server error"));
+			Assert.assertTrue(result.getString(RestServiceError.MemberNames.errorMessage.toString()).contains("internal server error"));
 		}
 		
 		t.setDescription("WebserviceException");
@@ -106,7 +107,7 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(400, e.getStatus()); 
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getString("error"), "Invalid input");
+			Assert.assertEquals(result.getString(RestServiceError.MemberNames.errorMessage.toString()), "Invalid input");
 		}
 		
 		def.setUseStrictVersioning(true);
