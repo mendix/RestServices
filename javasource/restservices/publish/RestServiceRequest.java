@@ -67,17 +67,17 @@ public class RestServiceRequest {
 		return this.context;
 	}
 
-	boolean authenticate(String role, ISession existingSession) throws Exception {
-		if ("*".equals(role)) {
+	boolean authenticate(String roleOrMicroflow, ISession existingSession) throws Exception {
+		if ("*".equals(roleOrMicroflow)) {
 			setContext(Core.createSystemContext());
 			return true;
 		}
 
-		else if (role.indexOf('.') != -1) //Modeler forbids dots in userrole names, while microflow names always are a qualified name
-			return authenticateWithMicroflow(role);
+		else if (roleOrMicroflow.indexOf('.') != -1) //Modeler forbids dots in userrole names, while microflow names always are a qualified name
+			return authenticateWithMicroflow(roleOrMicroflow);
 		
 		else
-			return authenticateWithCredentials(role, existingSession);
+			return authenticateWithCredentials(roleOrMicroflow, existingSession);
 	}
 
 	private boolean authenticateWithCredentials(String role,

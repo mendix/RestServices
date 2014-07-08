@@ -1,10 +1,13 @@
 package restservices.publish;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -12,16 +15,23 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.DataServiceDefinition;
+import restservices.proxies.HttpMethod;
 import restservices.proxies.RestServiceError;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Maps;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.externalinterface.connector.RequestHandler;
@@ -29,6 +39,7 @@ import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.ISession;
 
 import communitycommons.XPath;
 
@@ -36,6 +47,21 @@ public class RestServiceHandler extends RequestHandler{
 
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
+	
+	
+	private static class HandlerRegistration {
+		final UriTemplate template;
+		final String roleOrMicroflow;
+		final IRestServiceHandler handler;
+
+		HandlerRegistration(UriTemplate template, String roleOrMicroflow, IRestServiceHandler handler) {
+			this.template = template;
+			this.roleOrMicroflow = roleOrMicroflow;
+			this.handler = handler;
+		}
+	}
+	
+	private static ListMultimap<String, HandlerRegistration> services = ArrayListMultimap.create();
 
 	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
@@ -46,6 +72,16 @@ public class RestServiceHandler extends RequestHandler{
 			started = true;
 			loadConfig(context);
 
+			registerService(HttpMethod.GET, "/", "*", new IRestServiceHandler() {
+
+				@Override
+				public void execute(RestServiceRequest rsr,
+						Map<String, String> params) throws Exception {
+					ServiceDescriber.serveServiceOverview(rsr); 
+				}
+				
+			});
+			
 			RestServices.LOGPUBLISH.info("Starting RestServices module... DONE");
 		}
 	}
@@ -78,11 +114,65 @@ public class RestServiceHandler extends RequestHandler{
 		else {
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
 			DataService service = new DataService(def);
-			RestServices.registerService(service.getName(), service);
+			service.register();
+			
 			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
 		}
 	}
+	
+	public static void registerService(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
+		checkNotNull(method, "method");
+		
+		services.put(method.toString(), new HandlerRegistration(new UriTemplate(templatePath), roleOrMicroflow, handler));
 
+		RestServices.LOGPUBLISH.info("Registered data service on '" + templatePath + "'");
+	}
+	
+	private static void requestParamsToJsonMap(RestServiceRequest rsr, Map<String, String> params) {
+		for (String param : rsr.request.getParameterMap().keySet())
+			params.put(param, rsr.request.getParameter(param));
+	}
+
+
+
+	public static boolean executeHandler(final RestServiceRequest rsr, String method, String relpath, ISession existingSession) throws Exception {
+		if (!services.containsKey(method))
+			return false;
+		
+		final Map<String, String> params = Maps.newHashMap();
+		for(final HandlerRegistration reg : services.get(method)) {
+			if (reg.template.match(relpath, params)) {
+				
+				//Apply URL decoding on path parameters
+				for(Entry<String, String> e : params.entrySet()) {
+					e.setValue(Utils.urlDecode(e.getValue()));
+				}
+				
+				//Mixin query parameters
+				requestParamsToJsonMap(rsr, params);
+
+				//Execute the reqeust
+				if (rsr.authenticate(reg.roleOrMicroflow, existingSession)) {
+					
+					rsr.withTransaction(new Function<Boolean>() {
+
+						@Override
+						public Boolean apply() throws Exception {
+							reg.handler.execute(rsr, params);
+							return true;
+						}
+
+					});
+					
+					return true;
+				} else {
+					throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+				}
+			}
+		}
+		return false;
+	}
+	
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String _) {
@@ -100,8 +190,6 @@ public class RestServiceHandler extends RequestHandler{
 			throw new IllegalStateException(e1);
 		}
 
-		String[] basePath = u.getPath().split("/");
-		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
 		String relpath = u.getPath().substring(RestServices.PATH_REST.length() + 1);
 		String requestStr =  method + " " + relpath;
 
@@ -113,45 +201,15 @@ public class RestServiceHandler extends RequestHandler{
 	
 		RestServiceRequest rsr = new RestServiceRequest(request, response, resp, relpath);
 		try {
-			//service overview requiest
-			if ("GET".equals(method) && parts.length == 0) {
-				ServiceDescriber.serveServiceOverview(rsr);
-			}
-
-			else {
-				//Find the service being invoked
-				DataService dataService = null;
-				MicroflowService mfService = null;
-
-				if (parts.length > 0) {
-					mfService = RestServices.getPublishedMicroflow(request.getMethod(), relpath);
-					
-					if (mfService == null) {
-						parts[0] = parts[0].toLowerCase();
-						dataService = RestServices.getService(parts[0]);
-						mfService = RestServices.getPublishedMicroflow(parts[0]);
-						
-						if (dataService == null && mfService == null) 
-							throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
-					}
-				}
-
-				//Find request meta data
-				boolean isMeta = isMetaDataRequest(method, parts, rsr);
-				String authRole = dataService != null ? dataService.getRequiredRoleOrMicroflow() : mfService.getRequiredRoleOrMicroflow();
-
-				//authenticate
-				if (!isMeta && (mfService != null || dataService != null)) {
-					//authenticate sets up session as side-effect
-					if (!rsr.authenticate(authRole, getSessionFromRequest(req)))
-						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
-				}
-
-				executeRequest(method, parts, rsr, dataService, mfService);
-
-				if (RestServices.LOGPUBLISH.isDebugEnabled())
+			ISession existingSession = getSessionFromRequest(req);
+			
+			boolean handled = executeHandler(rsr, method, relpath, existingSession);
+			
+			if (!handled)
+				throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service at: '" + relpath + "'");
+			
+			if (RestServices.LOGPUBLISH.isDebugEnabled())
 					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
-			}
 		}
 		catch(RestPublishException rre) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": " + rre.getType() + " " + rre.getMessage());
@@ -182,38 +240,6 @@ public class RestServiceHandler extends RequestHandler{
 		finally {
 			rsr.dispose();
 		}
-	}
-
-	private void executeRequest(final String method, final String[] parts,
-			final RestServiceRequest rsr, final DataService service,
-			final MicroflowService mf) throws Exception {
-
-		rsr.withTransaction(new Function<Boolean>() {
-
-			@Override
-			public Boolean apply() throws Exception {
-				if (service == null) {
-					if (isMetaDataRequest(method, parts, rsr))
-						mf.serveDescription(rsr);
-					else
-						mf.execute(rsr);
-				}
-				else
-					dispatchDataService(method, parts, rsr, service);
-
-				return true;
-			}
-
-		});
-	}
-
-	private boolean isMetaDataRequest(String method, String[] parts, RestServiceRequest rsr) {
-		return "GET".equals(method) && parts.length == 1 && rsr.request.getParameter(RestServices.PARAM_ABOUT) != null;
-	}
-
-	public static void requestParamsToJsonMap(RestServiceRequest rsr, JSONObject target) {
-		for (String param : rsr.request.getParameterMap().keySet())
-			target.put(param, rsr.request.getParameter(param));
 	}
 
 	private void serveErrorPage(RestServiceRequest rsr, int status, String error, String errorCode) {
@@ -249,6 +275,7 @@ public class RestServiceHandler extends RequestHandler{
 
 	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, DataService service) throws Exception, IOException,
 			CoreException, RestPublishException {
+		/* TODO: refactor 
 		boolean handled = false;
 		boolean isGet = "GET".equals(method);
 
@@ -309,10 +336,15 @@ public class RestServiceHandler extends RequestHandler{
 
 		if (!handled)
 			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
+			*/
 	}
 
 	public static boolean isStarted() {
 		return started;
+	}
+
+	public static void clearServices() {
+		services.clear();		
 	}
 
 }

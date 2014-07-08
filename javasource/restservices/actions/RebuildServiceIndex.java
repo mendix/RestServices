@@ -35,8 +35,8 @@ public class RebuildServiceIndex extends UserAction<Boolean>
 		// BEGIN USER CODE
 		if (dataServiceDefinition == null)
 			throw new IllegalArgumentException();
-		
-		RestServices.getService(dataServiceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
+		//TODO:
+		//RestServices.getService(dataServiceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
 		return true;
 		// END USER CODE
 	}

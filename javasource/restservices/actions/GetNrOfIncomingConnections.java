@@ -48,7 +48,7 @@ public class GetNrOfIncomingConnections extends UserAction<Long>
 		}
 		if (def == null)
 			return 0L;
-		DataService service = RestServices.getService(def.getName());
+		DataService service = null; //TODO: RestServices.getService(def.getName());
 		if (service == null)
 			return 0L;
 		return service.getChangeLogManager().getNrOfConnections();

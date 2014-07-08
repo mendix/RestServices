@@ -75,7 +75,8 @@ public class DataService {
 	}
 
 	public String getServiceUrl() {
-		return RestServices.getServiceUrl(getName());
+		return null;
+		//TODO: return RestServices.getServiceUrl(getName());
 	}
 
 	private IMendixObject getObjectByKey(IContext context,
@@ -490,6 +491,13 @@ public class DataService {
 
 	public void dispose() {
 		this.changeLogManager.dispose();
+	}
+
+	public void register() {
+		if (def.getEnableGet()) 
+			RestServices.registerServiceByEntity(def.getSourceEntity(), this);
+		
+		//TODO: register all paths
 	}
 
 	

@@ -13,7 +13,6 @@ import javax.servlet.http.Part;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.MultiPartInputStream.MultiPart;
-import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONObject;
 
 import com.mendix.core.Core;
@@ -32,7 +31,7 @@ import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
 
-public class MicroflowService {
+public class MicroflowService implements IRestServiceHandler{
 
 	private String microflowname;
 	private boolean hasArgument;
@@ -40,29 +39,30 @@ public class MicroflowService {
 	private boolean isReturnTypePrimitive;
 	private String returnType;
 	private String argName;
-	private String securityRoleOrMicroflow;
+	private String roleOrMicroflow;
 	private String description;
 	private HttpMethod httpMethod;
-	private UriTemplate pathTemplate;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 
-	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description,
+	public MicroflowService(String microflowname, String roleOrMicroflow, String description,
 			HttpMethod httpMethod, String pathTemplateString) throws CoreException {
 		this.microflowname = microflowname;
-		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
+		this.roleOrMicroflow = roleOrMicroflow;
 		this.description = description;
 		this.httpMethod = httpMethod;
 		
 		if(pathTemplateString != null) {
-			if (pathTemplateString.startsWith("/"))
+			if (pathTemplateString.startsWith("/")) {
 				pathTemplateString = pathTemplateString.substring(1);
-		
-			this.pathTemplate = new UriTemplate(pathTemplateString);
+			}
+			
+			RestServiceHandler.registerService(httpMethod, pathTemplateString, roleOrMicroflow, this);
+		} else {
+			RestServiceHandler.registerService(httpMethod, microflowname.split("\\.")[1].toLowerCase(), roleOrMicroflow, this);
 		}
 		
 		this.consistencyCheck();
-		RestServices.registerPublishedMicroflow(this);
 	}
 	
 	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException {
@@ -70,7 +70,7 @@ public class MicroflowService {
 	}
 
 	private void consistencyCheck() throws CoreException {
-		String secError = ConsistencyChecker.checkAccessRole(this.securityRoleOrMicroflow);
+		String secError = ConsistencyChecker.checkAccessRole(this.roleOrMicroflow);
 		if (secError != null)
 			throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ": " + secError);
 
@@ -93,9 +93,10 @@ public class MicroflowService {
 				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
 		}
 
-		if(pathTemplate != null && httpMethod == null)
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it has a path template but no HTTP method defined.");
-
+		if (httpMethod == null) {
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it has no HTTP method defined.");
+		}
+			
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);
 		
 		if (returnTypeFromMF.isMendixObject() || returnTypeFromMF.isList()){
@@ -109,25 +110,27 @@ public class MicroflowService {
 			isReturnTypePrimitive = true;
 	}
 
-	void execute(final RestServiceRequest rsRequest) throws Exception {
+	@Override
+	public void execute(final RestServiceRequest rsr, Map<String, String> params)	throws Exception {
+		
 		Map<String, Object> args = new HashMap<String, Object>();
-		IMendixObject inputObject = parseInputData(rsRequest);
+		IMendixObject inputObject = parseInputData(rsr, params);
 		
 		if(inputObject != null) 
 			args.put(argName, inputObject);
 		
 		if (isReturnTypePrimitive)
-			rsRequest.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
+			rsr.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
 		else if (isFileTarget)
-			rsRequest.setResponseContentType(ResponseType.BINARY);
+			rsr.setResponseContentType(ResponseType.BINARY);
 
-		Object result = Core.execute(rsRequest.getContext(), microflowname, args);
+		Object result = Core.execute(rsr.getContext(), microflowname, args);
 
-		Utils.whileRetainingObject(rsRequest.getContext(), result, new IRetainWorker<Boolean>() {
+		Utils.whileRetainingObject(rsr.getContext(), result, new IRetainWorker<Boolean>() {
 
 			@Override
 			public Boolean apply(Object item) throws IOException, Exception {
-				writeOutputData(rsRequest, item);
+				writeOutputData(rsr, item);
 				return true;
 			}
 		});
@@ -166,54 +169,47 @@ public class MicroflowService {
 		else throw new IllegalStateException("Unexpected result from microflow " + microflowname + ": " + result.getClass().getName());
 	}
 
-	private IMendixObject parseInputData(RestServiceRequest rsRequest)
+	private IMendixObject parseInputData(RestServiceRequest rsr, Map<String, String> params)
 			throws IOException, ServletException, Exception {
 		if (!hasArgument)
 			return null;
 		
-		if (!Utils.hasDataAccess(Core.getMetaObject(argType), rsRequest.getContext()))
-			throw new IllegalStateException("Cannot instantiate object of type '" + argType + "', the object is not accessiable for users with role " + rsRequest.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
+		if (!Utils.hasDataAccess(Core.getMetaObject(argType), rsr.getContext()))
+			throw new IllegalStateException("Cannot instantiate object of type '" + argType + "', the object is not accessiable for users with role " + rsr.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
 		
-		IMendixObject argObject = Core.instantiate(rsRequest.getContext(), argType);
+		IMendixObject argObject = Core.instantiate(rsr.getContext(), argType);
 		JSONObject data = new JSONObject();
 
 		//multipart data
-		if (rsRequest.getRequestContentType() == RequestContentType.MULTIPART) {
-			parseMultipartData(rsRequest, argObject, data);
+		if (rsr.getRequestContentType() == RequestContentType.MULTIPART) {
+			parseMultipartData(rsr, argObject, data);
 		}
 
 		//json data
-		else if (rsRequest.getRequestContentType() == RequestContentType.JSON || (rsRequest.getRequestContentType() == RequestContentType.OTHER && !isFileSource)) { 
-			String body = IOUtils.toString(rsRequest.request.getInputStream());
+		else if (rsr.getRequestContentType() == RequestContentType.JSON || (rsr.getRequestContentType() == RequestContentType.OTHER && !isFileSource)) { 
+			String body = IOUtils.toString(rsr.request.getInputStream());
 			data = new JSONObject(StringUtils.isEmpty(body) ? "{}" : body);
 		}
 
 		//not multipart but expecting a file?
 		else if (isFileSource) {
-			Core.storeFileDocumentContent(rsRequest.getContext(), argObject, rsRequest.request.getInputStream());
+			Core.storeFileDocumentContent(rsr.getContext(), argObject, rsr.request.getInputStream());
 		}
 
-		//read request parameters (this picks up form encoded data as well)
-		RestServiceHandler.requestParamsToJsonMap(rsRequest, data);
-
-		// request path parameters
-		if(pathTemplate != null) {
-			Map<String, String> pathValues = new HashMap<String, String>();
-			if (!pathTemplate.match(rsRequest.getPath(), pathValues))
-				throw new IllegalStateException();
-	
-			for(Entry<String, String> pathValue : pathValues.entrySet())
-				data.put(pathValue.getKey(), Utils.urlDecode(pathValue.getValue()));
-		}
+		addParameters(data, params);
 		
 		//serialize to Mendix Object
-		JsonDeserializer.readJsonDataIntoMendixObject(rsRequest.getContext(), data, argObject, false);
+		JsonDeserializer.readJsonDataIntoMendixObject(rsr.getContext(), data, argObject, false);
 		
 		return argObject;
 	}
 
-	private void parseMultipartData(RestServiceRequest rsr, IMendixObject argO,
-			JSONObject data) throws IOException, ServletException {
+	private void addParameters(JSONObject data, Map<String, String> params) {
+		for(Entry<String, String> pathValue : params.entrySet())
+			data.put(pathValue.getKey(), pathValue.getValue());		
+	}
+
+	private void parseMultipartData(RestServiceRequest rsr, IMendixObject argO,	JSONObject data) throws IOException, ServletException {
 		boolean hasFile = false;
 
 		for(Part part : rsr.request.getParts()) {
@@ -233,17 +229,10 @@ public class MicroflowService {
 		}
 	}
 
-	public String getName() {
-		return microflowname.split("\\.")[1].toLowerCase();
-	}
-
-	public String getRequiredRoleOrMicroflow() {
-		return securityRoleOrMicroflow;
-	}
-
+	//TODO:
 	public void serveDescription(RestServiceRequest rsr) {
 		rsr.startDoc();
-
+/*
 		if (rsr.getResponseContentType() == ResponseType.HTML)
 			rsr.write("<h1>Operation: ").write(getName()).write("</h1>");
 
@@ -263,13 +252,11 @@ public class MicroflowService {
 			.endObject();
 
 		rsr.endDoc();
+*/
 	}
 	
 	public String getHttpMethod() {
 		return httpMethod == null ? null : httpMethod.toString();
 	}
-	
-	public UriTemplate getPathTemplate() {
-		return pathTemplate;
-	}
+
 }

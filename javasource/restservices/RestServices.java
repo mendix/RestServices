@@ -1,27 +1,11 @@
 package restservices;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-
-
-
-
-
-
-
-
-
-
-import restservices.publish.MicroflowService;
 import restservices.publish.DataService;
+import restservices.publish.RestServiceHandler;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
@@ -98,11 +82,8 @@ public class RestServices {
 	public static final String CHANGE_URL = "url";
 
 
-	static Map<String, DataService> services = new HashMap<String, DataService>();
 	static Map<String, DataService> servicesByEntity = new HashMap<String, DataService>();
-	static Map<String, MicroflowService> microflowServices = new HashMap<String, MicroflowService>();
-	static ListMultimap<String, MicroflowService> microflowServicesByVerb = ArrayListMultimap.create();
-
+	
 	public static DataService getServiceForEntity(String entityType) {
 		if (servicesByEntity.containsKey(entityType))
 			return servicesByEntity.get(entityType);
@@ -119,76 +100,28 @@ public class RestServices {
 		servicesByEntity.put(entityType, null); //no service. Remember that
 		return null;
 	}
-	
-	public static void registerService(String name, DataService def) {
-		DataService current = services.put(name,  def);
-		
-		if (current != null)
-			current.dispose();
-		
-		if (def.isGetObjectEnabled())
-			servicesByEntity.put(def.getSourceEntity(), def);
-		else {
-			current = servicesByEntity.get(def.getSourceEntity());
-			if (current != null && current.getName().equals(def.getName())) 
-				servicesByEntity.remove(def.getSourceEntity());
-		}
 
-		LOGPUBLISH.info("Registered data service '" + def.getName() + "'");
-	}
-
-	public static DataService getService(String name) {
-		return services.get(name);
-	}
-
-	public static Set<String> getServiceNames() {
-		Set<String> names = new HashSet<String>(services.keySet());
-		names.addAll(microflowServices.keySet());
-		return names;
-	}
-	
 	public static String getBaseUrl() {
 		return Core.getConfiguration().getApplicationRootUrl() + PATH_REST;
-	}
-
-	public static String getServiceUrl(String name) {
-		return getBaseUrl() + name + (microflowServices.containsKey(name) ? "" : "/");
-	}
-
-	public static void registerPublishedMicroflow(MicroflowService microflowService) {
-		if(microflowService.getPathTemplate() != null)
-			microflowServicesByVerb.put(microflowService.getHttpMethod(), microflowService);
-		else
-			microflowServices.put(microflowService.getName(), microflowService);
-		
-		LOGPUBLISH.info("Registered microflow service '" + microflowService.getName() + "'");
-	}
-	
-	public static MicroflowService getPublishedMicroflow(String name) {
-		return microflowServices.get(name);
-	}
-
-	public static MicroflowService getPublishedMicroflow(String httpMethod, String path) {
-		List<MicroflowService> services = microflowServicesByVerb.get(httpMethod);
-		
-		if (services == null)
-			return null;
-		
-		for (MicroflowService microflowService : services) {
-			if(microflowService.getPathTemplate().match(path, new ArrayList<String>()))
-				return microflowService;
-		}
-		
-		return null;
 	}
 
 	/**
 	 * For unit testing only!
 	 */
 	public static void clearServices() {
-		services.clear();
+		RestServiceHandler.clearServices();
 		servicesByEntity.clear();
-		microflowServices.clear();
-		microflowServicesByVerb.clear();
 	}
+
+	public static void registerServiceByEntity(String sourceEntity,
+			DataService def) {
+		servicesByEntity.put(sourceEntity, def);
+	}
+
+	public static String getServiceUrl(String string) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 }

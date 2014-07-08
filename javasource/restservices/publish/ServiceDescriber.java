@@ -18,6 +18,7 @@ public class ServiceDescriber {
 	private static final String SINCEPARAM_HELPTEXT = "Number, defaulting to zero. Each change on the server side is assigned an unique, incremental number. Clients should keep track of the highest numbered change they already processed, to optimize the sync process. For feeds, since '-1' can be used to indicate that past revisions can be skipped and the feed should only push new changes. ";
 
 	public static void serveServiceOverview(RestServiceRequest rsr) {
+		/* TODO: restore
 		rsr.startDoc();
 		if (rsr.getResponseContentType() == ResponseType.HTML) 
 			rsr.write("<h1>RestServices</h1>");
@@ -32,6 +33,7 @@ public class ServiceDescriber {
 		rsr.datawriter.endArray().endObject();
 		
 		rsr.endDoc();
+		*/
 	}
 
 	private RestServiceRequest rsr;
@@ -53,7 +55,7 @@ public class ServiceDescriber {
 		rsr.datawriter.object()
 			.key("name").value(def.getName())
 			.key("description").value(def.getDescription())
-			.key("baseurl").value(RestServices.getServiceUrl(def.getName()))
+// TODO:			.key("baseurl").value(RestServices.getServiceUrl(def.getName()))
 			.key("worldreadable").value("*".equals(def.getAccessRole()))
 			.key("requiresETags").value(def.getUseStrictVersioning());
 			
@@ -155,6 +157,8 @@ public class ServiceDescriber {
 	}
 
 	private void startEndpoint(String method, String path, String description) {
+		//TODO restore:
+		/*
 		String url = RestServices.getServiceUrl(def.getName()) + path;
 		if (isHTML) {
 			String link = "<small>" + RestServices.getBaseUrl() + "</small>" + StringUtils.HTMLEncode(url.substring(RestServices.getBaseUrl().length()));
@@ -170,6 +174,7 @@ public class ServiceDescriber {
 				.key("path").value(method + " " + url)
 				.key("description").value(description)
 				.key("params").array();
+		*/
 	}
 	
 	private void endEndpoint() {
