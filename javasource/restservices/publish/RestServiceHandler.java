@@ -155,27 +155,27 @@ public class RestServiceHandler extends RequestHandler{
 		catch(RestPublishException rre) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": " + rre.getType() + " " + rre.getMessage());
 
-			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage(), null);
+			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr + " " + rre.getMessage(), rre.getType().toString());
 		}
 		catch(JSONException je) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
 
-			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data.", je.getMessage(), null);
+			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data: " + je.getMessage(), "INVALID_JSON");
 		}
 		catch(Throwable e) {
 			Throwable cause = ExceptionUtils.getRootCause(e);
 			if (cause instanceof CustomRestServiceException) {
 				CustomRestServiceException rse = (CustomRestServiceException) cause;
-				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getFaultCode(), rse.getFaultString()));
-				serveErrorPage(rsr, rse.getHttpStatus(), rse.getFaultString(), rse.getDetail(), rse.getFaultCode());
+				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getFaultCode(), rse.getMessage()));
+				serveErrorPage(rsr, rse.getHttpStatus(), rse.getMessage(), rse.getFaultCode());
 			}
 			else if (cause instanceof WebserviceException) {
 				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
-				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage(), ((WebserviceException) cause).getFaultCode());
+				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, cause.getMessage(), ((WebserviceException) cause).getFaultCode());
 			}
 			else {
 				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
-				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.", null);
+				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr + ": An internal server error occurred. Please check the application logs or contact a system administrator.", null);
 			}
 		}
 		finally {
@@ -215,8 +215,7 @@ public class RestServiceHandler extends RequestHandler{
 			target.put(param, rsr.request.getParameter(param));
 	}
 
-	private void serveErrorPage(RestServiceRequest rsr, int status, String title,
-			String detail, String errorCode) {
+	private void serveErrorPage(RestServiceRequest rsr, int status, String error, String errorCode) {
 		rsr.response.reset();
 		rsr.response.setStatus(status);
 
@@ -229,7 +228,7 @@ public class RestServiceHandler extends RequestHandler{
 		switch(rsr.getResponseContentType()) {
 		default:
 		case HTML:
-			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p>");
+			rsr.write("<h1>" + error + "</h1>");
 			if (errorCode != null)
 				rsr.write("<p>Error code: " + errorCode + "</p>");
 			rsr.write("<p>Http status code: " + status + "</p>");
@@ -237,13 +236,9 @@ public class RestServiceHandler extends RequestHandler{
 		case JSON:
 		case XML:
 			JSONObject data = new JSONObject();
-			data.put("error", title);
-			data.put("status", status);
-			data.put("message", detail);
-			
-			if (errorCode != null)
+			data.put("error", error);
+			if (errorCode != null && !errorCode.isEmpty())
 				data.put("errorCode", errorCode);
-			
 			rsr.datawriter.value(data);
 			break;
 		}

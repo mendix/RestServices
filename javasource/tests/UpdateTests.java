@@ -96,8 +96,7 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(500, e.getStatus());
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("status"), 500);
-			Assert.assertTrue(result.getString("message").contains("internal server error"));
+			Assert.assertTrue(result.getString("error").contains("internal server error"));
 		}
 		
 		t.setDescription("WebserviceException");
@@ -107,8 +106,7 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(400, e.getStatus()); 
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("status"), 400);
-			Assert.assertEquals(result.getString("message"), "Invalid input");
+			Assert.assertEquals(result.getString("error"), "Invalid input");
 		}
 		
 		def.setUseStrictVersioning(true);
