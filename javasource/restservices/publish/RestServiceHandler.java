@@ -2,10 +2,12 @@ package restservices.publish;
 
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -13,9 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,9 +28,6 @@ import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
 import restservices.util.Utils;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -40,7 +37,6 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.ISession;
-
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -48,20 +44,21 @@ public class RestServiceHandler extends RequestHandler{
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
 	
-	
 	private static class HandlerRegistration {
+		final String method;
 		final UriTemplate template;
 		final String roleOrMicroflow;
 		final IRestServiceHandler handler;
 
-		HandlerRegistration(UriTemplate template, String roleOrMicroflow, IRestServiceHandler handler) {
+		HandlerRegistration(String method, UriTemplate template, String roleOrMicroflow, IRestServiceHandler handler) {
+			this.method = method;
 			this.template = template;
 			this.roleOrMicroflow = roleOrMicroflow;
 			this.handler = handler;
 		}
 	}
 	
-	private static ListMultimap<String, HandlerRegistration> services = ArrayListMultimap.create();
+	private static List<HandlerRegistration> services = newArrayList();
 
 	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
@@ -123,7 +120,7 @@ public class RestServiceHandler extends RequestHandler{
 	public static void registerService(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
 		checkNotNull(method, "method");
 		
-		services.put(method.toString(), new HandlerRegistration(new UriTemplate(templatePath), roleOrMicroflow, handler));
+		services.add(new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler);
 
 		RestServices.LOGPUBLISH.info("Registered data service on '" + templatePath + "'");
 	}
@@ -133,46 +130,51 @@ public class RestServiceHandler extends RequestHandler{
 			params.put(param, rsr.request.getParameter(param));
 	}
 
+	private static void executeHandler(final RestServiceRequest rsr, String method, String relpath, ISession existingSession) throws Exception {
+		boolean pathExists = false;
 
-
-	public static boolean executeHandler(final RestServiceRequest rsr, String method, String relpath, ISession existingSession) throws Exception {
-		if (!services.containsKey(method))
-			return false;
-		
 		final Map<String, String> params = Maps.newHashMap();
-		for(final HandlerRegistration reg : services.get(method)) {
+		for (final HandlerRegistration reg : services) {
 			if (reg.template.match(relpath, params)) {
-				
-				//Apply URL decoding on path parameters
-				for(Entry<String, String> e : params.entrySet()) {
-					e.setValue(Utils.urlDecode(e.getValue()));
-				}
-				
-				//Mixin query parameters
-				requestParamsToJsonMap(rsr, params);
+				if (reg.method.equals(method)) {
+					// Apply URL decoding on path parameters
+					for (Entry<String, String> e : params.entrySet()) {
+						e.setValue(Utils.urlDecode(e.getValue()));
+					}
 
-				//Execute the reqeust
-				if (rsr.authenticate(reg.roleOrMicroflow, existingSession)) {
-					
-					rsr.withTransaction(new Function<Boolean>() {
+					// Mixin query parameters
+					requestParamsToJsonMap(rsr, params);
 
-						@Override
-						public Boolean apply() throws Exception {
-							reg.handler.execute(rsr, params);
-							return true;
-						}
+					// Execute the reqeust
+					if (rsr.authenticate(reg.roleOrMicroflow, existingSession)) {
 
-					});
-					
-					return true;
+						rsr.withTransaction(new Function<Boolean>() {
+
+							@Override
+							public Boolean apply() throws Exception {
+								reg.handler.execute(rsr, params);
+								return true;
+							}
+
+						});
+
+						return;
+					} else {
+						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+					}
 				} else {
-					throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+					pathExists = true;
 				}
 			}
 		}
-		return false;
+
+		if (pathExists) {
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Method not allowed for service at: '" + relpath + "'");
+		} else {
+			throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service at: '" + relpath + "'");
+		}
 	}
-	
+
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
 			String _) {
@@ -203,10 +205,7 @@ public class RestServiceHandler extends RequestHandler{
 		try {
 			ISession existingSession = getSessionFromRequest(req);
 			
-			boolean handled = executeHandler(rsr, method, relpath, existingSession);
-			
-			if (!handled)
-				throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service at: '" + relpath + "'");
+			executeHandler(rsr, method, relpath, existingSession);
 			
 			if (RestServices.LOGPUBLISH.isDebugEnabled())
 					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
