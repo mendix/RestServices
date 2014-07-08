@@ -1,7 +1,10 @@
 package tests;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -440,4 +443,35 @@ public class BasicTests extends TestBase {
 		
 	}
 	
+	/*
+	 * GitHub issue #22
+	 */
+	@Test
+	public void testThatDataServicePublishedWithSeviceNameContainingSlashesIsServedUnderPathIncludingSlashes() throws Exception{
+		final String serviceName = "path/to/service";
+		final String description = "bla";
+
+		IContext serverContext = Core.createSystemContext();
+		IContext clientContext = Core.createSystemContext();
+
+		def.setName(serviceName);
+		def.setSourceKeyAttribute("Nr");
+		def.setUseStrictVersioning(false);
+		def.setEnableCreate(false);
+		def.setEnableUpdate(false);
+		def.setEnableDelete(false);
+		def.setEnableGet(true);
+		def.setEnableListing(true);
+		def.commit();
+
+		Task t = new Task(serverContext);
+		t.setDescription(description);
+		t.commit();
+
+		CTaskView copy = new CTaskView(clientContext);
+		RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + serviceName + '/' + t.getNr(), null, copy.getMendixObject());
+
+		assertEquals(description, copy.getDescription());
+	}
+
 }
