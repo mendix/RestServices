@@ -249,4 +249,37 @@ public class ServiceTest extends TestBase {
 			XPath.create(c, TestFile.class).deleteAll();
 		}
 	}
+
+	/*
+	 * GitHub issue #21.
+	 */
+	@Test
+	public void testPublishingMfWithTrailingSlashOnPathIsRetrievableWithoutTrailingSlash() throws Exception {
+		String pathTemplate = "piet/";
+		new MicroflowService("Tests.Dummy", "*", "", HttpMethod.GET, pathTemplate);
+
+		IContext c = Core.createSystemContext();
+
+		String url = RestServices.getBaseUrl() + pathTemplate.substring(0, pathTemplate.length() - 1);
+
+		RequestResult response = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+		Assert.assertEquals((Integer) 200, response.getRawResponseCode());
+	}
+
+	/*
+	 * GitHub issue #21.
+	 */
+	@Test
+	public void testPublishingMfWithoutTrailingSlashOnPathIsRetrievableWithTrailingSlash() throws Exception {
+		String pathTemplate = "piet";
+		new MicroflowService("Tests.Dummy", "*", "", HttpMethod.GET, pathTemplate);
+
+		IContext c = Core.createSystemContext();
+
+		String url = RestServices.getBaseUrl() + pathTemplate + "/";
+
+		RequestResult response = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+		Assert.assertEquals((Integer) 200, response.getRawResponseCode());
+	}
+
 }
