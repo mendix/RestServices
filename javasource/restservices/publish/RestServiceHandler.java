@@ -120,7 +120,7 @@ public class RestServiceHandler extends RequestHandler{
 	public static void registerService(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
 		checkNotNull(method, "method");
 		
-		services.add(new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler);
+		services.add(new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler));
 
 		RestServices.LOGPUBLISH.info("Registered data service on '" + templatePath + "'");
 	}
