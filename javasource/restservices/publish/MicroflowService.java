@@ -1,5 +1,7 @@
 package restservices.publish;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -16,8 +18,10 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.HttpMethod;
+import restservices.publish.RestServiceHandler.HandlerRegistration;
 import restservices.publish.RestServiceRequest.RequestContentType;
 import restservices.publish.RestServiceRequest.ResponseType;
+import restservices.util.ICloseable;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
@@ -25,6 +29,7 @@ import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
 
+import com.google.common.collect.Lists;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IDataType;
@@ -44,9 +49,16 @@ public class MicroflowService implements IRestServiceHandler{
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
 	private String relativeUrl;
+	private HandlerRegistration serviceHandler;
+	private ICloseable metaserviceHandler;
+	private static final List<MicroflowService> microflowServices = Lists.newArrayList();
 
-	public MicroflowService(String microflowname, String roleOrMicroflow, String description,
-			HttpMethod httpMethod, String pathTemplateString) throws CoreException {
+	public MicroflowService(String microflowname, String roleOrMicroflow, HttpMethod httpMethod,
+			String pathTemplateString, String description) throws CoreException {
+		checkNotNull(microflowname);
+		checkNotNull(roleOrMicroflow);
+		checkNotNull(httpMethod);
+		
 		this.microflowname = microflowname;
 		this.roleOrMicroflow = roleOrMicroflow;
 		this.description = description;
@@ -57,19 +69,35 @@ public class MicroflowService implements IRestServiceHandler{
 		else
 			this.relativeUrl = microflowname.split("\\.")[1].toLowerCase();
 			
-		RestServiceHandler.registerServiceHandler(httpMethod, getRelativeUrl(), roleOrMicroflow, this);
-
-		RestServiceHandler.registerServiceHandlerMetaUrl(getRelativeUrl());
-		
 		this.consistencyCheck();
+
+		register();
 	}
-	
+
+	private void register() {
+		unregister();
+		
+		microflowServices.add(this);
+		serviceHandler = RestServiceHandler.registerServiceHandler(httpMethod, getRelativeUrl(), roleOrMicroflow, this);
+		metaserviceHandler = RestServiceHandler.registerServiceHandlerMetaUrl(getRelativeUrl());
+	}
+
+	public void unregister() {
+		microflowServices.remove(this);
+		if (serviceHandler != null) {
+			serviceHandler.close();
+		}
+		if (metaserviceHandler != null) {
+			metaserviceHandler.close();
+		}
+	}
+
 	private String getRelativeUrl() {
 		return relativeUrl;
 	}
 
-	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException {
-		this(microflowname, securityRoleOrMicroflow, description, null, null);
+	public MicroflowService(String microflowname, String securityRoleOrMicroflow, HttpMethod httpMethod, String description) throws CoreException {
+		this(microflowname, securityRoleOrMicroflow, httpMethod, null, description);
 	}
 
 	private void consistencyCheck() throws CoreException {
@@ -259,4 +287,8 @@ public class MicroflowService implements IRestServiceHandler{
 		return httpMethod == null ? null : httpMethod.toString();
 	}
 
+	public static void clearMicroflowServices() {
+		while (!microflowServices.isEmpty())
+			microflowServices.get(0).unregister();
+	}
 }

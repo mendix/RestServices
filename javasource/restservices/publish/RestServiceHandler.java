@@ -17,7 +17,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.glassfish.jersey.uri.UriTemplate;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -27,6 +28,8 @@ import restservices.proxies.HttpMethod;
 import restservices.proxies.RestServiceError;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.Function;
+import restservices.util.ICloseable;
+import restservices.util.UriTemplate;
 import restservices.util.Utils;
 
 import com.google.common.collect.Maps;
@@ -38,7 +41,6 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.ISession;
-
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -46,7 +48,7 @@ public class RestServiceHandler extends RequestHandler{
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
 	
-	private static class HandlerRegistration {
+	static class HandlerRegistration implements ICloseable {
 		final String method;
 		final UriTemplate template;
 		final String roleOrMicroflow;
@@ -57,6 +59,16 @@ public class RestServiceHandler extends RequestHandler{
 			this.template = template;
 			this.roleOrMicroflow = roleOrMicroflow;
 			this.handler = handler;
+		}
+		
+		@Override
+		public String toString() {
+			return ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+		}
+
+		@Override
+		public void close() {
+			services.remove(this);			
 		}
 	}
 	
@@ -112,20 +124,27 @@ public class RestServiceHandler extends RequestHandler{
 				throw new IllegalStateException(msg);
 		}
 		else {
+			DataService service = DataService.getServiceByDefinition(def);
+			if (service != null) {
+				service.unregister();
+			}
+			
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
-			DataService service = new DataService(def);
+			service = new DataService(def);
 			service.register();
 			
 			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
 		}
 	}
 	
-	public static void registerServiceHandler(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
+	public static HandlerRegistration registerServiceHandler(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
 		checkNotNull(method, "method");
 		
-		services.add(new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler));
+		HandlerRegistration handlerRegistration = new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler);
+		services.add(handlerRegistration);
 
 		RestServices.LOGPUBLISH.info("Registered data service on '" + method + " " + templatePath + "'");
+		return handlerRegistration;
 	}
 	
 	private static void requestParamsToJsonMap(RestServiceRequest rsr, Map<String, String> params) {
@@ -145,11 +164,6 @@ public class RestServiceHandler extends RequestHandler{
 		for (final HandlerRegistration reg : services) {
 			if (reg.template.match(relpath, params)) {
 				if (reg.method.equals(method)) {
-					// Apply URL decoding on path parameters
-					for (Entry<String, String> e : params.entrySet()) {
-						e.setValue(Utils.urlDecode(e.getValue()));
-					}
-
 					// Mixin query parameters
 					requestParamsToJsonMap(rsr, params);
 
@@ -288,13 +302,21 @@ public class RestServiceHandler extends RequestHandler{
 		services.clear();		
 	}
 
-	public static void registerServiceHandlerMetaUrl(String serviceBaseUrl) {
+	public static ICloseable registerServiceHandlerMetaUrl(final String serviceBaseUrl) {
 		checkArgument(isNotEmpty(serviceBaseUrl));
 		metaServiceUrls.add(serviceBaseUrl);
+		
+		return new ICloseable() {
+
+			@Override
+			public void close() {
+				metaServiceUrls.remove(serviceBaseUrl);
+			}
+		};
 	}
 	
 	public static List<String> getServiceBaseUrls() {
 		return metaServiceUrls; 
 	}
-
+	
 }

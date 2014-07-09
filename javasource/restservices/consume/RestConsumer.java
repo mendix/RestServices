@@ -38,7 +38,6 @@ import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.io.IOUtils;
-import org.glassfish.jersey.uri.UriTemplate;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -52,6 +51,7 @@ import restservices.proxies.ResponseCode;
 import restservices.proxies.RestServiceError;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
+import restservices.util.UriTemplate;
 import restservices.util.Utils;
 import system.proxies.FileDocument;
 
@@ -62,7 +62,6 @@ import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-
 import communitycommons.StringUtils;
 
 public class RestConsumer {
@@ -500,7 +499,7 @@ public class RestConsumer {
 				Object value = data.get(realkey);
 				if (!(value instanceof JSONObject) && !(value instanceof JSONArray)) {
 					data.remove(realkey);
-					values.put(templateVar, Utils.urlEncode((String) value));
+					values.put(templateVar, (String) value);
 				}
 			}
 		}

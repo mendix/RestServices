@@ -10,6 +10,7 @@ import restservices.util.Utils;
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+
 import communitycommons.XPath;
 
 public class RestServices {
@@ -119,6 +120,13 @@ public class RestServices {
 	}
 
 	public static String getAbsoluteUrl(String relativeUrl) {
-		return getBaseUrl() + Utils.removeLeadingSlash(Utils.removeTrailingSlash(relativeUrl));
+		return getBaseUrl() + Utils.removeLeadingSlash(Utils.appendSlashToUrl(relativeUrl));
+	}
+
+	public static void unregisterServiceByEntity(String sourceEntity,
+			DataService dataService) {
+		if (servicesByEntity.containsKey(sourceEntity) && servicesByEntity.get(sourceEntity) == dataService) {
+			servicesByEntity.remove(sourceEntity);
+		}
 	}
 }

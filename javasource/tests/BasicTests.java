@@ -26,7 +26,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 public class BasicTests extends TestBase {
 
-		@Test
+	@Test
 	public void simpleGet() throws Exception {
 		IContext c = Core.createSystemContext();
 		Task t = createTask(c, "Fetch milk", false);
@@ -463,7 +463,7 @@ public class BasicTests extends TestBase {
 		def.setEnableGet(true);
 		def.setEnableListing(true);
 		def.commit();
-
+	
 		Task t = new Task(serverContext);
 		t.setDescription(description);
 		t.commit();

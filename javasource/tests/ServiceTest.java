@@ -33,7 +33,8 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testMfService() throws Exception {
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace");
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, "Search & Replace");
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.POST, "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -66,7 +67,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithPathParams() throws Exception {
 		String pathTemplate = "piet/{haystack}/{needle}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.PUT, pathTemplate);
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.PUT, pathTemplate, "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -93,7 +94,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithPathParamsCaseSensitivity() throws Exception {
 		String pathTemplate = "piet/{haystack}/{needle}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.PUT, pathTemplate);
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.PUT, pathTemplate, "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -112,7 +113,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithPathParamsCaseSensitive() throws Exception {
 		String pathTemplate = "piet/{haYstack}/{NEEDLE}-{repLacement}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.PUT, pathTemplate);
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.PUT, pathTemplate, "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -130,8 +131,8 @@ public class ServiceTest extends TestBase {
 	
 	@Test
 	public void testMfServiceWithComplexParams() throws Exception {
-		String pathTemplate = "piet/{haystack}/{needle}-{repLacement}";
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace", HttpMethod.GET, pathTemplate);
+		String pathTemplate = "piet/{haystack}/{needle}/{repLacement}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
@@ -152,7 +153,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testMfServiceWithoutParams() throws Exception {
 		String pathTemplate = "piet/jan";
-		new MicroflowService("Tests.CustomStatusService", "*", "Custom Status", HttpMethod.GET, "/" + pathTemplate);
+		new MicroflowService("Tests.CustomStatusService", "*", HttpMethod.GET, "/" + pathTemplate, "Custom Status");
 		
 		IContext c = Core.createSystemContext();
 		
@@ -160,21 +161,13 @@ public class ServiceTest extends TestBase {
 		
 		RequestResult requestData = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
 		Assert.assertEquals(202, (int) requestData.getRawResponseCode());
-		
-		try {
-			requestData = RestConsumer.request(c, HttpMethod.PUT, url, null, null, false);
-			Assert.fail();
-		}
-		catch(RestConsumeException e1) {
-			Assert.assertEquals(HttpStatus.SC_NOT_FOUND, (int) e1.getStatus());
-		}
 	}
 	
 	@Test
 	public void testMfServiceImpersonate() throws Exception {
 		String testuser = getTestUser();
 		
-		new MicroflowService("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", "Search & Replace with impersonate");
+		new MicroflowService("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", HttpMethod.GET, "Search & Replace with impersonate");
 		
 		IContext c = Core.createSystemContext();
 		
@@ -206,7 +199,7 @@ public class ServiceTest extends TestBase {
 	public void testFileTransfer() throws Exception {
 		IContext c = Core.createSystemContext();
 		try {
-			new MicroflowService("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
+			new MicroflowService("Tests.FileMultiplier", "*", HttpMethod.POST, "Multiplies the contents of a file");
 			String url = RestServices.getAbsoluteUrl("FileMultiplier");
 			
 			TestFile source = new TestFile(c);
@@ -256,7 +249,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testPublishingMfWithTrailingSlashOnPathIsRetrievableWithoutTrailingSlash() throws Exception {
 		String pathTemplate = "piet/";
-		new MicroflowService("Tests.Dummy", "*", "", HttpMethod.GET, pathTemplate);
+		new MicroflowService("Tests.Dummy", "*", HttpMethod.GET, pathTemplate, "");
 
 		IContext c = Core.createSystemContext();
 
@@ -272,7 +265,7 @@ public class ServiceTest extends TestBase {
 	@Test
 	public void testPublishingMfWithoutTrailingSlashOnPathIsRetrievableWithTrailingSlash() throws Exception {
 		String pathTemplate = "piet";
-		new MicroflowService("Tests.Dummy", "*", "", HttpMethod.GET, pathTemplate);
+		new MicroflowService("Tests.Dummy", "*", HttpMethod.GET, pathTemplate, "");
 
 		IContext c = Core.createSystemContext();
 

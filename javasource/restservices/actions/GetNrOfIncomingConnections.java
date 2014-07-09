@@ -11,7 +11,6 @@ package restservices.actions;
 
 import restservices.proxies.DataServiceDefinition;
 import restservices.publish.DataService;
-
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
@@ -48,7 +47,7 @@ public class GetNrOfIncomingConnections extends UserAction<Long>
 		}
 		if (def == null)
 			return 0L;
-		DataService service =DataService.getServiceByName(def.getName());
+		DataService service = DataService.getServiceByDefinition(def);
 		if (service == null)
 			return 0L;
 		return service.getChangeLogManager().getNrOfConnections();

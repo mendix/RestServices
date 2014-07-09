@@ -10,7 +10,6 @@
 package restservices.actions;
 
 import restservices.publish.DataService;
-
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
@@ -37,7 +36,7 @@ public class RebuildServiceIndex extends UserAction<Boolean>
 		if (dataServiceDefinition == null)
 			throw new IllegalArgumentException();
 		
-		DataService.getServiceByName(dataServiceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
+		DataService.getServiceByDefinition(dataServiceDefinition).getChangeLogManager().rebuildChangeLog();
 		return true;
 		// END USER CODE
 	}

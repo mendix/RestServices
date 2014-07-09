@@ -1,5 +1,7 @@
 package restservices.util;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.MatchResult;
@@ -12,20 +14,28 @@ import com.google.common.collect.Lists;
 
 public class UriTemplate {
 
+	private static final String PARAMNAME_REGEX = "\\{([a-zA-Z_0-9]+)\\}";
+	
+	// http://tools.ietf.org/html/rfc3986#section-2.2
+	private static final String QUERYPARAM_REGEX = "([^:/?#\\[\\]@!$&'()*+,;=]+?)";
 	Pattern regex;
 	List<String> paramNames = Lists.newArrayList();
+	private String pathString;
 	
-	public UriTemplate(String name) {
-		String re = Pattern.quote(Utils.removeLeadingAndTrailingSlash(name));
+	public UriTemplate(String pathString) {
+		Preconditions.checkNotNull(pathString);
+		
+		this.pathString = pathString;
+		String re = Pattern.quote(Utils.removeLeadingAndTrailingSlash(pathString));
 		re = re.replaceAll("(^\\\\Q|\\\\E$)", "");
 		re = "^\\/?" + re + "\\/?$";
 		
-		re = regexReplaceAll(re, "\\{([a-zA-Z_0-9]+)\\}", new Function<MatchResult, String>() {
+		re = regexReplaceAll(re, PARAMNAME_REGEX, new Function<MatchResult, String>() {
 
 			@Override
 			public String apply(MatchResult match) {
 				paramNames.add(match.group(1));
-				return "(.+?)";
+				return QUERYPARAM_REGEX;
 			}
 		});
 		
@@ -62,5 +72,29 @@ public class UriTemplate {
 		regexMatcher.appendTail(resultString);
 	
 		return resultString.toString();
+	}
+
+	public List<String> getTemplateVariables() {
+		return Collections.unmodifiableList(paramNames);
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("%s[path=%s]", this.getClass().getSimpleName(), pathString);
+	}
+
+	public String createURI(final Map<String, String> values) {
+		Preconditions.checkNotNull(values);
+		
+		Preconditions.checkArgument(values.keySet().equals(new HashSet<String>(paramNames)), "Incomplete set of values for path " + pathString);
+		
+		return regexReplaceAll(pathString, PARAMNAME_REGEX,  new Function<MatchResult, String>() {
+
+			@Override
+			public String apply(MatchResult match) {
+				String paramname = match.group(1);
+				return Utils.urlEncode(values.get(paramname));
+			}
+		});
 	}
 }

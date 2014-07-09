@@ -1,8 +1,5 @@
 package restservices.publish;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.commons.lang3.StringUtils.isNotEmpty;
-
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +14,17 @@ import restservices.proxies.ChangeItem;
 import restservices.proxies.DataServiceDefinition;
 import restservices.proxies.HttpMethod;
 import restservices.publish.RestPublishException.RestExceptionType;
+import restservices.publish.RestServiceHandler.HandlerRegistration;
 import restservices.publish.RestServiceRequest.ResponseType;
+import restservices.util.ICloseable;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -39,7 +40,7 @@ import communitycommons.XPath.IBatchProcessor;
 
 public class DataService {
 
-	private static Map<String, DataService> servicesByName = Maps.newHashMap();
+	private static Map<Long, DataService> servicesByGuid = Maps.newHashMap();
 
 	DataServiceDefinition def;
 
@@ -64,12 +65,16 @@ public class DataService {
 	private IMetaObject sourceMetaEntity;
 
 	private ChangeLogManager changeLogManager;
+
+	private List<RestServiceHandler.HandlerRegistration> serviceHandlers = Lists.newArrayList();
+
+	private ICloseable metaServiceHandler;
 	
 	public ChangeLogManager getChangeLogManager() {
 		return changeLogManager;
 	}
 
-	public String getName() {
+	public String getRelativeUrl() {
 		return Utils.removeLeadingAndTrailingSlash(def.getName());
 	}
 
@@ -82,7 +87,7 @@ public class DataService {
 	}
 
 	public String getServiceUrl() {
-		return RestServices.getAbsoluteUrl(getName());
+		return RestServices.getAbsoluteUrl(getRelativeUrl());
 	}
 
 	private IMendixObject getObjectByKey(IContext context,
@@ -94,7 +99,7 @@ public class DataService {
 		}
 		catch(Throwable e) {
 			if (e.getClass().getSimpleName().equals("CoreRuntimeException")) { //Somehow the exception is not properly catched. Other classloader?
-				RestServices.LOGPUBLISH.warn("Failed to retrieve " + getName() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
+				RestServices.LOGPUBLISH.warn("Failed to retrieve " + getRelativeUrl() + "/" + key + ". Assuming that the key is invalid. 404 will be returned", e);
 				return null;
 			}
 			throw new RuntimeException(e);
@@ -142,7 +147,7 @@ public class DataService {
 		rsr.startDoc();
 		
 		if (rsr.getResponseContentType() == ResponseType.HTML)
-			rsr.write("<h1>" + getName() + "</h1>");
+			rsr.write("<h1>" + getRelativeUrl() + "</h1>");
 		
 		rsr.datawriter.array();
 
@@ -235,7 +240,7 @@ public class DataService {
 	private void serveGetFromIndex(RestServiceRequest rsr, String key) throws Exception {
 		ChangeItem source = getObjectStateByKey(rsr.getContext(), key);
 		if (source == null || source.getIsDeleted() || source.get_IsDirty()) 
-			throw new RestPublishException(RestExceptionType.NOT_FOUND,	getName() + "/" + key);
+			throw new RestPublishException(RestExceptionType.NOT_FOUND,	getRelativeUrl() + "/" + key);
 		
 		if (Utils.isNotEmpty(rsr.getETag()) && rsr.getETag().equals(source.getEtag())) {
 			rsr.setStatus(IMxRuntimeResponse.NOT_MODIFIED);
@@ -251,7 +256,7 @@ public class DataService {
 		if (source == null) 
 			throw new RestPublishException(
 					keyExists(rsr.getContext(), key) && !isWorldReadable()? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND,
-					getName() + "/" + key);
+							getRelativeUrl() + "/" + key);
 		
 		JSONObject result = serializeToJson(rsr.getContext(), source);
 				
@@ -272,7 +277,7 @@ public class DataService {
 		rsr.startDoc();
 
 		if (rsr.getResponseContentType() == ResponseType.HTML)
-			rsr.write("<h1>").write(getName()).write("/").write(key).write("</h1>");
+			rsr.write("<h1>").write(getRelativeUrl()).write("/").write(key).write("</h1>");
 
 		rsr.datawriter.value(result);
 		rsr.endDoc();
@@ -285,7 +290,7 @@ public class DataService {
 		IMendixObject source = getObjectByKey(rsr.getContext(), key);
 		
 		if (source == null) 
-			throw new RestPublishException(keyExists(rsr.getContext(), key) && !isWorldReadable() ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getName() + "/" + key);
+			throw new RestPublishException(keyExists(rsr.getContext(), key) && !isWorldReadable() ? RestExceptionType.UNAUTHORIZED : RestExceptionType.NOT_FOUND, getRelativeUrl() + "/" + key);
 
 		verifyEtag(rsr.getContext(), key, source, etag);
 		
@@ -495,21 +500,41 @@ public class DataService {
 		return def.getAccessRole().trim();
 	}
 
-	public void dispose() {
-		this.changeLogManager.dispose();
-	}
-
 	public void register() {
+		unregister();
+		
 		if (def.getEnableGet()) 
 			RestServices.registerServiceByEntity(def.getSourceEntity(), this);
 		
-		servicesByName.put(getName(), this);
+		servicesByGuid.put(def.getMendixObject().getId().toLong(), this);
+		metaServiceHandler = RestServiceHandler.registerServiceHandlerMetaUrl(getRelativeUrl());
 		
-		String base = Utils.appendSlashToUrl(getName());
+		registerHandlers();
+	}
+
+	public void unregister() {
+		this.changeLogManager.dispose();
+
+		for(HandlerRegistration handler : serviceHandlers) {
+			handler.close();
+		}
+		serviceHandlers.clear();
+
+		if (def != null) {
+			servicesByGuid.remove(def.getMendixObject().getId().toLong());
+			RestServices.unregisterServiceByEntity(def.getSourceEntity(), this);
+		}
+
+		if (metaServiceHandler != null) {
+			metaServiceHandler.close();
+		}
+	}
+
+	private void registerHandlers() {
+		String base = Utils.appendSlashToUrl(getRelativeUrl());
 		String baseWithKey = base + "{" + getKeyAttribute() + "}";
 
-		// Listing
-		RestServiceHandler.registerServiceHandler(HttpMethod.GET, base, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.GET, base, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
@@ -524,11 +549,10 @@ public class DataService {
 							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")),
 							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_LIMIT, "-1")));
 			}
-			
-		});
+		}));
 		
 		// Create object
-		RestServiceHandler.registerServiceHandler(HttpMethod.POST, base, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.POST, base, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
@@ -544,21 +568,20 @@ public class DataService {
 				}
 				servePost(rsr, data);
 			}
-			
-		});
+		}));
 		
 		// Get Object
-		RestServiceHandler.registerServiceHandler(HttpMethod.GET, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.GET, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
 					Map<String, String> params) throws Exception {
 				serveGet(rsr, params.get(getKeyAttribute()));
 			}
-		});
+		}));
 		
 		// Update Object
-		RestServiceHandler.registerServiceHandler(HttpMethod.PUT, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.PUT, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
@@ -566,42 +589,42 @@ public class DataService {
 				String body = IOUtils.toString(rsr.request.getInputStream());
 				servePut(rsr, params.get(getKeyAttribute()), new JSONObject(body), rsr.getETag());
 			}
-		});
+		}));
 		
 		// Delete Object
-		RestServiceHandler.registerServiceHandler(HttpMethod.DELETE, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.DELETE, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
 					Map<String, String> params) throws Exception {
 				serveDelete(rsr, params.get(getKeyAttribute()), rsr.getETag());				
 			}
-		});
+		}));
 		
 		// Changes list
-		RestServiceHandler.registerServiceHandler(HttpMethod.GET, base + "changes/list", getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.GET, base + "changes/list", getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
 					Map<String, String> params) throws Exception {
 				getChangeLogManager().serveChanges(rsr, false);
 			}
-		});
+		}));
 
 		// Changes feed
-		RestServiceHandler.registerServiceHandler(HttpMethod.GET, base + "changes/feed", getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+		serviceHandlers.add(RestServiceHandler.registerServiceHandler(HttpMethod.GET, base + "changes/feed", getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
 
 			@Override
 			public void execute(RestServiceRequest rsr,
 					Map<String, String> params) throws Exception {
 				getChangeLogManager().serveChanges(rsr, true);				
 			}
-		});
+		}));
 	}
 
-	public static DataService getServiceByName(String name) {
-		checkArgument(isNotEmpty(name));
-		return servicesByName.get(Utils.removeLeadingAndTrailingSlash(name));
+	public static DataService getServiceByDefinition(DataServiceDefinition def) {
+		Preconditions.checkNotNull(def);
+		return servicesByGuid.get(def.getMendixObject().getId().toLong());
 	}
 }
 

@@ -13,6 +13,7 @@ import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
 import restservices.proxies.DataServiceDefinition;
 import restservices.publish.ChangeLogManager;
+import restservices.publish.MicroflowService;
 import system.proxies.User;
 import system.proxies.UserRole;
 import tests.proxies.CTaskView;
@@ -23,6 +24,7 @@ import tests.proxies.TaskCopy;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
+
 import communitycommons.StringUtils;
 import communitycommons.XPath;
 
@@ -36,12 +38,14 @@ public class TestBase {
 
 	@Before
 	public void setup() throws CoreException {
+		RestServices.clearServices();
+		
 		IContext c = Core.createSystemContext();
 		XPath.create(c, Task.class).deleteAll();
 		XPath.create(c, TaskCopy.class).deleteAll();
 		XPath.create(c, SecuredObject.class).deleteAll();
 		
-		XPath.create(c, DataServiceDefinition.class).eq(DataServiceDefinition.MemberNames.Name, "tasks" ).deleteAll();
+		XPath.create(c, DataServiceDefinition.class).deleteAll();
 		
 		this.def = XPath.create(c, DataServiceDefinition.class).findOrCreateNoCommit(DataServiceDefinition.MemberNames.Name, "tasks");
 		def.setEnableGet(true);
@@ -67,6 +71,9 @@ public class TestBase {
 		}
 		ChangeLogListener.unfollow(baseUrl);
 		RestServices.clearServices();
+		def.delete();
+		
+		MicroflowService.clearMicroflowServices();
 	}
 	
 	String getTestUser() throws CoreException {

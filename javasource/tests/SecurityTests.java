@@ -10,6 +10,7 @@ import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.DataServiceDefinition;
+import restservices.proxies.HttpMethod;
 import restservices.publish.MicroflowService;
 import tests.proxies.SecuredObject;
 import tests.proxies.SecuredObjectView;
@@ -18,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+
 import communitycommons.XPath;
 
 public class SecurityTests extends TestBase {
@@ -28,7 +30,7 @@ public class SecurityTests extends TestBase {
 		
 		this.getTestUser();
 		
-		new MicroflowService("Tests.SecuredObjectCount", "Administrator", "");
+		MicroflowService mfservice = new MicroflowService("Tests.SecuredObjectCount", "Administrator", HttpMethod.GET, "");
 		String serviceurl = RestServices.getAbsoluteUrl("SecuredObjectCount");
 		
 		IContext c = Core.createSystemContext();
@@ -51,8 +53,10 @@ public class SecurityTests extends TestBase {
 			Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, re.getStatus());
 		}
 		
+		mfservice.unregister();
+		
 		//no credentials
-		new MicroflowService("Tests.SecuredObjectCount", "User", "");
+		new MicroflowService("Tests.SecuredObjectCount", "User", HttpMethod.GET, "");
 		try {
 			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
 			Assert.assertFalse(true);
