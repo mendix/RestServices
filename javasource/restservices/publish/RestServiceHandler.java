@@ -37,6 +37,7 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.ISession;
+
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -69,7 +70,7 @@ public class RestServiceHandler extends RequestHandler{
 			started = true;
 			loadConfig(context);
 
-			registerService(HttpMethod.GET, "/", "*", new IRestServiceHandler() {
+			registerServiceHandler(HttpMethod.GET, "/", "*", new IRestServiceHandler() {
 
 				@Override
 				public void execute(RestServiceRequest rsr,
@@ -117,7 +118,7 @@ public class RestServiceHandler extends RequestHandler{
 		}
 	}
 	
-	public static void registerService(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
+	public static void registerServiceHandler(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
 		checkNotNull(method, "method");
 		
 		services.add(new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler));
@@ -128,6 +129,11 @@ public class RestServiceHandler extends RequestHandler{
 	private static void requestParamsToJsonMap(RestServiceRequest rsr, Map<String, String> params) {
 		for (String param : rsr.request.getParameterMap().keySet())
 			params.put(param, rsr.request.getParameter(param));
+	}
+	
+	public static void paramMapToJsonObject(Map<String, String> params, JSONObject data) {
+		for(Entry<String, String> pathValue : params.entrySet())
+			data.put(pathValue.getKey(), pathValue.getValue());		
 	}
 
 	private static void executeHandler(final RestServiceRequest rsr, String method, String relpath, ISession existingSession) throws Exception {

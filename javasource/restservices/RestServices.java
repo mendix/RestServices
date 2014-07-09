@@ -3,6 +3,8 @@ package restservices;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.NotImplementedException;
+
 import restservices.publish.DataService;
 import restservices.publish.RestServiceHandler;
 
@@ -119,9 +121,6 @@ public class RestServices {
 	}
 
 	public static String getServiceUrl(String string) {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotImplementedException();
 	}
-
-
 }

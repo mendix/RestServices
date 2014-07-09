@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.lang.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -17,8 +18,12 @@ import restservices.proxies.DataSyncState;
 import restservices.proxies.TrackingState;
 import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 import static restservices.RestServices.*;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -27,6 +32,7 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+
 import communitycommons.XPath;
 
 public class ChangeLogListener {
@@ -45,6 +51,10 @@ public class ChangeLogListener {
 	
 	
 	private ChangeLogListener(String collectionUrl, String onUpdateMF, String onDeleteMF, long timeout) throws Exception {
+		checkNotNull(collectionUrl, "URL should not be null");
+		checkArgument(isNotEmpty(onUpdateMF), "On update should be non empty");
+		checkArgument(isNotEmpty(onDeleteMF), "On delete should be non empty");
+		
 		this.url = collectionUrl;
 		this.onUpdateMF = onUpdateMF;
 		this.onDeleteMF = onDeleteMF;

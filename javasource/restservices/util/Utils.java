@@ -14,6 +14,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 
 import restservices.RestServices;
 
+import com.google.common.base.Preconditions;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
@@ -150,6 +151,7 @@ public class Utils {
 	}
 
 	public static String appendSlashToUrl(String url) {
+		Preconditions.checkNotNull(url, "URL should not be null");
 		return url.endsWith("/") ? url : url + "/";
 	}
 

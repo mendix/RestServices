@@ -57,9 +57,9 @@ public class MicroflowService implements IRestServiceHandler{
 				pathTemplateString = pathTemplateString.substring(1);
 			}
 			
-			RestServiceHandler.registerService(httpMethod, pathTemplateString, roleOrMicroflow, this);
+			RestServiceHandler.registerServiceHandler(httpMethod, pathTemplateString, roleOrMicroflow, this);
 		} else {
-			RestServiceHandler.registerService(httpMethod, microflowname.split("\\.")[1].toLowerCase(), roleOrMicroflow, this);
+			RestServiceHandler.registerServiceHandler(httpMethod, microflowname.split("\\.")[1].toLowerCase(), roleOrMicroflow, this);
 		}
 		
 		this.consistencyCheck();
@@ -196,17 +196,12 @@ public class MicroflowService implements IRestServiceHandler{
 			Core.storeFileDocumentContent(rsr.getContext(), argObject, rsr.request.getInputStream());
 		}
 
-		addParameters(data, params);
+		RestServiceHandler.paramMapToJsonObject(params, data);
 		
 		//serialize to Mendix Object
 		JsonDeserializer.readJsonDataIntoMendixObject(rsr.getContext(), data, argObject, false);
 		
 		return argObject;
-	}
-
-	private void addParameters(JSONObject data, Map<String, String> params) {
-		for(Entry<String, String> pathValue : params.entrySet())
-			data.put(pathValue.getKey(), pathValue.getValue());		
 	}
 
 	private void parseMultipartData(RestServiceRequest rsr, IMendixObject argO,	JSONObject data) throws IOException, ServletException {

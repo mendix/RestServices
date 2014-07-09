@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.ChangeItem;
 import restservices.proxies.DataServiceDefinition;
+import restservices.proxies.HttpMethod;
 import restservices.publish.RestPublishException.RestExceptionType;
 import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JsonDeserializer;
@@ -497,9 +499,98 @@ public class DataService {
 		if (def.getEnableGet()) 
 			RestServices.registerServiceByEntity(def.getSourceEntity(), this);
 		
-		//TODO: register all paths
-	}
+		String base = Utils.appendSlashToUrl(getName());
+		String baseWithKey = base + "{" + getKeyAttribute() + "}";
 
-	
+		// Listing
+		RestServiceHandler.registerServiceHandler(HttpMethod.GET, base, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				if (rsr.request.getParameter(RestServices.PARAM_ABOUT) != null)
+					new ServiceDescriber(rsr, def).serveServiceDescription();
+				else if (rsr.request.getParameter(RestServices.PARAM_COUNT) != null)
+					serveCount(rsr);
+				else
+					serveListing(rsr,
+							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")),
+							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")),
+							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_LIMIT, "-1")));
+			}
+			
+		});
+		
+		// Create object
+		RestServiceHandler.registerServiceHandler(HttpMethod.POST, base, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				JSONObject data;
+				if (RestServices.CONTENTTYPE_FORMENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
+					data = new JSONObject();
+					RestServiceHandler.paramMapToJsonObject(params, data);
+				}
+				else {
+					String body = IOUtils.toString(rsr.request.getInputStream());
+					data = new JSONObject(body);
+				}
+				servePost(rsr, data);
+			}
+			
+		});
+		
+		// Get Object
+		RestServiceHandler.registerServiceHandler(HttpMethod.GET, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				serveGet(rsr, params.get(getKeyAttribute()));
+			}
+		});
+		
+		// Update Object
+		RestServiceHandler.registerServiceHandler(HttpMethod.PUT, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				String body = IOUtils.toString(rsr.request.getInputStream());
+				servePut(rsr, params.get(getKeyAttribute()), new JSONObject(body), rsr.getETag());
+			}
+		});
+		
+		// Delete Object
+		RestServiceHandler.registerServiceHandler(HttpMethod.DELETE, baseWithKey, getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				serveDelete(rsr, params.get(getKeyAttribute()), rsr.getETag());				
+			}
+		});
+		
+		// Changes list
+		RestServiceHandler.registerServiceHandler(HttpMethod.GET, base + "changes/list", getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				getChangeLogManager().serveChanges(rsr, false);
+			}
+		});
+
+		// Changes feed
+		RestServiceHandler.registerServiceHandler(HttpMethod.GET, base + "changes/feed", getRequiredRoleOrMicroflow(), new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				getChangeLogManager().serveChanges(rsr, true);				
+			}
+		});
+	}
 }
 
