@@ -1,5 +1,18 @@
 package restservices.consume;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
+import static restservices.RestServices.CHANGE_DATA;
+import static restservices.RestServices.CHANGE_DELETED;
+import static restservices.RestServices.CHANGE_KEY;
+import static restservices.RestServices.CHANGE_SEQNR;
+import static restservices.RestServices.PARAM_SINCE;
+import static restservices.RestServices.PARAM_TIMEOUT;
+import static restservices.RestServices.PATH_CHANGES;
+import static restservices.RestServices.PATH_FEED;
+import static restservices.RestServices.PATH_LIST;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -8,7 +21,6 @@ import java.util.Map;
 
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.lang.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -18,12 +30,7 @@ import restservices.proxies.DataSyncState;
 import restservices.proxies.TrackingState;
 import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
-import static restservices.RestServices.*;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -32,7 +39,6 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-
 import communitycommons.XPath;
 
 public class ChangeLogListener {

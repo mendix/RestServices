@@ -154,6 +154,18 @@ public class Utils {
 		Preconditions.checkNotNull(url, "URL should not be null");
 		return url.endsWith("/") ? url : url + "/";
 	}
+	
+	public static String removeTrailingSlash(String relativeUrl) {
+		return relativeUrl.replaceAll("\\/$", "");
+	}
+
+	public static String removeLeadingSlash(String relativeUrl) {
+		return relativeUrl.replaceAll("^\\/", "");
+	}
+	
+	public static String removeLeadingAndTrailingSlash(String relativeUrl) {
+		return removeLeadingSlash(removeTrailingSlash(relativeUrl));
+	}
 
 	public static String nullToEmpty(String statusText) {
 		return statusText == null ? "" : statusText;
@@ -228,4 +240,5 @@ public class Utils {
 	public static boolean hasDataAccess(IMetaObject meta, IContext context) {
 		return context.isSudo() || meta.getMetaObjectAccessesWithoutXPath(context).size() > 0 || meta.getMetaObjectAccessesWithXPath(context).size() > 0;
 	}
+
 }

@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Part;
@@ -14,11 +13,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jetty.util.MultiPartInputStream.MultiPart;
 import org.json.JSONObject;
-
-import com.mendix.core.Core;
-import com.mendix.core.CoreException;
-import com.mendix.systemwideinterfaces.core.IDataType;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 import restservices.RestServices;
 import restservices.proxies.HttpMethod;
@@ -30,6 +24,11 @@ import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
+
+import com.mendix.core.Core;
+import com.mendix.core.CoreException;
+import com.mendix.systemwideinterfaces.core.IDataType;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 public class MicroflowService implements IRestServiceHandler{
 
@@ -44,6 +43,7 @@ public class MicroflowService implements IRestServiceHandler{
 	private HttpMethod httpMethod;
 	private boolean isFileSource = false;
 	private boolean isFileTarget = false;
+	private String relativeUrl;
 
 	public MicroflowService(String microflowname, String roleOrMicroflow, String description,
 			HttpMethod httpMethod, String pathTemplateString) throws CoreException {
@@ -52,19 +52,22 @@ public class MicroflowService implements IRestServiceHandler{
 		this.description = description;
 		this.httpMethod = httpMethod;
 		
-		if(pathTemplateString != null) {
-			if (pathTemplateString.startsWith("/")) {
-				pathTemplateString = pathTemplateString.substring(1);
-			}
+		if (pathTemplateString != null)
+			this.relativeUrl = Utils.removeLeadingAndTrailingSlash(pathTemplateString);
+		else
+			this.relativeUrl = microflowname.split("\\.")[1].toLowerCase();
 			
-			RestServiceHandler.registerServiceHandler(httpMethod, pathTemplateString, roleOrMicroflow, this);
-		} else {
-			RestServiceHandler.registerServiceHandler(httpMethod, microflowname.split("\\.")[1].toLowerCase(), roleOrMicroflow, this);
-		}
+		RestServiceHandler.registerServiceHandler(httpMethod, getRelativeUrl(), roleOrMicroflow, this);
+
+		RestServiceHandler.registerServiceHandlerMetaUrl(getRelativeUrl());
 		
 		this.consistencyCheck();
 	}
 	
+	private String getRelativeUrl() {
+		return relativeUrl;
+	}
+
 	public MicroflowService(String microflowname, String securityRoleOrMicroflow, String description) throws CoreException {
 		this(microflowname, securityRoleOrMicroflow, description, null, null);
 	}
@@ -112,28 +115,32 @@ public class MicroflowService implements IRestServiceHandler{
 
 	@Override
 	public void execute(final RestServiceRequest rsr, Map<String, String> params)	throws Exception {
-		
-		Map<String, Object> args = new HashMap<String, Object>();
-		IMendixObject inputObject = parseInputData(rsr, params);
-		
-		if(inputObject != null) 
-			args.put(argName, inputObject);
-		
-		if (isReturnTypePrimitive)
-			rsr.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
-		else if (isFileTarget)
-			rsr.setResponseContentType(ResponseType.BINARY);
-
-		Object result = Core.execute(rsr.getContext(), microflowname, args);
-
-		Utils.whileRetainingObject(rsr.getContext(), result, new IRetainWorker<Boolean>() {
-
-			@Override
-			public Boolean apply(Object item) throws IOException, Exception {
-				writeOutputData(rsr, item);
-				return true;
-			}
-		});
+		if (params.containsKey(RestServices.PARAM_ABOUT)) {
+			serveDescription(rsr);
+		}
+		else {
+			Map<String, Object> args = new HashMap<String, Object>();
+			IMendixObject inputObject = parseInputData(rsr, params);
+			
+			if(inputObject != null) 
+				args.put(argName, inputObject);
+			
+			if (isReturnTypePrimitive)
+				rsr.setResponseContentType(ResponseType.PLAIN); //default, but might be overriden by the executing mf
+			else if (isFileTarget)
+				rsr.setResponseContentType(ResponseType.BINARY);
+	
+			Object result = Core.execute(rsr.getContext(), microflowname, args);
+	
+			Utils.whileRetainingObject(rsr.getContext(), result, new IRetainWorker<Boolean>() {
+	
+				@Override
+				public Boolean apply(Object item) throws IOException, Exception {
+					writeOutputData(rsr, item);
+					return true;
+				}
+			});
+		}
 	}
 
 	private void writeOutputData(RestServiceRequest rsr, Object result)
@@ -224,17 +231,16 @@ public class MicroflowService implements IRestServiceHandler{
 		}
 	}
 
-	//TODO:
 	public void serveDescription(RestServiceRequest rsr) {
 		rsr.startDoc();
-/*
+
 		if (rsr.getResponseContentType() == ResponseType.HTML)
-			rsr.write("<h1>Operation: ").write(getName()).write("</h1>");
+			rsr.write("<h1>Operation: ").write(getRelativeUrl()).write("</h1>");
 
 		rsr.datawriter.object()
-			.key("name").value(getName())
+			.key("name").value(getRelativeUrl())
 			.key("description").value(description)
-			.key("url").value(RestServices.getServiceUrl(getName()))
+			.key("url").value(RestServices.getAbsoluteUrl(getRelativeUrl()))
 			.key("arguments").value(
 					hasArgument
 					? JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname))
@@ -247,7 +253,6 @@ public class MicroflowService implements IRestServiceHandler{
 			.endObject();
 
 		rsr.endDoc();
-*/
 	}
 	
 	public String getHttpMethod() {

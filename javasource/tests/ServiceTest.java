@@ -38,7 +38,7 @@ public class ServiceTest extends TestBase {
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
 		
-		String url = RestServices.getServiceUrl("ReplaceService");
+		String url = RestServices.getAbsoluteUrl("ReplaceService");
 		
 		input.sethaystack("Yolo");
 		input.setneedle("o");
@@ -178,7 +178,7 @@ public class ServiceTest extends TestBase {
 		
 		IContext c = Core.createSystemContext();
 		
-		String url = RestServices.getServiceUrl("GetCurrentUsername");
+		String url = RestServices.getAbsoluteUrl("GetCurrentUsername");
 
 		try {
 			RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
@@ -207,7 +207,7 @@ public class ServiceTest extends TestBase {
 		IContext c = Core.createSystemContext();
 		try {
 			new MicroflowService("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
-			String url = RestServices.getServiceUrl("FileMultiplier");
+			String url = RestServices.getAbsoluteUrl("FileMultiplier");
 			
 			TestFile source = new TestFile(c);
 			source.setMultiplier(2);

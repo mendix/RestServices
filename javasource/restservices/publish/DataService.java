@@ -1,5 +1,8 @@
 package restservices.publish;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,7 @@ import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -30,11 +34,12 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
-
 import communitycommons.XPath;
 import communitycommons.XPath.IBatchProcessor;
 
 public class DataService {
+
+	private static Map<String, DataService> servicesByName = Maps.newHashMap();
 
 	DataServiceDefinition def;
 
@@ -65,7 +70,7 @@ public class DataService {
 	}
 
 	public String getName() {
-		return def.getName();
+		return Utils.removeLeadingAndTrailingSlash(def.getName());
 	}
 
 	public String getSourceEntity() {
@@ -77,8 +82,7 @@ public class DataService {
 	}
 
 	public String getServiceUrl() {
-		return null;
-		//TODO: return RestServices.getServiceUrl(getName());
+		return RestServices.getAbsoluteUrl(getName());
 	}
 
 	private IMendixObject getObjectByKey(IContext context,
@@ -499,6 +503,8 @@ public class DataService {
 		if (def.getEnableGet()) 
 			RestServices.registerServiceByEntity(def.getSourceEntity(), this);
 		
+		servicesByName.put(getName(), this);
+		
 		String base = Utils.appendSlashToUrl(getName());
 		String baseWithKey = base + "{" + getKeyAttribute() + "}";
 
@@ -591,6 +597,11 @@ public class DataService {
 				getChangeLogManager().serveChanges(rsr, true);				
 			}
 		});
+	}
+
+	public static DataService getServiceByName(String name) {
+		checkArgument(isNotEmpty(name));
+		return servicesByName.get(Utils.removeLeadingAndTrailingSlash(name));
 	}
 }
 

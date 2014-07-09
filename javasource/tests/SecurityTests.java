@@ -29,7 +29,7 @@ public class SecurityTests extends TestBase {
 		this.getTestUser();
 		
 		new MicroflowService("Tests.SecuredObjectCount", "Administrator", "");
-		String serviceurl = RestServices.getServiceUrl("SecuredObjectCount");
+		String serviceurl = RestServices.getAbsoluteUrl("SecuredObjectCount");
 		
 		IContext c = Core.createSystemContext();
 		SecuredObject s = new SecuredObject(c);
@@ -115,7 +115,7 @@ public class SecurityTests extends TestBase {
 		s2.setUnavailable(false);
 		s2.commit();
 		
-		String serviceurl = RestServices.getServiceUrl("securedobjects");
+		String serviceurl = RestServices.getAbsoluteUrl("securedobjects");
 		
 		@SuppressWarnings("deprecation")
 		IMendixObject first = Core.create(c, SecuredObjectView.entityName);
@@ -139,6 +139,4 @@ public class SecurityTests extends TestBase {
 		Assert.assertEquals(res.getReadOnly(), true); //these values have been set to false, but since they shouldn't be published, they will still have the default value 'true' in our copy
 		Assert.assertEquals(res.getUnavailable(), true); 
 	}
-	
-	// TODO: What about readonly and unavailable attributes
 }

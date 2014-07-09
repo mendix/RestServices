@@ -9,9 +9,10 @@
 
 package restservices.actions;
 
-import restservices.RestServices;
-import com.mendix.systemwideinterfaces.core.UserAction;
+import restservices.publish.DataService;
+
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
@@ -35,8 +36,8 @@ public class RebuildServiceIndex extends UserAction<Boolean>
 		// BEGIN USER CODE
 		if (dataServiceDefinition == null)
 			throw new IllegalArgumentException();
-		//TODO:
-		//RestServices.getService(dataServiceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
+		
+		DataService.getServiceByName(dataServiceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
 		return true;
 		// END USER CODE
 	}

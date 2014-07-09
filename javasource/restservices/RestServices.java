@@ -3,15 +3,13 @@ package restservices;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.lang.NotImplementedException;
-
 import restservices.publish.DataService;
 import restservices.publish.RestServiceHandler;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
-
 import communitycommons.XPath;
 
 public class RestServices {
@@ -120,7 +118,7 @@ public class RestServices {
 		servicesByEntity.put(sourceEntity, def);
 	}
 
-	public static String getServiceUrl(String string) {
-		throw new NotImplementedException();
+	public static String getAbsoluteUrl(String relativeUrl) {
+		return getBaseUrl() + Utils.removeLeadingSlash(Utils.removeTrailingSlash(relativeUrl));
 	}
 }

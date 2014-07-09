@@ -1,10 +1,11 @@
 package restservices.publish;
 
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -60,6 +61,7 @@ public class RestServiceHandler extends RequestHandler{
 	}
 	
 	private static List<HandlerRegistration> services = newArrayList();
+	private static List<String> metaServiceUrls = newArrayList();
 
 	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
@@ -123,7 +125,7 @@ public class RestServiceHandler extends RequestHandler{
 		
 		services.add(new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler));
 
-		RestServices.LOGPUBLISH.info("Registered data service on '" + templatePath + "'");
+		RestServices.LOGPUBLISH.info("Registered data service on '" + method + " " + templatePath + "'");
 	}
 	
 	private static void requestParamsToJsonMap(RestServiceRequest rsr, Map<String, String> params) {
@@ -278,78 +280,21 @@ public class RestServiceHandler extends RequestHandler{
 		rsr.endDoc();
 	}
 
-	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, DataService service) throws Exception, IOException,
-			CoreException, RestPublishException {
-		/* TODO: refactor 
-		boolean handled = false;
-		boolean isGet = "GET".equals(method);
-
-		switch(parts.length) {
-		case 1:
-			if (isGet) {
-				handled = true;
-				if (rsr.request.getParameter(RestServices.PARAM_ABOUT) != null)
-					new ServiceDescriber(rsr, service.def).serveServiceDescription();
-				else if (rsr.request.getParameter(RestServices.PARAM_COUNT) != null)
-					service.serveCount(rsr);
-				else
-					service.serveListing(rsr,
-							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")),
-							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")),
-							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_LIMIT, "-1")));
-			}
-			else if ("POST".equals(method)) {
-				handled = true;
-				JSONObject data;
-				if (RestServices.CONTENTTYPE_FORMENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
-					data = new JSONObject();
-					requestParamsToJsonMap(rsr, data);
-				}
-				else {
-					String body = IOUtils.toString(rsr.request.getInputStream());
-					data = new JSONObject(body);
-				}
-				service.servePost(rsr, data);
-			}
-			break;
-		case 2:
-			if (isGet) {
-				handled = true;
-				service.serveGet(rsr, Utils.urlDecode(parts[1]));
-			}
-			else if ("PUT" .equals(method)) {
-				handled = true;
-				String body = IOUtils.toString(rsr.request.getInputStream());
-				service.servePut(rsr, Utils.urlDecode(parts[1]), new JSONObject(body), rsr.getETag());
-			}
-			else if ("DELETE".equals(method) && parts.length == 2) {
-				handled = true;
-				service.serveDelete(rsr, Utils.urlDecode(parts[1]), rsr.getETag());
-			}
-			break;
-		case 3:
-			if (isGet && "changes".equals(parts[1])) {
-				handled = true;
-				if ("list".equals(parts[2]))
-					service.getChangeLogManager().serveChanges(rsr, false);
-				else if ("feed".equals(parts[2]))
-					service.getChangeLogManager().serveChanges(rsr, true);
-				else
-					throw new RestPublishException(RestExceptionType.NOT_FOUND, "changes/"  + parts[2] + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
-			}
-		}
-
-		if (!handled)
-			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
-			*/
-	}
-
 	public static boolean isStarted() {
 		return started;
 	}
 
 	public static void clearServices() {
 		services.clear();		
+	}
+
+	public static void registerServiceHandlerMetaUrl(String serviceBaseUrl) {
+		checkArgument(isNotEmpty(serviceBaseUrl));
+		metaServiceUrls.add(serviceBaseUrl);
+	}
+	
+	public static List<String> getServiceBaseUrls() {
+		return metaServiceUrls; 
 	}
 
 }

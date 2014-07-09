@@ -55,7 +55,7 @@ public class TestBase {
 		def.setEnableChangeLog(false);
 		def.commit();
 		
-		this.baseUrl = RestServices.getServiceUrl("tasks");
+		this.baseUrl = RestServices.getAbsoluteUrl("tasks");
 	}
 	
 	@After
