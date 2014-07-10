@@ -427,7 +427,7 @@ public class RestConsumer {
 		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
 		
 		boolean appendDataToUrl = source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE);
-		url = updateUrlWithParams(url, appendDataToUrl, isFileSource, data, params);
+		url = updateUrlPathComponentsWithParams(url, appendDataToUrl, isFileSource, data, params);
 			
 		//Setup request entity for file
 		if (!asFormData && isFileSource) {
@@ -482,7 +482,7 @@ public class RestConsumer {
 		return response.asRequestResult(context);
 	}
 
-	private static String updateUrlWithParams(String url, boolean appendDataToUrl, final boolean isFileSource,	final JSONObject data, Map<String, String> params) {
+	private static String updateUrlPathComponentsWithParams(String url, boolean appendDataToUrl, final boolean isFileSource, final JSONObject data, Map<String, String> params) {
 		//substitute template variable in the uri, and make sure they are not send along as body / params data
 		UriTemplate uriTemplate = new UriTemplate(url);
 		
@@ -499,7 +499,7 @@ public class RestConsumer {
 				Object value = data.get(realkey);
 				if (!(value instanceof JSONObject) && !(value instanceof JSONArray)) {
 					data.remove(realkey);
-					values.put(templateVar, (String) value);
+					values.put(templateVar, value == null || value == JSONObject.NULL ? "" : (String) value);
 				}
 			}
 		}

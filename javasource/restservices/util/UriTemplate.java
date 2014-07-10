@@ -28,7 +28,7 @@ public class UriTemplate {
 		this.pathString = pathString;
 		String re = Pattern.quote(Utils.removeLeadingAndTrailingSlash(pathString));
 		re = re.replaceAll("(^\\\\Q|\\\\E$)", "");
-		re = "^\\/?" + re + "\\/?$";
+		re = "^\\/*" + re + "\\/*$";
 		
 		re = regexReplaceAll(re, PARAMNAME_REGEX, new Function<MatchResult, String>() {
 
@@ -86,14 +86,18 @@ public class UriTemplate {
 	public String createURI(final Map<String, String> values) {
 		Preconditions.checkNotNull(values);
 		
-		Preconditions.checkArgument(values.keySet().equals(new HashSet<String>(paramNames)), "Incomplete set of values for path " + pathString);
+		Preconditions.checkArgument(values.keySet().equals(new HashSet<String>(paramNames)), "Incomplete set of values for path " + pathString + ", expected the following keys: " + paramNames + ", found: " + values.keySet());
 		
 		return regexReplaceAll(pathString, PARAMNAME_REGEX,  new Function<MatchResult, String>() {
 
 			@Override
 			public String apply(MatchResult match) {
-				String paramname = match.group(1);
-				return Utils.urlEncode(values.get(paramname));
+				String paramName = match.group(1);
+				String value = values.get(paramName);
+				if (value == null || value.isEmpty()) {
+					throw new IllegalArgumentException("No value was defined for path element '{" + paramName + "}'. The value should be non-empty.");
+				}
+				return Utils.urlEncode(values.get(paramName));
 			}
 		});
 	}

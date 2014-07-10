@@ -126,6 +126,9 @@ public class Utils {
 	}
 
 	public static String urlEncode(String value) {
+		if (value == null) {
+			return "";
+		}
 		try {
 			//See: http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
 			//See: http://docs.oracle.com/javase/7/docs/api/java/net/URLEncoder.html

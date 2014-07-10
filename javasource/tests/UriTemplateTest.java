@@ -26,6 +26,12 @@ public class UriTemplateTest {
 		test("nonfancy/path/", "/nonfancy/path", true);
 		test("/nonfancy/path", "/nonfancy/path/", true);
 		
+		//test empty paths
+		test("/", "", true);
+		test("", "", true);
+		test("", "/", true);
+		test("/", "/", true);
+		
 		//test casing
 		test("/nonFANCY/path", "/nonfancy/path", true);
 		test("/nonfancy/path", "/nonFANCY/path", true);
@@ -56,8 +62,20 @@ public class UriTemplateTest {
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void testThatCreateURIfailsOnWrongArguments() {
+	public void testThatCreateURIfailsOnMissingArguments() {
 		new UriTemplate("/nonFANCY/{param1}-{param2}/bla").createURI(ImmutableMap.of("param1", "abc/def", "wrongArgument", "BLA"));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testThatCreateURIfailsOnEmptyArguments() {
+		new UriTemplate("/nonFANCY/{param1}/bla").createURI(ImmutableMap.of("param1", ""));
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testThatCreateURIfailsOnNullArguments() {
+		Map<String, String> m = new HashMap<String, String>();
+		m.put("param1", null);
+		new UriTemplate("/nonFANCY/{param1}/bla").createURI(m);
 	}
 
 	private void test(String template, String testPath,

@@ -1,6 +1,8 @@
 package tests;
 
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -9,6 +11,7 @@ import java.util.List;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -151,6 +154,38 @@ public class ServiceTest extends TestBase {
 	}
 	
 	@Test
+	public void testMfServiceMetaInfo() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}/{replacement}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
+		
+		IContext clientContext = Core.createSystemContext();
+		
+		ReplaceIn input = new ReplaceIn(clientContext);
+		input.sethaystack("haystack");
+		input.setneedle("neelde");
+		input.setreplacement("repLacement");
+		
+		RequestResult response = RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + pathTemplate + "?about", input.getMendixObject(), null);
+		assertEquals(200, (int) response.getRawResponseCode());
+		
+		//valid JSON?
+		new JSONObject(response.getResponseBody());
+		
+
+		input.sethaystack("{haystack}");
+		input.setneedle("{neelde}");
+		input.setneedle("{repLacement}");
+		
+		response = RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + pathTemplate + "?about", input.getMendixObject(), null);
+		assertEquals(200, (int) response.getRawResponseCode());
+		
+		//valid JSON?
+		new JSONObject(response.getResponseBody());
+
+	}
+	
+	
+	@Test
 	public void testMfServiceWithoutParams() throws Exception {
 		String pathTemplate = "piet/jan";
 		new MicroflowService("Tests.CustomStatusService", "*", HttpMethod.GET, "/" + pathTemplate, "Custom Status");
@@ -194,7 +229,7 @@ public class ServiceTest extends TestBase {
 		RequestResult resp = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
 		Assert.assertEquals(resp.getResponseBody(), testuser);
 	}
-	
+
 	@Test
 	public void testFileTransfer() throws Exception {
 		IContext c = Core.createSystemContext();
