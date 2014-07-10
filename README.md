@@ -72,8 +72,8 @@ The RestServices module only supports *Basic authentication* out of the box. But
 
 Basic authentication credentials can be send by using `addCredentialsToNextRequest` just before the actual request is made. Too make life easier, it is also possible to use `registerCredentials`, which will send credentials with *any* subsequent request to the same host.
 
-## Other methods
-For all standard HTTP verbs there is a method available which wraps the `request` operation, but simplifies the arguments one has to provide. See the 'HTTP Verbs' section for best practices about when to use which verb.
+## Consume methods
+For all standard HTTP verbs there is a method available which wraps the `request` operation, but simplifies the arguments one has to provide. See the [HTTP Verbs](#http-verbs-in-rest) section for best practices about when to use which verb. For a complete list of consume methods see the [REST functions overview](#rest-functions-overview).
 
 ### `get`
 Tries to retrieve an object from the provided `resourceURL`. Expects JSON data which will be parsed into the `targetObject` object. A `targetObject` object *should* be a just created, empty and transient object. This object will be filled with data as described in the 'JSON Deserialization' section.
@@ -104,6 +104,11 @@ Similar to `post`. See the 'HTTP verbs' section or the specs of the service you 
 ### `getRestConsumeError`
 Can be used in the error handler of a REST request. Returns the `RequestResult` object with the response data that would also be returned otherwise if the request was successful. The `ResponseCode` field will be set to `Error`.
 
+## Template urls when consuming REST services. 
+
+It is possible to use template URLs when consuming REST services. This makes it possible to substitute values directly in an url. For example when using the `put` function with the url
+`http://myservice.com/groups/{groupId}` and the data object `{ groupId : 123, description : "group"}`, a PUT request will be send to the substituted URL `http://myservice.com/groups/123` with payload data `{ description : "group" }`.
+
 # Publishing REST services
 
 Publishing a REST service is pretty straight forward with this modules. The module provides publishing REST services in two flavors:
@@ -122,6 +127,10 @@ Publishing a microflow is conceptually very similar to publishing a webservice. 
 A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
 
 Publishing a microflow is as simple as calling `CreateMicroflowService` with the microflow that provides the implementation. The name of the operation will be derived form the microflow name. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*. For securing your microflow service see [Securing published services](#securing-published-services) 
+
+### Microflows with template paths
+
+It is possible to provide a template path when registering a microflow service. This allows for constructing more complex URLs, from which values are parsed. For example, a microflow could be defined with the template path: `groups/{groupId}/users/{userId}`. If that service would be called with `http://myapp.com/rest/groups/123/users/John`, the attribute `groupId` of the input argument of the microflow would be instantiated with the value `123`. Likewise, the attribute `userId` would be instantiated with the value `John`.
 
 ## Publishing a data service
 
@@ -355,7 +364,7 @@ It is possible to send binary data using the `post` java action. If the `submitA
 
 If the consumed service responds with binary data, this is picked up properly by the generic `request` java action if the `optResponseData` parameter inherits from `System.FileDocument.`
 
-# Complete function reference
+# REST functions overview
 
 ## Consume
 
