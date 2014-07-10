@@ -236,14 +236,7 @@ public class Utils {
 	}
 
 	public static boolean microflowExists(String mf) {
-		try {
-			Core.getInputParameters(mf);
-			return true;
-		}
-		catch(IllegalArgumentException e) {
-			//mf does not exist.
-			return false;
-		}
+		return Core.getMicroflowNames().contains(mf);
 	}
 	
 	public static boolean hasDataAccess(IMetaObject meta, IContext context) {
