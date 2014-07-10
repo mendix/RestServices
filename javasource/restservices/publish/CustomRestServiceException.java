@@ -1,6 +1,6 @@
 package restservices.publish;
 
-import com.mendix.modules.webservices.WebserviceException;
+import com.mendix.integration.WebserviceException;
 
 public class CustomRestServiceException extends WebserviceException {
 

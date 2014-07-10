@@ -14,8 +14,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * Returns the base url of the Published Rest services. For example:
- * https://myapp.mendixcloud.com/rest/
+ * 
  */
 public class getRestBaseUrl extends CustomJavaAction<String>
 {

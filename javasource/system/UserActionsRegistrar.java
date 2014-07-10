@@ -137,6 +137,7 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.isValidObjectKey.class);
 			component.actionRegistry().registerUserAction(restservices.actions.LoadService.class);
 			component.actionRegistry().registerUserAction(restservices.actions.post.class);
+			component.actionRegistry().registerUserAction(restservices.actions.post2.class);
 			component.actionRegistry().registerUserAction(restservices.actions.publishDelete.class);
 			component.actionRegistry().registerUserAction(restservices.actions.publishUpdate.class);
 			component.actionRegistry().registerUserAction(restservices.actions.put.class);
@@ -148,12 +149,16 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(restservices.actions.ServiceConsistencyCheck.class);
 			component.actionRegistry().registerUserAction(restservices.actions.setResponseCookie.class);
 			component.actionRegistry().registerUserAction(restservices.actions.setResponseHeader.class);
+			component.actionRegistry().registerUserAction(restservices.actions.setResponseStatus.class);
+			component.actionRegistry().registerUserAction(restservices.actions.setRestBasePath.class);
 			component.actionRegistry().registerUserAction(restservices.actions.StartMicroflowServiceJava.class);
 			component.actionRegistry().registerUserAction(restservices.actions.StartPublishesServicesJava.class);
+			component.actionRegistry().registerUserAction(restservices.actions.throwRestServiceException.class);
 			component.actionRegistry().registerUserAction(restservices.actions.unfollowChanges.class);
+			component.actionRegistry().registerUserAction(restservices.actions.UnloadService.class);
 			component.actionRegistry().registerUserAction(restservices.actions.urlEncode.class);
 			component.actionRegistry().registerUserAction(system.actions.VerifyPassword.class);
-			component.actionRegistry().registerUserAction(tests.actions.multiplefile.class);
+			component.actionRegistry().registerUserAction(tests.actions.quote.class);
 			component.actionRegistry().registerUserAction(unittesting.actions.ReportStepJava.class);
 			component.actionRegistry().registerUserAction(unittesting.actions.RunAllUnitTests.class);
 			component.actionRegistry().registerUserAction(unittesting.actions.RunAllUnitTestsWrapper.class);

@@ -8,7 +8,6 @@ import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,18 +16,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
-import restservices.proxies.DataServiceDefinition;
-import restservices.publish.RestPublishException.RestExceptionType;
-import restservices.publish.RestServiceRequest.Function;
 import restservices.proxies.DataServiceDefinition;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RestServiceError;
@@ -42,12 +38,11 @@ import com.google.common.collect.Maps;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.externalinterface.connector.RequestHandler;
+import com.mendix.integration.WebserviceException;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
-import com.mendix.integration.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.ISession;
-
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -92,6 +87,7 @@ public class RestServiceHandler extends RequestHandler{
 
 			instance = new RestServiceHandler();
 			
+			@SuppressWarnings("deprecation")
 			boolean isSandbox = Core.getConfiguration().getApplicationRootUrl().contains(".mendixcloud.com") && "DEVELOPMENT".equalsIgnoreCase(Core.getConfiguration().getDTAPMode().toString());
 			if (isSandbox)
 				startSandboxCompatibilityMode();
@@ -123,7 +119,7 @@ public class RestServiceHandler extends RequestHandler{
 				while(!started) {
 					try {
 						Thread.sleep(1000);
-						RestConsumer.getObject(Core.createSystemContext(), Core.getConfiguration().getApplicationRootUrl() + "/ws/", null, null);
+						RestConsumer.getObject(Core.createSystemContext(), Core.getConfiguration().getApplicationRootUrl() + "/ws/", null);
 						started = true;
 					} catch (RestConsumeException e) {
 						started = e.getResponseData().getStatus() != HttpStatus.SC_BAD_GATEWAY;
@@ -294,11 +290,6 @@ public class RestServiceHandler extends RequestHandler{
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
 
 			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data: " + je.getMessage(), "INVALID_JSON");
-		}
-		catch(JSONException je) {
-			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
-
-			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data.", je.getMessage());
 		}
 		catch(Throwable e) {
 			Throwable cause = ExceptionUtils.getRootCause(e);

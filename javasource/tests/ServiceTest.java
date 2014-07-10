@@ -161,7 +161,7 @@ public class ServiceTest extends TestBase {
 			Assert.fail();
 		}
 		catch(Exception e) {
-			Assert.assertTrue(e.getMessage().contains("boe"));
+			Assert.assertTrue("Expected 'boe', found: " + e.getMessage(), e.getMessage().contains("boe"));
 		}
 	}
 	
