@@ -21,6 +21,8 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 	private String microflowName;
 	private String securityRoleOrMicroflow;
 	private String description;
+	private restservices.proxies.HttpMethod httpMethod;
+	private String pathTemplate;
 
 	public StartMicroflowServiceJava(IContext context, String microflowName, String securityRoleOrMicroflow, String description)
 	{
@@ -28,13 +30,15 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 		this.microflowName = microflowName;
 		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
 		this.description = description;
+		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
+		this.pathTemplate = pathTemplate;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new MicroflowService(microflowName, securityRoleOrMicroflow, description); 
+		new MicroflowService(microflowName, securityRole, httpMethod, pathTemplate, description);
 		return true;
 		// END USER CODE
 	}

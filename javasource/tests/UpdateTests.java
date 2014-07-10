@@ -8,6 +8,7 @@ import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
+import restservices.proxies.RestServiceError;
 import tests.proxies.CTaskView;
 
 import com.mendix.core.Core;
@@ -37,7 +38,7 @@ public class UpdateTests extends TestBase {
 		RequestResult response = RestConsumer.postObject(c, baseUrl, t.getMendixObject(), false);
 		Assert.assertEquals(201L, (long) response.getRawResponseCode());
 		
-		String nr = response.getResponseBody();
+		String nr = new JSONObject(response.getResponseBody()).getString("Nr");
 		Assert.assertTrue(nr != null && !nr.isEmpty());
 		Assert.assertTrue(null != response.getETag());
 		
@@ -96,8 +97,7 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(500, e.getStatus());
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("status"), 500);
-			Assert.assertTrue(result.getString("message").contains("internal server error"));
+			Assert.assertTrue(result.getString(RestServiceError.MemberNames.errorMessage.toString()).contains("internal server error"));
 		}
 		
 		t.setDescription("WebserviceException");
@@ -107,8 +107,7 @@ public class UpdateTests extends TestBase {
 		} catch(RestConsumeException e) {
 			Assert.assertEquals(400, e.getStatus()); 
 			JSONObject result = new JSONObject(e.getResponseData().getBody());
-			Assert.assertEquals(result.getLong("status"), 400);
-			Assert.assertEquals(result.getString("message"), "Invalid input");
+			Assert.assertEquals(result.getString(RestServiceError.MemberNames.errorMessage.toString()), "Invalid input");
 		}
 		
 		def.setUseStrictVersioning(true);

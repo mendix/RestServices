@@ -100,7 +100,7 @@ public class ConsistencyChecker {
 
 	private static void checkOnPublishMf(DataServiceDefinition def,
 			List<String> errors) {
-		if (Core.getInputParameters(def.getOnPublishMicroflow()) == null)
+		if (!Utils.microflowExists(def.getOnPublishMicroflow()))
 			errors.add("OnPublishMicroflow is not a valid microflow");
 		else {
 			Map<String, String> args = Utils.getArgumentTypes(def.getOnPublishMicroflow());

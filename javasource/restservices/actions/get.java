@@ -33,7 +33,7 @@ public class get extends CustomJavaAction<IMendixObject>
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), resourceUrl, null, targetObject).getMendixObject();
+		return RestConsumer.getObject(getContext(), url, stub).getMendixObject();
 		// END USER CODE
 	}
 

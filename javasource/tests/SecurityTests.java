@@ -10,6 +10,7 @@ import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.DataServiceDefinition;
+import restservices.proxies.HttpMethod;
 import restservices.publish.MicroflowService;
 import tests.proxies.SecuredObject;
 import tests.proxies.SecuredObjectView;
@@ -18,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+
 import communitycommons.XPath;
 
 public class SecurityTests extends TestBase {
@@ -28,8 +30,8 @@ public class SecurityTests extends TestBase {
 		
 		this.getTestUser();
 		
-		new MicroflowService("Tests.SecuredObjectCount", "Administrator", "");
-		String serviceurl = RestServices.getServiceUrl("SecuredObjectCount");
+		MicroflowService mfservice = new MicroflowService("Tests.SecuredObjectCount", "Administrator", HttpMethod.GET, "");
+		String serviceurl = RestServices.getAbsoluteUrl("SecuredObjectCount");
 		
 		IContext c = Core.createSystemContext();
 		SecuredObject s = new SecuredObject(c);
@@ -44,17 +46,19 @@ public class SecurityTests extends TestBase {
 		//wrong role
 		try {
 			RestConsumer.addCredentialsToNextRequest(username, PASSWORD);
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
 			Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, re.getStatus());
 		}
 		
+		mfservice.unregister();
+		
 		//no credentials
-		new MicroflowService("Tests.SecuredObjectCount", "User", "");
+		new MicroflowService("Tests.SecuredObjectCount", "User", HttpMethod.GET, "");
 		try {
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -64,7 +68,7 @@ public class SecurityTests extends TestBase {
 		//wrong user
 		try {
 			RestConsumer.addCredentialsToNextRequest("nonsense", PASSWORD);
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -74,7 +78,7 @@ public class SecurityTests extends TestBase {
 		//wrong password
 		try {
 			RestConsumer.addCredentialsToNextRequest(username, "nonsense");
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -83,7 +87,7 @@ public class SecurityTests extends TestBase {
 		
 		//correct credentials, security application should result in only 1 object
 		RestConsumer.addCredentialsToNextRequest(username, PASSWORD);
-		Assert.assertEquals("1", RestConsumer.getObject(c, serviceurl, null, null).getResponseBody());
+		Assert.assertEquals("1", RestConsumer.getObject(c, serviceurl, null).getResponseBody());
 	}
 	
 	//Data service returns own objects only
@@ -115,7 +119,7 @@ public class SecurityTests extends TestBase {
 		s2.setUnavailable(false);
 		s2.commit();
 		
-		String serviceurl = RestServices.getServiceUrl("securedobjects");
+		String serviceurl = RestServices.getAbsoluteUrl("securedobjects");
 		
 		@SuppressWarnings("deprecation")
 		IMendixObject first = Core.create(c, SecuredObjectView.entityName);

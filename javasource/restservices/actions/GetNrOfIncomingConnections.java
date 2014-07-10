@@ -38,18 +38,17 @@ public class GetNrOfIncomingConnections extends CustomJavaAction<Long>
 		// BEGIN USER CODE
 		if (index == null)
 			throw new IllegalArgumentException();
-		
 		DataServiceDefinition def;
 		try {
 			//The next line can throw when the id is created but cannot be retrieve yet when it is being instantiated.....
 			def = index.getChangeLog_ServiceDefinition();
 		}
 		catch (IllegalArgumentException e) {
-			return 0L; 
+			return 0L;
 		}
 		if (def == null)
 			return 0L;
-		DataService service = RestServices.getService(def.getName());
+		DataService service = DataService.getServiceByDefinition(def);
 		if (service == null)
 			return 0L;
 		return service.getChangeLogManager().getNrOfConnections();

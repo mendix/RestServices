@@ -1,6 +1,8 @@
 package tests;
 
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -9,6 +11,7 @@ import java.util.List;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,12 +36,13 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testMfService() throws Exception {
-		new MicroflowService("Tests.ReplaceService", "*", "Search & Replace");
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, "Search & Replace");
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.POST, "Search & Replace");
 		
 		IContext c = Core.createSystemContext();
 		ReplaceIn input = new ReplaceIn(c);
 		
-		String url = RestServices.getServiceUrl("ReplaceService");
+		String url = RestServices.getAbsoluteUrl("ReplaceService");
 		
 		input.sethaystack("Yolo");
 		input.setneedle("o");
@@ -64,14 +68,157 @@ public class ServiceTest extends TestBase {
 	}
 	
 	@Test
-	public void testMfServiceImpersonate() throws Exception {
-		String testuser = getTestUser();
+	public void testMfServiceWithPathParams() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.PUT, pathTemplate, "Search & Replace");
 		
-		new MicroflowService("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", "Search & Replace with impersonate");
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate + "?replacement={replacement}";
+		
+		input.sethaystack("Yolo");
+		input.setneedle("o");
+		input.setreplacement("uu");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), false);
+		Assert.assertEquals("Yuuluu", output.getresult());
+		
+		input.sethaystack("Yolo?x=&://%$_-%2f");
+		input.setneedle("%");
+		input.setreplacement("u%?&=u");
+		
+		output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), true);
+		Assert.assertEquals("Yolo?x=&://u%?&=u$_-u%?&=u2f", output.getresult());
+	}
+	
+	@Test
+	public void testMfServiceWithPathParamsCaseSensitivity() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.PUT, pathTemplate, "Search & Replace");
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate + "?replacement=UU";
+		
+		input.sethaystack("Yolo");
+		input.setneedle("o");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), false);
+		Assert.assertEquals("YUUlUU", output.getresult());
+	}
+	
+	
+	@Test
+	public void testMfServiceWithPathParamsCaseSensitive() throws Exception {
+		String pathTemplate = "piet/{haYstack}/{NEEDLE}-{repLacement}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.PUT, pathTemplate, "Search & Replace");
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate;
+		
+		input.sethaystack("Yolo");
+		input.setneedle("o");
+		input.setreplacement("uu");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.PUT, url, input.getMendixObject(), output.getMendixObject(), false);
+		Assert.assertEquals("Yuuluu", output.getresult());
+	}
+	
+	@Test
+	public void testMfServiceWithComplexParams() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}/{repLacement}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
+		
+		IContext c = Core.createSystemContext();
+		ReplaceIn input = new ReplaceIn(c);
+		
+		String url = RestServices.getBaseUrl() + pathTemplate;
+		
+		String key = "http://www.nu.nl/bla?q=3&param=value;  !@#$%^&*()_-+={}|[]\"\\:;\'<>?,./~`\n\r\t\b\fENDOFKEY";
+		
+		input.sethaystack(key+key);
+		input.setneedle(key);
+		input.setreplacement("uu?uu");
+		
+		ReplaceOut output = new ReplaceOut(c);
+		RestConsumer.request(c, HttpMethod.GET, url, input.getMendixObject(), output.getMendixObject(), false);
+		Assert.assertEquals("uu?uuuu?uu", output.getresult());
+	}
+	
+	@Test
+	public void testMfServicePathParamMissing() throws Exception {
+		String pathTemplate = "piet/{boe}";
+		try {
+			new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
+			Assert.fail();
+		}
+		catch(Exception e) {
+			Assert.assertTrue(e.getMessage().contains("boe"));
+		}
+	}
+	
+	@Test
+	public void testMfServiceMetaInfo() throws Exception {
+		String pathTemplate = "piet/{haystack}/{needle}/{replacement}";
+		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
+		
+		IContext clientContext = Core.createSystemContext();
+		
+		ReplaceIn input = new ReplaceIn(clientContext);
+		input.sethaystack("haystack");
+		input.setneedle("neelde");
+		input.setreplacement("repLacement");
+		
+		RequestResult response = RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + pathTemplate + "?about", input.getMendixObject(), null);
+		assertEquals(200, (int) response.getRawResponseCode());
+		
+		//valid JSON?
+		new JSONObject(response.getResponseBody());
+		
+
+		input.sethaystack("{haystack}");
+		input.setneedle("{neelde}");
+		input.setneedle("{repLacement}");
+		
+		response = RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + pathTemplate + "?about", input.getMendixObject(), null);
+		assertEquals(200, (int) response.getRawResponseCode());
+		
+		//valid JSON?
+		new JSONObject(response.getResponseBody());
+
+	}
+	
+	
+	@Test
+	public void testMfServiceWithoutParams() throws Exception {
+		String pathTemplate = "piet/jan";
+		new MicroflowService("Tests.CustomStatusService", "*", HttpMethod.GET, "/" + pathTemplate, "Custom Status");
 		
 		IContext c = Core.createSystemContext();
 		
-		String url = RestServices.getServiceUrl("GetCurrentUsername");
+		String url = RestServices.getBaseUrl() + pathTemplate;
+		
+		RequestResult requestData = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+		Assert.assertEquals(202, (int) requestData.getRawResponseCode());
+	}
+	
+	@Test
+	public void testMfServiceImpersonate() throws Exception {
+		String testuser = getTestUser();
+		
+		new MicroflowService("Tests.GetCurrentUsername", "Tests.AuthenticateWithCustomHeader", HttpMethod.GET, "Search & Replace with impersonate");
+		
+		IContext c = Core.createSystemContext();
+		
+		String url = RestServices.getAbsoluteUrl("GetCurrentUsername");
 
 		try {
 			RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
@@ -94,13 +241,13 @@ public class ServiceTest extends TestBase {
 		RequestResult resp = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
 		Assert.assertEquals(resp.getResponseBody(), testuser);
 	}
-	
+
 	@Test
 	public void testFileTransfer() throws Exception {
 		IContext c = Core.createSystemContext();
 		try {
-			new MicroflowService("Tests.FileMultiplier", "*", "Multiplies the contents of a file");
-			String url = RestServices.getServiceUrl("FileMultiplier");
+			new MicroflowService("Tests.FileMultiplier", "*", HttpMethod.POST, "Multiplies the contents of a file");
+			String url = RestServices.getAbsoluteUrl("FileMultiplier");
 			
 			TestFile source = new TestFile(c);
 			source.setMultiplier(2);
@@ -142,4 +289,37 @@ public class ServiceTest extends TestBase {
 			XPath.create(c, TestFile.class).deleteAll();
 		}
 	}
+
+	/*
+	 * GitHub issue #21.
+	 */
+	@Test
+	public void testPublishingMfWithTrailingSlashOnPathIsRetrievableWithoutTrailingSlash() throws Exception {
+		String pathTemplate = "piet/";
+		new MicroflowService("Tests.Dummy", "*", HttpMethod.GET, pathTemplate, "");
+
+		IContext c = Core.createSystemContext();
+
+		String url = RestServices.getBaseUrl() + pathTemplate.substring(0, pathTemplate.length() - 1);
+
+		RequestResult response = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+		Assert.assertEquals((Integer) 200, response.getRawResponseCode());
+	}
+
+	/*
+	 * GitHub issue #21.
+	 */
+	@Test
+	public void testPublishingMfWithoutTrailingSlashOnPathIsRetrievableWithTrailingSlash() throws Exception {
+		String pathTemplate = "piet";
+		new MicroflowService("Tests.Dummy", "*", HttpMethod.GET, pathTemplate, "");
+
+		IContext c = Core.createSystemContext();
+
+		String url = RestServices.getBaseUrl() + pathTemplate + "/";
+
+		RequestResult response = RestConsumer.request(c, HttpMethod.GET, url, null, null, false);
+		Assert.assertEquals((Integer) 200, response.getRawResponseCode());
+	}
+
 }

@@ -14,6 +14,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 
 import restservices.RestServices;
 
+import com.google.common.base.Preconditions;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
@@ -125,8 +126,17 @@ public class Utils {
 	}
 
 	public static String urlEncode(String value) {
+		if (value == null) {
+			return "";
+		}
 		try {
-			return URLEncoder.encode(value, RestServices.UTF8);
+			//See: http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
+			//See: http://docs.oracle.com/javase/7/docs/api/java/net/URLEncoder.html
+			//See: http://tools.ietf.org/html/rfc3986#section-2.3
+			//URLEncoder.encode differts on 2 things, spaces are encoded with +, as described in form-encoding.
+			//This is replaces by %20, since that is always save.
+			//Besides that, URLEncoder 'forgets' to encode '*', which is a reserved character..... So also replace it.
+			return URLEncoder.encode(value, RestServices.UTF8).replace("+", "%20").replace("*", "%2A");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -150,7 +160,20 @@ public class Utils {
 	}
 
 	public static String appendSlashToUrl(String url) {
+		Preconditions.checkNotNull(url, "URL should not be null");
 		return url.endsWith("/") ? url : url + "/";
+	}
+	
+	public static String removeTrailingSlash(String relativeUrl) {
+		return relativeUrl.replaceAll("\\/$", "");
+	}
+
+	public static String removeLeadingSlash(String relativeUrl) {
+		return relativeUrl.replaceAll("^\\/", "");
+	}
+	
+	public static String removeLeadingAndTrailingSlash(String relativeUrl) {
+		return removeLeadingSlash(removeTrailingSlash(relativeUrl));
 	}
 
 	public static String nullToEmpty(String statusText) {
@@ -213,14 +236,7 @@ public class Utils {
 	}
 
 	public static boolean microflowExists(String mf) {
-		try {
-			Core.getInputParameters(mf);
-			return true;
-		}
-		catch(IllegalArgumentException e) {
-			//mf does not exist.
-			return false;
-		}
+		return Core.getMicroflowNames().contains(mf);
 	}
 	
 	public static boolean hasDataAccess(IMetaObject meta, IContext context) {

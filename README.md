@@ -60,7 +60,7 @@ This method returns a `RequestResult` object if the service responds with HTTP r
 Most REST operations return a `RequestResult` object which contains the meta information of a response. An instance contains the following fields:
 
 * `ResponseCode` stating whether the server responded with 'OK'  or 'Not modified'. A 'Not modified' response might be send by the server if, for example, an 'If-none-modified' header was send, which indicates that you received the proper response to this request in an earlier request. See for example [ETags](http://en.wikipedia.org/wiki/HTTP_ETag). The value will be 'Error' if an error occured during a REST reques (in which case the current RequestResult object can be retrieved by calling `getRestConsumeError`).
-* `RawResponseCode` idem, but as HTTP status code. Either '200' or '304'.
+* `RawResponseCode` idem, but as HTTP status code. Note that the status code -1 will be used if there was a connection error. 
 * `ETag` if the response contained an `ETag` header, it is picked up and stored in this field. It can be used as optimization for any subsequent requests.
 * `ResponseBody` the full and raw response body of the request. This field is only set if the body of the response is not yet parsed (by providing an `optResponseData` parameter for example).
 
@@ -72,8 +72,8 @@ The RestServices module only supports *Basic authentication* out of the box. But
 
 Basic authentication credentials can be send by using `addCredentialsToNextRequest` just before the actual request is made. Too make life easier, it is also possible to use `registerCredentials`, which will send credentials with *any* subsequent request to the same host.
 
-## Other methods
-For all standard HTTP verbs there is a method available which wraps the `request` operation, but simplifies the arguments one has to provide. See the 'HTTP Verbs' section for best practices about when to use which verb.
+## Consume methods
+For all standard HTTP verbs there is a method available which wraps the `request` operation, but simplifies the arguments one has to provide. See the [HTTP Verbs](#http-verbs-in-rest) section for best practices about when to use which verb. For a complete list of consume methods see the [REST functions overview](#rest-functions-overview).
 
 ### `get`
 Tries to retrieve an object from the provided `resourceURL`. Expects JSON data which will be parsed into the `targetObject` object. A `targetObject` object *should* be a just created, empty and transient object. This object will be filled with data as described in the 'JSON Deserialization' section.
@@ -104,6 +104,11 @@ Similar to `post`. See the 'HTTP verbs' section or the specs of the service you 
 ### `getRestConsumeError`
 Can be used in the error handler of a REST request. Returns the `RequestResult` object with the response data that would also be returned otherwise if the request was successful. The `ResponseCode` field will be set to `Error`.
 
+## Template urls when consuming REST services. 
+
+It is possible to use template URLs when consuming REST services. This makes it possible to substitute values directly in an url. For example when using the `put` function with the url
+`http://myservice.com/groups/{groupId}` and the data object `{ groupId : 123, description : "group"}`, a PUT request will be send to the substituted URL `http://myservice.com/groups/123` with payload data `{ description : "group" }`.
+
 # Publishing REST services
 
 Publishing a REST service is pretty straight forward with this modules. The module provides publishing REST services in two flavors:
@@ -122,6 +127,10 @@ Publishing a microflow is conceptually very similar to publishing a webservice. 
 A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
 
 Publishing a microflow is as simple as calling `CreateMicroflowService` with the microflow that provides the implementation. The name of the operation will be derived form the microflow name. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*. For securing your microflow service see [Securing published services](#securing-published-services) 
+
+### Microflows with template paths
+
+It is possible to provide a template path when registering a microflow service. This allows for constructing more complex URLs, from which values are parsed. For example, a microflow could be defined with the template path: `groups/{groupId}/users/{userId}`. If that service would be called with `http://myapp.com/rest/groups/123/users/John`, the attribute `groupId` of the input argument of the microflow would be instantiated with the value `123`. Likewise, the attribute `userId` would be instantiated with the value `John`.
 
 ## Publishing a data service
 
@@ -299,7 +308,7 @@ The JSON deserialization process is the inverse of the serialization process and
 4. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *3.* but then a complete referenceset is filled.
 5. If you need to parse a JSON array of primitive values, use a referenceset that has as child `RestServices.Primitive`. These objects can hold a JSON primitive and allows to create primitive lists which don't exist natively in Mendix.
 
-\* <small>A member name matches if the names are the same in a case sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. For associations, the module name is never considered</small>
+\* <small>A member name matches if the names are the same in a case *in*sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. Furthermore, if the characters `-` or `$` are use in json, this maps to the `_` underscore character in the Mendix attribute name. For associations, the module name is never considered</small>
 
 For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json&q=geertgen` generates the following JSON (shortened a bit for readability) which can be parsed into the domain model as shown below, assuming that parsing starts with an instance of the `Query` entity. Note that only some specific attributes of interest are made part of the domain model.
 
@@ -341,6 +350,10 @@ For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json
 ```
 ![Domain Model](images/deserializeexample.png)
 
+## Deserialization and optional / missing attributes
+
+When it comes to deserializing attributes for incoming objects (in, for example, a microflow service), attributes will keep their default values from the domain model if they are lacking in the input. For some primitive types this can be confusing, especially for booleans. For booleans, you can use the `RestServices.BooleanValue` enumeration to be able to distinguish the absence of a value in your transient object, by putting the default value to empty.
+
 # Sending and receiving files
 
 ## Publishing operations that work with files
@@ -351,7 +364,7 @@ It is possible to send binary data using the `post` java action. If the `submitA
 
 If the consumed service responds with binary data, this is picked up properly by the generic `request` java action if the `optResponseData` parameter inherits from `System.FileDocument.`
 
-# Complete function reference
+# REST functions overview
 
 ## Consume
 
@@ -400,6 +413,9 @@ Returns the meta data and response body of the latest (failed) request.
 #### post
 Adds an object to a remote collection or performs a form post, using HTTP POST.
 
+#### post2
+Adds an object to a remote collection, using HTTP POST, parses the response data into a Mendix object.
+
 #### put
 Adds/ updates an object in a remote collection using HTTP PUT.
 
@@ -441,6 +457,18 @@ Sends a cookie to the client using the `Set-Cookie` header.
 #### setResponseHeader
 Sets a specific header on the response. 
 
+#### setResponseStatus
+Sets the HTTP response status of a request. 
+
+#### throwRestServiceException
+Throws a RestService exception, accepts the following attributes:
+
+* httpStatus: The HTTP status of the request. Has to be between 400 and 599
+* errorMessage:	The error message
+* errorCode: Custom error code for this exception, to make the error easier recognizable and referable.
+
+RestServiceExceptions are compatible with Webservice exceptions, so they can be used safely in microflows that are published through webservices as well. 
+
 ## Util
 
 #### appendParamToUrl
@@ -469,6 +497,9 @@ Shows an overviw of all data service definitions.
 
 #### serializeObjectToJson
 See [JSON serialization](#json-serialization)
+
+#### setRestBasePath
+Sets an alternative base path for the RestServices modules. (Default: `rest/`). Note that in sandbox deployments, `ws-doc/` will be used automatically. 
 
 #### StartPublishServices
 Should be called from the apps startup microflow. Without, no microflow or data service will be served. 
