@@ -3,7 +3,7 @@ package restservices.publish;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 import java.net.MalformedURLException;
@@ -41,6 +41,7 @@ import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.modules.webservices.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.ISession;
+
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -72,9 +73,13 @@ public class RestServiceHandler extends RequestHandler{
 		}
 	}
 	
-	private static List<HandlerRegistration> services = newArrayList();
-	private static List<String> metaServiceUrls = newArrayList();
+	private static List<HandlerRegistration> services = newCopyOnWriteArrayList();
+	private static List<String> metaServiceUrls = newCopyOnWriteArrayList();
 
+	static {
+		registerServiceOverviewHandler();
+	}
+	
 	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
@@ -82,20 +87,23 @@ public class RestServiceHandler extends RequestHandler{
 			instance = new RestServiceHandler();
 			Core.addRequestHandler(RestServices.PATH_REST, instance);
 			started = true;
+
 			loadConfig(context);
-
-			registerServiceHandler(HttpMethod.GET, "/", "*", new IRestServiceHandler() {
-
-				@Override
-				public void execute(RestServiceRequest rsr,
-						Map<String, String> params) throws Exception {
-					ServiceDescriber.serveServiceOverview(rsr); 
-				}
-				
-			});
 			
 			RestServices.LOGPUBLISH.info("Starting RestServices module... DONE");
 		}
+	}
+
+	private static void registerServiceOverviewHandler() {
+		registerServiceHandler(HttpMethod.GET, "/", "*", new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				ServiceDescriber.serveServiceOverview(rsr); 
+			}
+			
+		});
 	}
 
 	private static void loadConfig(IContext context) throws CoreException {
@@ -299,7 +307,8 @@ public class RestServiceHandler extends RequestHandler{
 	}
 
 	public static void clearServices() {
-		services.clear();		
+		services.clear();	
+		registerServiceOverviewHandler();
 	}
 
 	public static ICloseable registerServiceHandlerMetaUrl(final String serviceBaseUrl) {

@@ -51,7 +51,7 @@ public class MicroflowService implements IRestServiceHandler{
 	private String relativeUrl;
 	private HandlerRegistration serviceHandler;
 	private ICloseable metaserviceHandler;
-	private static final List<MicroflowService> microflowServices = Lists.newArrayList();
+	private static final List<MicroflowService> microflowServices = Lists.newCopyOnWriteArrayList();
 
 	public MicroflowService(String microflowname, String roleOrMicroflow, HttpMethod httpMethod,
 			String pathTemplateString, String description) throws CoreException {

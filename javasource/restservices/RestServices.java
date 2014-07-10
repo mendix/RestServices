@@ -1,7 +1,10 @@
 package restservices;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import restservices.publish.DataService;
 import restservices.publish.RestServiceHandler;
@@ -10,7 +13,6 @@ import restservices.util.Utils;
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
-
 import communitycommons.XPath;
 
 public class RestServices {
@@ -83,23 +85,27 @@ public class RestServices {
 	public static final String CHANGE_URL = "url";
 
 
-	static Map<String, DataService> servicesByEntity = new HashMap<String, DataService>();
+	static Map<String, DataService> servicesByEntity = new ConcurrentHashMap<String, DataService>();
+	static Set<String> entitiesWithoutService = Collections.synchronizedSet(new HashSet<String>());
 	
 	public static DataService getServiceForEntity(String entityType) {
-		if (servicesByEntity.containsKey(entityType))
+		if (servicesByEntity.containsKey(entityType)) {
 			return servicesByEntity.get(entityType);
-		
-		//if not look into super entitites as well!
-		IMetaObject meta = Core.getMetaObject(entityType);
-		if (meta.getSuperObject() != null) {
-			DataService superService = getServiceForEntity(meta.getSuperName());
-			if (superService != null) {
-				servicesByEntity.put(entityType, superService);
-				return superService;
+		} else if (entitiesWithoutService.contains(entityType)) {
+			return null;
+		} else {
+			//if not look into super entitites as well!
+			IMetaObject meta = Core.getMetaObject(entityType);
+			if (meta.getSuperObject() != null) {
+				DataService superService = getServiceForEntity(meta.getSuperName());
+				if (superService != null) {
+					servicesByEntity.put(entityType, superService);
+					return superService;
+				}
 			}
+			entitiesWithoutService.add(entityType); //no service. Remember that
+			return null;
 		}
-		servicesByEntity.put(entityType, null); //no service. Remember that
-		return null;
 	}
 
 	public static String getBaseUrl() {
