@@ -564,9 +564,17 @@ public class RestConsumer {
 	}
 
 	public static RequestResult getObject(IContext context, String url,
-			String optEtag, IMendixObject stub) throws Exception {
+			String optEtag, IMendixObject target) throws Exception {
 		useETagInNextRequest(optEtag);
-		return request(context, HttpMethod.GET, url, null, stub, false);
+		return request(context, HttpMethod.GET, url, null, target, false);
+	}
+	
+	public static RequestResult getObject(IContext context, String url, IMendixObject target) throws Exception {
+		return request(context, HttpMethod.GET, url, null, target, false);
+	}
+	
+	public static RequestResult getObject(IContext context, String url, IMendixObject source, IMendixObject target) throws Exception {
+		return request(context, HttpMethod.GET, url, source, target, false);
 	}
 
 	public static RequestResult putObject(IContext context, String url,

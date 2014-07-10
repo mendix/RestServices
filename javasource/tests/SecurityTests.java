@@ -46,7 +46,7 @@ public class SecurityTests extends TestBase {
 		//wrong role
 		try {
 			RestConsumer.addCredentialsToNextRequest(username, PASSWORD);
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -58,7 +58,7 @@ public class SecurityTests extends TestBase {
 		//no credentials
 		new MicroflowService("Tests.SecuredObjectCount", "User", HttpMethod.GET, "");
 		try {
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -68,7 +68,7 @@ public class SecurityTests extends TestBase {
 		//wrong user
 		try {
 			RestConsumer.addCredentialsToNextRequest("nonsense", PASSWORD);
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -78,7 +78,7 @@ public class SecurityTests extends TestBase {
 		//wrong password
 		try {
 			RestConsumer.addCredentialsToNextRequest(username, "nonsense");
-			RestConsumer.getObject(c, serviceurl, null, null).getRawResponseCode();
+			RestConsumer.getObject(c, serviceurl, null).getRawResponseCode();
 			Assert.assertFalse(true);
 		}
 		catch(RestConsumeException re) {
@@ -87,7 +87,7 @@ public class SecurityTests extends TestBase {
 		
 		//correct credentials, security application should result in only 1 object
 		RestConsumer.addCredentialsToNextRequest(username, PASSWORD);
-		Assert.assertEquals("1", RestConsumer.getObject(c, serviceurl, null, null).getResponseBody());
+		Assert.assertEquals("1", RestConsumer.getObject(c, serviceurl, null).getResponseBody());
 	}
 	
 	//Data service returns own objects only

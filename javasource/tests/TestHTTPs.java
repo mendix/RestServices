@@ -11,7 +11,7 @@ public class TestHTTPs {
 	
 	@Test
 	public void getMendix() throws Exception {
-		Assert.assertEquals(200L,(long) RestConsumer.getObject(Core.createSystemContext(), "https://www.mendix.com", null, null).getRawResponseCode());
+		Assert.assertEquals(200L,(long) RestConsumer.getObject(Core.createSystemContext(), "https://www.mendix.com", null).getRawResponseCode());
 	}
 	
 	

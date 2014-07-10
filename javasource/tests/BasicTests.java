@@ -80,7 +80,7 @@ public class BasicTests extends TestBase {
 		}
 		
 		//use other contentType, should work but not set data
-		RequestResult xmlresult = RestConsumer.getObject(c, baseUrl + t.getNr().toString() + "?contenttype=xml", null, null);
+		RequestResult xmlresult = RestConsumer.getObject(c, baseUrl + t.getNr().toString() + "?contenttype=xml", null);
 		
 		Assert.assertEquals(200L, (long)(int)xmlresult.getRawResponseCode());
 		Assert.assertTrue(xmlresult.getResponseBody().startsWith("<?xml"));
@@ -383,7 +383,7 @@ public class BasicTests extends TestBase {
 		
 		//GET with correct key
 		CTaskView copy = new CTaskView(c);
-		RestConsumer.getObject(c, baseUrl + enc, null, copy.getMendixObject());
+		RestConsumer.getObject(c, baseUrl + enc, copy.getMendixObject());
 		Assert.assertEquals(key, copy.getDescription());
 		
 		//LIST
@@ -395,7 +395,7 @@ public class BasicTests extends TestBase {
 		t.setCompleted(true);
 		RestConsumer.putObject(c, baseUrl + enc, t.getMendixObject(), null);
 		
-		RestConsumer.getObject(c, baseUrl + enc, null, copy.getMendixObject());
+		RestConsumer.getObject(c, baseUrl + enc, copy.getMendixObject());
 		Assert.assertEquals(true, copy.getCompleted());
 		Assert.assertEquals(key, copy.getDescription());
 		
@@ -430,7 +430,7 @@ public class BasicTests extends TestBase {
 		t.commit();
 		
 		CTaskView copy = new CTaskView(c2);
-		RestConsumer.getObject(c2, baseUrl + t.getNr(), null, copy.getMendixObject());
+		RestConsumer.getObject(c2, baseUrl + t.getNr(), copy.getMendixObject());
 		Assert.assertEquals("bla", copy.getDescription());
 		
 		copy.setDescription(null);
@@ -438,7 +438,7 @@ public class BasicTests extends TestBase {
 		
 		copy = new CTaskView(c2);
 		
-		RestConsumer.getObject(c2, baseUrl + t.getNr(), null, copy.getMendixObject());
+		RestConsumer.getObject(c2, baseUrl + t.getNr(), copy.getMendixObject());
 		Assert.assertEquals(null, copy.getDescription());
 		
 	}
@@ -469,9 +469,15 @@ public class BasicTests extends TestBase {
 		t.commit();
 
 		CTaskView copy = new CTaskView(clientContext);
-		RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + serviceName + '/' + t.getNr(), null, copy.getMendixObject());
+		RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + serviceName + '/' + t.getNr(), copy.getMendixObject());
 
 		assertEquals(description, copy.getDescription());
+		
+		RequestResult response = RestConsumer.getObject(clientContext, RestServices.getBaseUrl() + serviceName + "?about", null);
+		assertEquals(200, (int) response.getRawResponseCode());
+		
+		//valid JSON?
+		new JSONObject(response.getResponseBody());
 	}
 
 }
