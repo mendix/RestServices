@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Part;
@@ -25,15 +26,19 @@ import restservices.util.ICloseable;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
+import restservices.util.UriTemplate;
 import restservices.util.Utils;
 import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IDataType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 
 public class MicroflowService implements IRestServiceHandler{
 
@@ -108,24 +113,41 @@ public class MicroflowService implements IRestServiceHandler{
 		int argCount = Utils.getArgumentTypes(microflowname).size();
 
 		if (argCount > 1)
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should exist and have exactly zero or one argument");
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ", it should exist and have exactly zero or one argument");
 
 		hasArgument = argCount == 1;
+		
+		List<String> pathParams = new UriTemplate(relativeUrl).getTemplateVariables();
+		if (pathParams.size() > 0 && !hasArgument) {
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname + " with path '" + relativeUrl + ", the microflow should have a single input argument object with at least attributes " + pathParams);
+		}
 		
 		if (hasArgument) {
 			IDataType argtype = Utils.getFirstArgumentType(microflowname);
 			if (!argtype.isMendixObject())
-				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a single object as input argument");
+				throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ", it should have a single object as input argument");
 			this.argType = argtype.getObjectType();
 			this.argName = Utils.getArgumentTypes(microflowname).keySet().iterator().next();
 			isFileSource = Core.isSubClassOf(FileDocument.entityName, argType);
 
-			if (Core.getMetaObject(argType).isPersistable() && !isFileSource)
-				throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it should have a transient object of filedocument as input argument");
+			
+			IMetaObject metaObject = Core.getMetaObject(argType);
+			if (metaObject.isPersistable() && !isFileSource)
+				throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ", it should have a transient object of filedocument as input argument");
+			
+			Set<String> metaPrimitiveNames = Sets.newHashSet();
+			for(IMetaPrimitive prim : metaObject.getMetaPrimitives()) {
+				metaPrimitiveNames.add(prim.getName().toLowerCase());
+			}
+			for(String pathParam : pathParams) {
+				if (!metaPrimitiveNames.contains(pathParam.toLowerCase()))
+					throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ", its input argument should have an attribute with name '" + pathParam +"', as required by the template path");
+			}
+			
 		}
 
 		if (httpMethod == null) {
-			throw new IllegalArgumentException("Cannot publish microflow " + microflowname+ ", it has no HTTP method defined.");
+			throw new IllegalArgumentException("Cannot publish microflow " + microflowname + ", it has no HTTP method defined.");
 		}
 			
 		IDataType returnTypeFromMF = Core.getReturnType(microflowname);

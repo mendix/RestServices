@@ -154,6 +154,18 @@ public class ServiceTest extends TestBase {
 	}
 	
 	@Test
+	public void testMfServicePathParamMissing() throws Exception {
+		String pathTemplate = "piet/{boe}";
+		try {
+			new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
+			Assert.fail();
+		}
+		catch(Exception e) {
+			Assert.assertTrue(e.getMessage().contains("boe"));
+		}
+	}
+	
+	@Test
 	public void testMfServiceMetaInfo() throws Exception {
 		String pathTemplate = "piet/{haystack}/{needle}/{replacement}";
 		new MicroflowService("Tests.ReplaceService", "*", HttpMethod.GET, pathTemplate, "Search & Replace");
