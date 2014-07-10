@@ -59,7 +59,7 @@ public class ServiceDescriber {
 		if (isHTML)
 			rsr.datawriter.endObject();
 		else
-			rsr.datawriter.key("endpoints").object();
+			rsr.datawriter.key("endpoints").array();
 			
 		startEndpoint("GET", "?" + RestServices.PARAM_ABOUT, "This page");
 		addContentType();
@@ -124,7 +124,7 @@ public class ServiceDescriber {
 			}
 		
 		if (!isHTML)
-			rsr.datawriter.endObject().endObject();
+			rsr.datawriter.endArray().endObject();
 		
 		rsr.endDoc();
 	}
