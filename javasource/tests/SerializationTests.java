@@ -9,10 +9,12 @@ import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import tests.proxies.A;
 import restservices.proxies.BooleanValue;
+import tests.proxies.B;
 import tests.proxies.CustomBooleanTest;
 import tests.proxies.Task;
 
 import com.mendix.core.Core;
+import com.mendix.core.CoreException;
 import com.mendix.systemwideinterfaces.core.IContext;
 
 public class SerializationTests extends TestBase {
@@ -28,6 +30,25 @@ public class SerializationTests extends TestBase {
 		
 		Assert.assertEquals(true, task.getCompleted());
 		Assert.assertEquals("browNIE", task.getDescription());
+	}
+	
+	@Test
+	public void testRef() throws CoreException {
+		IContext c = Core.createSystemContext();
+		
+		A a = new A(c);
+		B b = new B(c);
+		b.setattr("test");
+		a.setA_B(b);
+		
+		//If this line is enabled...:
+		//a.getA_B();
+		
+		//Or this line is disabled...:
+		c.getSession().retain(a.getMendixObject());
+		
+		//This will throw:
+		Assert.assertEquals("test", a.getA_B().getattr());
 	}
 	
 	@Test
