@@ -10,8 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
-import org.apache.commons.collections.map.CaseInsensitiveMap;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpClient;
@@ -486,7 +486,7 @@ public class RestConsumer {
 		//substitute template variable in the uri, and make sure they are not send along as body / params data
 		UriTemplate uriTemplate = new UriTemplate(url);
 		
-		CaseInsensitiveMap keyMapping = new CaseInsensitiveMap();
+		Map<String, String> keyMapping = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 		if (data != null) for (Iterator<String> iterator = data.keys(); iterator.hasNext();) {
 			String key = iterator.next();
 			keyMapping.put(key, key);
