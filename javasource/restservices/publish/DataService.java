@@ -20,7 +20,6 @@ import restservices.util.ICloseable;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
-import restservices.util.Utils.IRetainWorker;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -459,15 +458,8 @@ public class DataService {
 	
 	JSONObject serializeToJson(final IContext context,
 			IMendixObject source) throws CoreException, Exception {
-		final IMendixObject view = convertSourceToView(context, source);
-		
-		JSONObject result = Utils.whileRetainingObject(context, view, new IRetainWorker<JSONObject>() {
-			@Override
-			public JSONObject apply(Object item) throws Exception {
-				return JsonSerializer.writeMendixObjectToJson(context, view);
-			}
-		});
-		return result;
+		IMendixObject view = convertSourceToView(context, source);
+		return JsonSerializer.writeMendixObjectToJson(context, view);
 	}
 
 
