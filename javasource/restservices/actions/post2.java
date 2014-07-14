@@ -10,29 +10,31 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class get extends UserAction<IMendixObject>
+public class post2 extends UserAction<IMendixObject>
 {
-	private String url;
-	private IMendixObject stub;
+	private String collectionUrl;
+	private IMendixObject dataObject;
+	private IMendixObject responseData;
 
-	public get(String url, IMendixObject stub)
+	public post2(String collectionUrl, IMendixObject dataObject, IMendixObject responseData)
 	{
 		super();
-		this.url = url;
-		this.stub = stub;
+		this.collectionUrl = collectionUrl;
+		this.dataObject = dataObject;
+		this.responseData = responseData;
 	}
 
 	@Override
 	public IMendixObject executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), url, stub).getMendixObject();
+		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, responseData).getMendixObject();
 		// END USER CODE
 	}
 
@@ -42,7 +44,7 @@ public class get extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "get";
+		return "post2";
 	}
 
 	// BEGIN EXTRA CODE

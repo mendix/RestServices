@@ -9,35 +9,27 @@
 
 package restservices.actions;
 
-import restservices.publish.MicroflowService;
+import restservices.publish.RestServiceRequest;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
-public class StartMicroflowServiceJava extends UserAction<Boolean>
+public class setResponseStatus extends UserAction<Boolean>
 {
-	private String microflowName;
-	private String securityRole;
-	private String description;
-	private restservices.proxies.HttpMethod httpMethod;
-	private String pathTemplate;
+	private Long status;
 
-	public StartMicroflowServiceJava(String microflowName, String securityRole, String description, String httpMethod, String pathTemplate)
+	public setResponseStatus(Long status)
 	{
 		super();
-		this.microflowName = microflowName;
-		this.securityRole = securityRole;
-		this.description = description;
-		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
-		this.pathTemplate = pathTemplate;
+		this.status = status;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new MicroflowService(microflowName, securityRole, httpMethod, pathTemplate, description);
+		RestServiceRequest.setResponseStatus(getContext(), (int)(long) status);
 		return true;
 		// END USER CODE
 	}
@@ -48,7 +40,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartMicroflowServiceJava";
+		return "setResponseStatus";
 	}
 
 	// BEGIN EXTRA CODE

@@ -15,9 +15,11 @@ import org.apache.http.HttpStatus;
 import restservices.RestServices;
 import restservices.proxies.Cookie;
 import restservices.util.DataWriter;
+import restservices.util.Function;
 import restservices.util.Utils;
 import system.proxies.User;
 
+import com.google.common.base.Preconditions;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -25,7 +27,6 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
-
 import communitycommons.StringUtils;
 
 public class RestServiceRequest {
@@ -41,11 +42,13 @@ public class RestServiceRequest {
 	private boolean autoLogout;
 	private ISession activeSession;
 	private IMxRuntimeResponse mxresponse;
+	private String relpath;
 
-	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response, IMxRuntimeResponse mxresponse) {
+	public RestServiceRequest(HttpServletRequest request, HttpServletResponse response, IMxRuntimeResponse mxresponse, String relpath) {
 		this.request = request;
 		this.response = response;
 		this.mxresponse = mxresponse;
+		this.relpath = relpath;
 		
 		this.requestContentType = determineRequestContentType(request);
 		this.responseContentType = determineResponseContentType(request);
@@ -65,17 +68,17 @@ public class RestServiceRequest {
 		return this.context;
 	}
 
-	boolean authenticate(String role, ISession existingSession) throws Exception {
-		if ("*".equals(role)) {
+	boolean authenticate(String roleOrMicroflow, ISession existingSession) throws Exception {
+		if ("*".equals(roleOrMicroflow)) {
 			setContext(Core.createSystemContext());
 			return true;
 		}
 
-		else if (role.indexOf('.') != -1) //Modeler forbids dots in userrole names, while microflow names always are a qualified name
-			return authenticateWithMicroflow(role);
+		else if (roleOrMicroflow.indexOf('.') != -1) //Modeler forbids dots in userrole names, while microflow names always are a qualified name
+			return authenticateWithMicroflow(roleOrMicroflow);
 		
 		else
-			return authenticateWithCredentials(role, existingSession);
+			return authenticateWithCredentials(roleOrMicroflow, existingSession);
 	}
 
 	private boolean authenticateWithCredentials(String role,
@@ -325,16 +328,15 @@ public class RestServiceRequest {
 		return result == null ? defaultValue : result;
 	}
 	
-	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 
-	
-	public static interface Function<T> {
-		T apply() throws Exception;
+	public String getPath() {
+		return relpath;
 	}
 	
-	public <T> T withTransaction(Function<T> worker) throws Exception {
+	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 
+	
+	public <T> T withTransaction(final Function<T> worker) throws Exception {
 		IContext c = getContext();
-		if (c == null)
-			return worker.apply();
+		Preconditions.checkNotNull(c, "RestServiceRequest has no context");
 		
 		if (c.isInTransaction())
 			throw new IllegalStateException("Already in transaction");
@@ -346,7 +348,7 @@ public class RestServiceRequest {
 		
 		boolean hasException = true;
 		try {
-			T res = worker.apply();
+			T res = Utils.withSessionCache(c, worker);
 			hasException = false;
 			return res;
 		}
@@ -408,5 +410,15 @@ public class RestServiceRequest {
 			throw new IllegalArgumentException("Not a valid cookie");
 		
 		current.mxresponse.addCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getDomain() == null ? "" : cookie.getDomain(), cookie.getMaxAgeSeconds(), cookie.getHttpOnly());
+	}
+
+	public static void setResponseStatus(IContext context, int status) {
+		RestServiceRequest current = getCurrentRequest(context);
+		if (current == null)
+			throw new IllegalStateException("Not handling a request currently");
+		if (status < 200 || status >= 600)
+			throw new IllegalArgumentException("Response status should be between 200 and 599");
+		
+		current.setStatus(status);
 	}
 }

@@ -7,32 +7,29 @@
 // Other code you write will be lost the next time you deploy the project.
 // Special characters, e.g., é, ö, à, etc. are supported in comments.
 
-package restservices.actions;
+package tests.actions;
 
-import restservices.consume.RestConsumer;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
+import java.util.regex.Pattern;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
-public class get extends UserAction<IMendixObject>
+public class quote extends UserAction<String>
 {
-	private String url;
-	private IMendixObject stub;
+	private String unquotedLiteral;
 
-	public get(String url, IMendixObject stub)
+	public quote(String unquotedLiteral)
 	{
 		super();
-		this.url = url;
-		this.stub = stub;
+		this.unquotedLiteral = unquotedLiteral;
 	}
 
 	@Override
-	public IMendixObject executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), url, stub).getMendixObject();
+		return Pattern.quote(unquotedLiteral);
 		// END USER CODE
 	}
 
@@ -42,7 +39,7 @@ public class get extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "get";
+		return "quote";
 	}
 
 	// BEGIN EXTRA CODE

@@ -9,36 +9,35 @@
 
 package restservices.actions;
 
-import restservices.publish.MicroflowService;
+import restservices.publish.CustomRestServiceException;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
- * 
+ * Throws a RestService exception, accepts the following attributes:
+ * 
+ * * httpStatus: The HTTP status of the request. Has to be between 400 and 599
+ * * errorMessage:	The error message
+ * * errorCode: Custom error code for this exception, to make the error easier recognizable and referable. 
  */
-public class StartMicroflowServiceJava extends UserAction<Boolean>
+public class throwRestServiceException extends UserAction<Boolean>
 {
-	private String microflowName;
-	private String securityRole;
-	private String description;
-	private restservices.proxies.HttpMethod httpMethod;
-	private String pathTemplate;
+	private Long httpStatus;
+	private String errorMessage;
+	private String errorCode;
 
-	public StartMicroflowServiceJava(String microflowName, String securityRole, String description, String httpMethod, String pathTemplate)
+	public throwRestServiceException(Long httpStatus, String errorMessage, String errorCode)
 	{
 		super();
-		this.microflowName = microflowName;
-		this.securityRole = securityRole;
-		this.description = description;
-		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
-		this.pathTemplate = pathTemplate;
+		this.httpStatus = httpStatus;
+		this.errorMessage = errorMessage;
+		this.errorCode = errorCode;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new MicroflowService(microflowName, securityRole, httpMethod, pathTemplate, description);
-		return true;
+		throw new CustomRestServiceException(errorCode, errorMessage, (int)(long) httpStatus);
 		// END USER CODE
 	}
 
@@ -48,7 +47,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartMicroflowServiceJava";
+		return "throwRestServiceException";
 	}
 
 	// BEGIN EXTRA CODE

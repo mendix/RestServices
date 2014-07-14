@@ -1,5 +1,18 @@
 package restservices.consume;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
+import static restservices.RestServices.CHANGE_DATA;
+import static restservices.RestServices.CHANGE_DELETED;
+import static restservices.RestServices.CHANGE_KEY;
+import static restservices.RestServices.CHANGE_SEQNR;
+import static restservices.RestServices.PARAM_SINCE;
+import static restservices.RestServices.PARAM_TIMEOUT;
+import static restservices.RestServices.PATH_CHANGES;
+import static restservices.RestServices.PATH_FEED;
+import static restservices.RestServices.PATH_LIST;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -17,7 +30,6 @@ import restservices.proxies.DataSyncState;
 import restservices.proxies.TrackingState;
 import restservices.util.JsonDeserializer;
 import restservices.util.Utils;
-import static restservices.RestServices.*;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +57,10 @@ public class ChangeLogListener {
 	
 	
 	private ChangeLogListener(String collectionUrl, String onUpdateMF, String onDeleteMF, long timeout) throws Exception {
+		checkNotNull(collectionUrl, "URL should not be null");
+		checkArgument(isNotEmpty(onUpdateMF), "On update should be non empty");
+		checkArgument(isNotEmpty(onDeleteMF), "On delete should be non empty");
+		
 		this.url = collectionUrl;
 		this.onUpdateMF = onUpdateMF;
 		this.onDeleteMF = onDeleteMF;

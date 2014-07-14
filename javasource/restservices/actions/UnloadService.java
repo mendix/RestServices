@@ -9,35 +9,33 @@
 
 package restservices.actions;
 
-import restservices.publish.MicroflowService;
+import restservices.publish.DataService;
 import com.mendix.systemwideinterfaces.core.UserAction;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * 
  */
-public class StartMicroflowServiceJava extends UserAction<Boolean>
+public class UnloadService extends UserAction<Boolean>
 {
-	private String microflowName;
-	private String securityRole;
-	private String description;
-	private restservices.proxies.HttpMethod httpMethod;
-	private String pathTemplate;
+	private IMendixObject __dataServiceDefinition;
+	private restservices.proxies.DataServiceDefinition dataServiceDefinition;
 
-	public StartMicroflowServiceJava(String microflowName, String securityRole, String description, String httpMethod, String pathTemplate)
+	public UnloadService(IMendixObject dataServiceDefinition)
 	{
 		super();
-		this.microflowName = microflowName;
-		this.securityRole = securityRole;
-		this.description = description;
-		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
-		this.pathTemplate = pathTemplate;
+		this.__dataServiceDefinition = dataServiceDefinition;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
+		this.dataServiceDefinition = __dataServiceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __dataServiceDefinition);
+
 		// BEGIN USER CODE
-		new MicroflowService(microflowName, securityRole, httpMethod, pathTemplate, description);
+		DataService service = DataService.getServiceByDefinition(dataServiceDefinition);
+		if (service != null)
+			service.unregister();
 		return true;
 		// END USER CODE
 	}
@@ -48,7 +46,7 @@ public class StartMicroflowServiceJava extends UserAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartMicroflowServiceJava";
+		return "UnloadService";
 	}
 
 	// BEGIN EXTRA CODE

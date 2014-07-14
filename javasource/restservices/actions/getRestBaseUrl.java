@@ -9,30 +9,24 @@
 
 package restservices.actions;
 
-import restservices.consume.RestConsumer;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
+import restservices.RestServices;
 import com.mendix.systemwideinterfaces.core.UserAction;
 
 /**
  * 
  */
-public class get extends UserAction<IMendixObject>
+public class getRestBaseUrl extends UserAction<String>
 {
-	private String url;
-	private IMendixObject stub;
-
-	public get(String url, IMendixObject stub)
+	public getRestBaseUrl()
 	{
 		super();
-		this.url = url;
-		this.stub = stub;
 	}
 
 	@Override
-	public IMendixObject executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.getObject(getContext(), url, stub).getMendixObject();
+		return RestServices.getBaseUrl();
 		// END USER CODE
 	}
 
@@ -42,7 +36,7 @@ public class get extends UserAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "get";
+		return "getRestBaseUrl";
 	}
 
 	// BEGIN EXTRA CODE

@@ -1,20 +1,18 @@
 package restservices;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-
-
-
-import restservices.publish.MicroflowService;
 import restservices.publish.DataService;
+import restservices.publish.RestServiceHandler;
+import restservices.util.Utils;
 
 import com.mendix.core.Core;
 import com.mendix.m2ee.log.ILogNode;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
-
 import communitycommons.XPath;
 
 public class RestServices {
@@ -65,7 +63,7 @@ public class RestServices {
 	public static final String HEADER_CONTENTTYPE = "Content-Type";
 	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
 	
-	public final static String PATH_REST = "rest/";
+	public static String PATH_REST = "rest/";
 	public static final String PATH_LIST = "list";
 	public static final String PATH_FEED = "feed";
 	public static final String PATH_CHANGES = "changes";
@@ -87,68 +85,54 @@ public class RestServices {
 	public static final String CHANGE_URL = "url";
 
 
-	static Map<String, DataService> services = new HashMap<String, DataService>();
-	static Map<String, DataService> servicesByEntity = new HashMap<String, DataService>();
-	static Map<String, MicroflowService> microflowServices = new HashMap<String, MicroflowService>();
-
+	static Map<String, DataService> servicesByEntity = new ConcurrentHashMap<String, DataService>();
+	static Set<String> entitiesWithoutService = Collections.synchronizedSet(new HashSet<String>());
+	
 	public static DataService getServiceForEntity(String entityType) {
-		if (servicesByEntity.containsKey(entityType))
+		if (servicesByEntity.containsKey(entityType)) {
 			return servicesByEntity.get(entityType);
-		
-		//if not look into super entitites as well!
-		IMetaObject meta = Core.getMetaObject(entityType);
-		if (meta.getSuperObject() != null) {
-			DataService superService = getServiceForEntity(meta.getSuperName());
-			if (superService != null) {
-				servicesByEntity.put(entityType, superService);
-				return superService;
+		} else if (entitiesWithoutService.contains(entityType)) {
+			return null;
+		} else {
+			//if not look into super entitites as well!
+			IMetaObject meta = Core.getMetaObject(entityType);
+			if (meta.getSuperObject() != null) {
+				DataService superService = getServiceForEntity(meta.getSuperName());
+				if (superService != null) {
+					servicesByEntity.put(entityType, superService);
+					return superService;
+				}
 			}
+			entitiesWithoutService.add(entityType); //no service. Remember that
+			return null;
 		}
-		servicesByEntity.put(entityType, null); //no service. Remember that
-		return null;
-	}
-	
-	public static void registerService(String name, DataService def) {
-		DataService current = services.put(name,  def);
-		
-		if (current != null)
-			current.dispose();
-		
-		if (def.isGetObjectEnabled())
-			servicesByEntity.put(def.getSourceEntity(), def);
-		else {
-			current = servicesByEntity.get(def.getSourceEntity());
-			if (current != null && current.getName().equals(def.getName())) 
-				servicesByEntity.remove(def.getSourceEntity());
-		}
-
-		LOGPUBLISH.info("Registered data service '" + def.getName() + "'");
 	}
 
-	public static DataService getService(String name) {
-		return services.get(name);
-	}
-
-	public static Set<String> getServiceNames() {
-		Set<String> names = new HashSet<String>(services.keySet());
-		names.addAll(microflowServices.keySet());
-		return names;
-	}
-	
 	public static String getBaseUrl() {
 		return Core.getConfiguration().getApplicationRootUrl() + PATH_REST;
 	}
 
-	public static String getServiceUrl(String name) {
-		return getBaseUrl() + name + (microflowServices.containsKey(name) ? "" : "/");
+	/**
+	 * For unit testing only!
+	 */
+	public static void clearServices() {
+		RestServiceHandler.clearServices();
+		servicesByEntity.clear();
 	}
 
-	public static void registerPublishedMicroflow(MicroflowService s) {
-		microflowServices.put(s.getName(), s);
-		LOGPUBLISH.info("Registered microflow service '" + s.getName() + "'");
+	public static void registerServiceByEntity(String sourceEntity,
+			DataService def) {
+		servicesByEntity.put(sourceEntity, def);
 	}
-	
-	public static MicroflowService getPublishedMicroflow(String name) {
-		return microflowServices.get(name);
+
+	public static String getAbsoluteUrl(String relativeUrl) {
+		return getBaseUrl() + Utils.removeLeadingSlash(Utils.appendSlashToUrl(relativeUrl));
+	}
+
+	public static void unregisterServiceByEntity(String sourceEntity,
+			DataService dataService) {
+		if (servicesByEntity.containsKey(sourceEntity) && servicesByEntity.get(sourceEntity) == dataService) {
+			servicesByEntity.remove(sourceEntity);
+		}
 	}
 }

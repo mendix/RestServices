@@ -11,8 +11,10 @@ import org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.publish.DataService;
+import restservices.proxies.BooleanValue;
 
 import com.mendix.core.Core;
+import com.mendix.core.objectmanagement.member.MendixEnum;
 import com.mendix.core.objectmanagement.member.MendixObjectReference;
 import com.mendix.core.objectmanagement.member.MendixObjectReferenceSet;
 import com.mendix.systemwideinterfaces.core.IContext;
@@ -121,6 +123,17 @@ public class JsonSerializer {
 				target.put(memberName, value);
 				break;
 			case Enum:
+				//Support for built-in BooleanValue enumeration.
+				MendixEnum me = (MendixEnum) member;
+				if ("RestServices.BooleanValue".equals(me.getEnumeration().getName())) {
+					if (BooleanValue._true.toString().equals(me.getValue(context)))
+						target.put(memberName, true);
+					else if (BooleanValue._false.toString().equals(me.getValue(context)))
+						target.put(memberName, false);
+					break;
+				}
+				
+				//other enumeration, fall trough intentional
 			case HashString:
 			case String:
 				if (value == null)
