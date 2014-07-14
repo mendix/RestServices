@@ -116,8 +116,13 @@ public class JsonDeserializer {
 				
 				for(int i = 0; i < children.length(); i++) {
 					IMendixIdentifier child = readJsonDataIntoMendixObject(context, children.get(i), otherSideType, autoResolve);
-					if (child != null)
-						ids.add(child);
+					if (child != null) {
+						/*
+						 * The core.createMendixIdentifier should be unnecessary, however, there is a bug there, see
+						 * support ticket 102188 
+						 */
+						ids.add(Core.createMendixIdentifier(child.toLong()));
+					}
 				}
 				
 				((MendixObjectReferenceSet)member).setValue(context, ids);
