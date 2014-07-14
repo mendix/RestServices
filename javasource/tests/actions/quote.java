@@ -10,7 +10,6 @@
 package tests.actions;
 
 import java.util.regex.Pattern;
-import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
