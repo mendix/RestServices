@@ -15,9 +15,11 @@ import org.apache.http.HttpStatus;
 import restservices.RestServices;
 import restservices.proxies.Cookie;
 import restservices.util.DataWriter;
+import restservices.util.Function;
 import restservices.util.Utils;
 import system.proxies.User;
 
+import com.google.common.base.Preconditions;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
@@ -25,7 +27,6 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
-
 import communitycommons.StringUtils;
 
 public class RestServiceRequest {
@@ -333,14 +334,9 @@ public class RestServiceRequest {
 	
 	private static final Map<String, RestServiceRequest> currentRequests = new ConcurrentHashMap<String, RestServiceRequest>(); 
 	
-	public static interface Function<T> {
-		T apply() throws Exception;
-	}
-	
-	public <T> T withTransaction(Function<T> worker) throws Exception {
+	public <T> T withTransaction(final Function<T> worker) throws Exception {
 		IContext c = getContext();
-		if (c == null)
-			return worker.apply();
+		Preconditions.checkNotNull(c, "RestServiceRequest has no context");
 		
 		if (c.isInTransaction())
 			throw new IllegalStateException("Already in transaction");
@@ -352,7 +348,7 @@ public class RestServiceRequest {
 		
 		boolean hasException = true;
 		try {
-			T res = worker.apply();
+			T res = Utils.withSessionCache(c, worker);
 			hasException = false;
 			return res;
 		}

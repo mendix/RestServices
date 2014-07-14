@@ -27,7 +27,7 @@ import restservices.proxies.DataServiceDefinition;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RestServiceError;
 import restservices.publish.RestPublishException.RestExceptionType;
-import restservices.publish.RestServiceRequest.Function;
+import restservices.util.Function;
 import restservices.util.ICloseable;
 import restservices.util.UriTemplate;
 import restservices.util.Utils;

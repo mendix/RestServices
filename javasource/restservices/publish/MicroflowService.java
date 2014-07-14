@@ -28,7 +28,6 @@ import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.UriTemplate;
 import restservices.util.Utils;
-import restservices.util.Utils.IRetainWorker;
 import system.proxies.FileDocument;
 
 import com.google.common.collect.Lists;
@@ -181,15 +180,7 @@ public class MicroflowService implements IRestServiceHandler{
 				rsr.setResponseContentType(ResponseType.BINARY);
 	
 			Object result = Core.execute(rsr.getContext(), microflowname, args);
-	
-			Utils.whileRetainingObject(rsr.getContext(), result, new IRetainWorker<Boolean>() {
-	
-				@Override
-				public Boolean apply(Object item) throws IOException, Exception {
-					writeOutputData(rsr, item);
-					return true;
-				}
-			});
+			writeOutputData(rsr, result);
 		}
 	}
 
