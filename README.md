@@ -540,6 +540,24 @@ See the table at [http://en.wikipedia.org/wiki/Representational_state_transfer#A
 
 # Changelog
 
+## Version 1.3
+
+New features:
+* #16, #23: Introduced template paths for both consuming and publishing REST services. For example urls like `http://myapp.com/rest/groups/{groupId}/users/{userId}` can be used.
+* #15, #27: improved handling of errors
+
+Issues fixed:
+* #18: introduced RestServiceError entity for improved error handling
+* #19: improved handling of connection errors
+* #13: introduced setResponseStatus
+* #14: introduced alternative basepath for rest api's
+* #17: JSON deserialization is now case insensitive
+* #25: Microflow services now always require a HTTP verb upon definition
+* #24: Improved URL decoding
+* #26: Improved handling of booleans not available in the request data
+* #21, #22: Several optimizations in handling urls concerning casing and leading or trailing slashes
+* POST requests to a dataservice now return a JSON object with the object key
+
 ## Version 1.2
 
 New features:
