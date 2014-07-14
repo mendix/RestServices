@@ -7,35 +7,30 @@
 // Other code you write will be lost the next time you deploy the project.
 // Special characters, e.g., é, ö, à, etc. are supported in comments.
 
-package restservices.actions;
+package tests.actions;
 
-import restservices.consume.RestConsumer;
+import java.util.regex.Pattern;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
  * 
  */
-public class addCookieToNextRequest extends CustomJavaAction<Boolean>
+public class quote extends CustomJavaAction<String>
 {
-	private IMendixObject __cookie;
-	private restservices.proxies.Cookie cookie;
+	private String unquotedLiteral;
 
-	public addCookieToNextRequest(IContext context, IMendixObject cookie)
+	public quote(IContext context, String unquotedLiteral)
 	{
 		super(context);
-		this.__cookie = cookie;
+		this.unquotedLiteral = unquotedLiteral;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
-		this.cookie = __cookie == null ? null : restservices.proxies.Cookie.initialize(getContext(), __cookie);
-
 		// BEGIN USER CODE
-		RestConsumer.addCookieToNextRequest(cookie);
-		return true;
+		return Pattern.quote(unquotedLiteral);
 		// END USER CODE
 	}
 
@@ -45,7 +40,7 @@ public class addCookieToNextRequest extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "addCookieToNextRequest";
+		return "quote";
 	}
 
 	// BEGIN EXTRA CODE

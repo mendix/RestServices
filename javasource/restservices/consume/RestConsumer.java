@@ -6,9 +6,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.Header;
@@ -46,8 +48,10 @@ import restservices.proxies.HttpMethod;
 import restservices.proxies.ReferableObject;
 import restservices.proxies.RequestResult;
 import restservices.proxies.ResponseCode;
+import restservices.proxies.RestServiceError;
 import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
+import restservices.util.UriTemplate;
 import restservices.util.Utils;
 import system.proxies.FileDocument;
 
@@ -58,11 +62,9 @@ import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
-
 import communitycommons.StringUtils;
 
 public class RestConsumer {
-	
 	private static ThreadLocal<HttpResponseData> lastConsumeError = new ThreadLocal<HttpResponseData>();
 	
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
@@ -93,34 +95,46 @@ public class RestConsumer {
 		}
 		
 		public RequestResult asRequestResult(IContext context) {
+			JSONObject jsonHeaders = getResponseHeadersAsJson();
+
 			RequestResult rr = new RequestResult(context);
 			rr.setRequestUrl(url);
 			rr.setETag(getETag());
 			rr.setRawResponseCode(status);
 			rr.setResponseBody(getBody());
 			rr.setResponseCode(asResponseCode());
-			rr.set_ResponseHeaders(getResponseHeadersAsJson().toString());
+			rr.set_ResponseHeaders(jsonHeaders.toString());
+			
+			if (
+					status >= 400 && status < 600 
+					&& jsonHeaders.has(RestServices.HEADER_CONTENTTYPE)
+					&& jsonHeaders.getJSONArray(RestServices.HEADER_CONTENTTYPE).getString(0).contains("json")
+			) {
+				RestServiceError rse = new RestServiceError(context);
+				try {
+					JsonDeserializer.readJsonDataIntoMendixObject(context, new JSONObject(getBody()), rse.getMendixObject(), false);
+					rr.setErrorDetails(rse);
+				} catch (Exception e) {
+					RestServices.LOGCONSUME.warn("Failed to parse error message to JSON: " + getBody());
+				}
+			}
+			
 			return rr;
 		}
 
 		public ResponseCode asResponseCode() {
-			switch (status) {
-				case IMxRuntimeResponse.NOT_MODIFIED: return ResponseCode.NotModified; 
-				case 201: //created
-				case 204: //no content
-				case IMxRuntimeResponse.OK: 
-					return ResponseCode.OK;
-				default:
-					if (status >= 400)
-						return ResponseCode.Error;
-					throw new IllegalArgumentException("Unexpected response code in " + this.toString());
-			}
+			if (status == IMxRuntimeResponse.NOT_MODIFIED)
+				return ResponseCode.NotModified;
+			else if (status >= 400 || status <= 0) //-1 is used if making the connection failed
+				return ResponseCode.Error;
+			else 
+				return ResponseCode.OK; //We consider all other responses 'OK-ish', even redirects and such.. Users can check the actual response code with the RawResponse field
 		}
 		
 		@Override public String toString() {
 			return String.format("[HTTP Request: %s '%s' --> Response status: %d %s, ETag: %s, body: '%s']", 
 					method, url, 
-					status, HttpStatus.getStatusText(status), 
+					status, status < 0 ? "CONNECTION FAILED" : HttpStatus.getStatusText(status), 
 					eTag, 
 					RestServices.LOGCONSUME.isDebugEnabled() || status != 200  ? body : "(omitted)");
 		}
@@ -139,7 +153,7 @@ public class RestConsumer {
 		
 		private JSONObject getResponseHeadersAsJson() {
 			JSONObject res = new JSONObject();
-			for(Header header : this.headers) {
+			if (headers != null) for(Header header : headers) {
 				if (!res.has(header.getName()))
 					res.put(header.getName(), new JSONArray());
 				res.getJSONArray(header.getName()).put(header.getValue());
@@ -197,47 +211,46 @@ public class RestConsumer {
 	 * @throws IOException 
 	 * @throws HttpException 
 	 */
-	private static HttpResponseData doRequest(String method, String url,
-			Map<String, String> requestHeaders, Map<String, String> params,
-			RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
+	private static HttpResponseData doRequest(String method, String url, Map<String, String> requestHeaders,
+			Map<String, String> params, RequestEntity requestEntity, Predicate<InputStream> onSuccess) throws HttpException, IOException {
 		if (RestServices.LOGCONSUME.isDebugEnabled())
 			RestServices.LOGCONSUME.debug("Fetching '" + url + "'..");
 		
-		HttpMethodBase request;
+		HttpMethodBase request = null;
 
-		if (params != null && !"POST".equals(method)) {
-			//append params to url. Do *not* use request.setQueryString; that will override any args already in there
-			for(Entry<String, String> e : params.entrySet())
-				url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
-		}
-		
-		if ("GET".equals(method))
-			request = new GetMethod(url);
-		else if ("DELETE".equals(method))
-			request = new DeleteMethod(url);
-		else if ("POST".equals(method)) 
-			request = new PostMethod(url);
-		else if ("PUT".equals(method)) 
-			request = new PutMethod(url);
-		else 
-			throw new IllegalStateException("Unsupported method: " + method);
-		
-		request.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
-		request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
-		
-		if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
-			request.addRequestHeader(e.getKey(), e.getValue());
-		includeHeaders(request);
-		
-		if (params != null && request instanceof PostMethod) 
-			((PostMethod)request).addParameters(mapToNameValuePairs(params));
-		
-		if (request instanceof PostMethod && requestEntity != null)
-			((PostMethod)request).setRequestEntity(requestEntity);
-		else if (request instanceof PutMethod && requestEntity != null)
-			((PutMethod)request).setRequestEntity(requestEntity);
-		
 		try {
+			if (params != null && !"POST".equals(method)) {
+				//append params to url. Do *not* use request.setQueryString; that will override any args already in there
+				for(Entry<String, String> e : params.entrySet())
+					url = Utils.appendParamToUrl(url, e.getKey(), e.getValue());
+			}
+			
+			if ("GET".equals(method))
+				request = new GetMethod(url);
+			else if ("DELETE".equals(method))
+				request = new DeleteMethod(url);
+			else if ("POST".equals(method)) 
+				request = new PostMethod(url);
+			else if ("PUT".equals(method)) 
+				request = new PutMethod(url);
+			else 
+				throw new IllegalStateException("Unsupported method: " + method);
+			
+			request.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
+			request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
+			
+			if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
+				request.addRequestHeader(e.getKey(), e.getValue());
+			includeHeaders(request);
+			
+			if (params != null && request instanceof PostMethod) 
+				((PostMethod)request).addParameters(mapToNameValuePairs(params));
+			
+			if (request instanceof PostMethod && requestEntity != null)
+				((PostMethod)request).setRequestEntity(requestEntity);
+			else if (request instanceof PutMethod && requestEntity != null)
+				((PutMethod)request).setRequestEntity(requestEntity);
+		
 			int status = client.executeMethod(request);
 			Header responseEtag = request.getResponseHeader(RestServices.HEADER_ETAG);
 			
@@ -252,8 +265,17 @@ public class RestConsumer {
 			
 			return response;
 		}
+
+		catch(Exception e) {
+			HttpResponseData response = new HttpResponseData(method, url, -1, null, null);
+			response.setBody(e.getClass().getName() + ": " + e.getMessage());
+			RestServices.LOGCONSUME.error("Failed to connect to " + url + ": " + e.getMessage(), e);
+			return response;
+		}
+		
 		finally {
-			request.releaseConnection();
+			if (request != null)
+				request.releaseConnection();
 		}
 	}
 	
@@ -268,7 +290,7 @@ public class RestConsumer {
 	}
 	
 	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
-		HttpResponseData response = doRequest("GET", url, null,null, null, new Predicate<InputStream>() {
+		HttpResponseData response = doRequest("GET", url, null, null, null, new Predicate<InputStream>() {
 
 			@Override
 			public boolean apply(InputStream stream) {
@@ -382,17 +404,13 @@ public class RestConsumer {
 		});
 	}
 	
-
-	public static RequestResult request(final IContext context, HttpMethod method, final String url, 
+	public static RequestResult request(final IContext context, HttpMethod method, String url, 
 			final IMendixObject source, final IMendixObject target, final boolean asFormData) throws Exception {
 		lastConsumeError.set(null);
 		
 		if (context == null)
 			throw new IllegalArgumentException("Context should not be null");
 		
-		if (!Utils.isUrl(url))
-			throw new IllegalArgumentException("Requested resource seems to be an invalid URL: " + url);
-
 		if (method == null)
 			method = HttpMethod.GET;
 		
@@ -408,19 +426,8 @@ public class RestConsumer {
 		
 		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
 		
-		//register params, if its a GET request or formData format is used
-		if (source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE)) {
-			for(String key : JSONObject.getNames(data)) {
-				if (isFileSource && isFileDocAttr(key)) 
-					continue; //Do not pick up default filedoc attrs!
-				if (Utils.isSystemAttribute(key))
-					continue;
-				Object value = data.get(key);
-				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
-					params.put(key, String.valueOf(value));
-			}
-			
-		}
+		boolean appendDataToUrl = source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE);
+		url = updateUrlPathComponentsWithParams(url, appendDataToUrl, isFileSource, data, params);
 			
 		//Setup request entity for file
 		if (!asFormData && isFileSource) {
@@ -431,7 +438,7 @@ public class RestConsumer {
 		}
 		else if (asFormData && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
-		else if (data != null)
+		else if (data != null && data.length() != 0)
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_APPLICATIONJSON, RestServices.UTF8);
 		
 		final StringBuilder bodyBuffer = new StringBuilder();
@@ -473,6 +480,46 @@ public class RestConsumer {
 		}
 		
 		return response.asRequestResult(context);
+	}
+
+	private static String updateUrlPathComponentsWithParams(String url, boolean appendDataToUrl, final boolean isFileSource, final JSONObject data, Map<String, String> params) {
+		//substitute template variable in the uri, and make sure they are not send along as body / params data
+		UriTemplate uriTemplate = new UriTemplate(url);
+		
+		Map<String, String> keyMapping = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+		if (data != null) for (Iterator<String> iterator = data.keys(); iterator.hasNext();) {
+			String key = iterator.next();
+			keyMapping.put(key, key);
+		}
+		
+		Map<String, String> values = new HashMap<String, String>();
+		if (data != null) for(String templateVar : uriTemplate.getTemplateVariables()) {
+			if (keyMapping.containsKey(templateVar)) {
+				String realkey = (String) keyMapping.get(templateVar);
+				Object value = data.get(realkey);
+				if (!(value instanceof JSONObject) && !(value instanceof JSONArray)) {
+					data.remove(realkey);
+					values.put(templateVar, value == null || value == JSONObject.NULL ? "" : (String) value);
+				}
+			}
+		}
+		
+		url = uriTemplate.createURI(values);
+
+		//register params, if its a GET request or formData format is used
+		if (data != null && data.length() > 0 && appendDataToUrl) {
+			for(String key : JSONObject.getNames(data)) {
+				if (isFileSource && isFileDocAttr(key)) 
+					continue; //Do not pick up default filedoc attrs!
+				if (Utils.isSystemAttribute(key))
+					continue;
+				Object value = data.get(key);
+				if (value != null && !(value instanceof JSONObject) && !(value instanceof JSONArray))
+					params.put(key, String.valueOf(value));
+			}
+			
+		}
+		return url;
 	}
 
 	private static RequestEntity buildMultiPartEntity(final IContext context,
@@ -517,9 +564,17 @@ public class RestConsumer {
 	}
 
 	public static RequestResult getObject(IContext context, String url,
-			String optEtag, IMendixObject stub) throws Exception {
+			String optEtag, IMendixObject target) throws Exception {
 		useETagInNextRequest(optEtag);
-		return request(context, HttpMethod.GET, url, null, stub, false);
+		return request(context, HttpMethod.GET, url, null, target, false);
+	}
+	
+	public static RequestResult getObject(IContext context, String url, IMendixObject target) throws Exception {
+		return request(context, HttpMethod.GET, url, null, target, false);
+	}
+	
+	public static RequestResult getObject(IContext context, String url, IMendixObject source, IMendixObject target) throws Exception {
+		return request(context, HttpMethod.GET, url, source, target, false);
 	}
 
 	public static RequestResult putObject(IContext context, String url,
@@ -533,11 +588,16 @@ public class RestConsumer {
 		return request(context, HttpMethod.POST, collectionUrl, dataObject, null, asFormData);
 	}
 	
+	public static RequestResult postObject(IContext context, String collectionUrl,
+			IMendixObject dataObject, IMendixObject targetObject) throws Exception {
+		return request(context, HttpMethod.POST, collectionUrl, dataObject, targetObject, false);
+	}
+	
 	public static void useETagInNextRequest(String eTag) {
 		if (eTag != null)
 			addHeaderToNextRequest(RestServices.HEADER_IFNONEMATCH, eTag);
 	}
-
+	
 	public static String getResponseHeaderFromRequestResult(
 			RequestResult requestResult, String headerName) {
 		if (requestResult == null)

@@ -17,25 +17,25 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * 
  */
-public class addCookieToNextRequest extends CustomJavaAction<Boolean>
+public class post2 extends CustomJavaAction<IMendixObject>
 {
-	private IMendixObject __cookie;
-	private restservices.proxies.Cookie cookie;
+	private String collectionUrl;
+	private IMendixObject dataObject;
+	private IMendixObject responseData;
 
-	public addCookieToNextRequest(IContext context, IMendixObject cookie)
+	public post2(IContext context, String collectionUrl, IMendixObject dataObject, IMendixObject responseData)
 	{
 		super(context);
-		this.__cookie = cookie;
+		this.collectionUrl = collectionUrl;
+		this.dataObject = dataObject;
+		this.responseData = responseData;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public IMendixObject executeAction() throws Exception
 	{
-		this.cookie = __cookie == null ? null : restservices.proxies.Cookie.initialize(getContext(), __cookie);
-
 		// BEGIN USER CODE
-		RestConsumer.addCookieToNextRequest(cookie);
-		return true;
+		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, responseData).getMendixObject();
 		// END USER CODE
 	}
 
@@ -45,7 +45,7 @@ public class addCookieToNextRequest extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "addCookieToNextRequest";
+		return "post2";
 	}
 
 	// BEGIN EXTRA CODE

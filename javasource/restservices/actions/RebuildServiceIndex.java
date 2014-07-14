@@ -9,9 +9,9 @@
 
 package restservices.actions;
 
-import restservices.RestServices;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
+import restservices.publish.DataService;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
@@ -19,25 +19,25 @@ import com.mendix.webui.CustomJavaAction;
  */
 public class RebuildServiceIndex extends CustomJavaAction<Boolean>
 {
-	private IMendixObject __serviceDefinition;
-	private restservices.proxies.DataServiceDefinition serviceDefinition;
+	private IMendixObject __dataServiceDefinition;
+	private restservices.proxies.DataServiceDefinition dataServiceDefinition;
 
-	public RebuildServiceIndex(IContext context, IMendixObject serviceDefinition)
+	public RebuildServiceIndex(IContext context, IMendixObject dataServiceDefinition)
 	{
 		super(context);
-		this.__serviceDefinition = serviceDefinition;
+		this.__dataServiceDefinition = dataServiceDefinition;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
-		this.serviceDefinition = __serviceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __serviceDefinition);
+		this.dataServiceDefinition = __dataServiceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __dataServiceDefinition);
 
 		// BEGIN USER CODE
-		if (serviceDefinition == null)
+		if (dataServiceDefinition == null)
 			throw new IllegalArgumentException();
 		
-		RestServices.getService(serviceDefinition.getName()).getChangeLogManager().rebuildChangeLog();
+		DataService.getServiceByDefinition(dataServiceDefinition).getChangeLogManager().rebuildChangeLog();
 		return true;
 		// END USER CODE
 	}

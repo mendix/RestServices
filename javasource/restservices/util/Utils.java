@@ -4,7 +4,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -14,11 +13,12 @@ import org.apache.commons.codec.digest.DigestUtils;
 
 import restservices.RestServices;
 
+import com.google.common.base.Preconditions;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
-import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
@@ -101,15 +101,10 @@ public class Utils {
 	}
 
 	public static Map<String, String> getArgumentTypes(String mf) {
-		Map<String, IDataType> knownArgs = null;
-		try {
-			knownArgs = Core.getInputParameters(mf);
-		}
-		catch(IllegalArgumentException e) {
-			//ignore, mf does not exist.
-		}
-		if (knownArgs == null || null == Core.getReturnType(mf)) //known args is usually empty map for non existing microflow :S.
-			throw new IllegalArgumentException("Unknown microflow");
+		if (!microflowExists(mf)) //known args is usually empty map for non existing microflow :S.
+			throw new IllegalArgumentException("Unknown microflow: " + mf);
+
+		Map<String, IDataType> knownArgs = Core.getInputParameters(mf);;
 		
 		Map<String, String> args = new HashMap<String, String>();
 		for(Entry<String, IDataType> e : knownArgs.entrySet()) {
@@ -125,8 +120,17 @@ public class Utils {
 	}
 
 	public static String urlEncode(String value) {
+		if (value == null) {
+			return "";
+		}
 		try {
-			return URLEncoder.encode(value, RestServices.UTF8);
+			//See: http://www.w3.org/TR/html4/interact/forms.html#h-17.13.4.1
+			//See: http://docs.oracle.com/javase/7/docs/api/java/net/URLEncoder.html
+			//See: http://tools.ietf.org/html/rfc3986#section-2.3
+			//URLEncoder.encode differts on 2 things, spaces are encoded with +, as described in form-encoding.
+			//This is replaces by %20, since that is always save.
+			//Besides that, URLEncoder 'forgets' to encode '*', which is a reserved character..... So also replace it.
+			return URLEncoder.encode(value, RestServices.UTF8).replace("+", "%20").replace("*", "%2A");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -150,7 +154,20 @@ public class Utils {
 	}
 
 	public static String appendSlashToUrl(String url) {
+		Preconditions.checkNotNull(url, "URL should not be null");
 		return url.endsWith("/") ? url : url + "/";
+	}
+	
+	public static String removeTrailingSlash(String relativeUrl) {
+		return relativeUrl.replaceAll("\\/$", "");
+	}
+
+	public static String removeLeadingSlash(String relativeUrl) {
+		return relativeUrl.replaceAll("^\\/", "");
+	}
+	
+	public static String removeLeadingAndTrailingSlash(String relativeUrl) {
+		return removeLeadingSlash(removeTrailingSlash(relativeUrl));
 	}
 
 	public static String nullToEmpty(String statusText) {
@@ -171,59 +188,33 @@ public class Utils {
 		return false;
 	}
 
-	public static void retain(IContext context, Object result) {
-		if (result == null)
-			return;
-		if (result instanceof IMendixObject)
-			context.getSession().retain((IMendixObject)result);
-		else if (result instanceof List<?>)
-			for(Object item: (List<?>) result)
-				retain(context, item);
-	}
-
-	public static void release(IContext context, Object result) {
-		if (result == null)
-			return;
-		if (result instanceof IMendixObject)
-			context.getSession().release(((IMendixObject)result).getId());
-		else if (result instanceof IMendixIdentifier)
-			context.getSession().release((IMendixIdentifier) result);
-		else if (result instanceof List<?>)
-			for(Object item: (List<?>) result)
-				release(context, item);
-	}
-	
-	public static interface IRetainWorker<T> {
-		public T apply(Object item) throws Exception;
-	}
-	
-	/**
-	 * Since Mendix 5.3 the GC fires earlier, so to make sure that the result of a Microflow is not
-	 * garbage collected to early after the microflow finishes, we try to retain the result of a Microflow if 
-	 * it is Mendix Object like. The object will be released automatically when the worker finishes. 
-	 */
-	public static <T> T whileRetainingObject(IContext context, Object item, IRetainWorker<T> worker) throws Exception {
-		retain(context, item);
-		try {
-			return worker.apply(item);
-		}
-		finally {
-			release(context, item);
-		}
-	}
-
 	public static boolean microflowExists(String mf) {
-		try {
-			Core.getInputParameters(mf);
-			return true;
-		}
-		catch(IllegalArgumentException e) {
-			//mf does not exist.
-			return false;
-		}
+		return Core.getMicroflowNames().contains(mf);
 	}
 	
 	public static boolean hasDataAccess(IMetaObject meta, IContext context) {
 		return meta.hasMetaDataAccess(context);
+	}
+	
+	public static <T> T withSessionCache(IContext c, final Function<T> worker) throws Exception {
+		try {
+			return Core.executeSync(new UserAction<T>(c) {
+
+				@Override
+				public T executeAction() throws Exception {
+					return worker.apply();
+				}
+			});
+		}
+		catch (Exception e) {
+			//executeSync wraps all thrown exeption 2 times in a CoreRuntimeException, unwrap it...
+			Throwable cause1 = e.getCause();
+			if (cause1 == null || cause1.getCause() == null)
+				throw e;
+			else if (cause1.getCause() instanceof Exception)
+				throw (Exception) cause1.getCause();
+			else
+				throw new RuntimeException(e);
+		}
 	}
 }

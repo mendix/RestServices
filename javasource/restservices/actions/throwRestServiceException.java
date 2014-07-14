@@ -9,33 +9,36 @@
 
 package restservices.actions;
 
-import restservices.consume.RestConsumer;
+import restservices.publish.CustomRestServiceException;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * 
+ * Throws a RestService exception, accepts the following attributes:
+ * 
+ * * httpStatus: The HTTP status of the request. Has to be between 400 and 599
+ * * errorMessage:	The error message
+ * * errorCode: Custom error code for this exception, to make the error easier recognizable and referable. 
  */
-public class addCookieToNextRequest extends CustomJavaAction<Boolean>
+public class throwRestServiceException extends CustomJavaAction<Boolean>
 {
-	private IMendixObject __cookie;
-	private restservices.proxies.Cookie cookie;
+	private Long httpStatus;
+	private String errorMessage;
+	private String errorCode;
 
-	public addCookieToNextRequest(IContext context, IMendixObject cookie)
+	public throwRestServiceException(IContext context, Long httpStatus, String errorMessage, String errorCode)
 	{
 		super(context);
-		this.__cookie = cookie;
+		this.httpStatus = httpStatus;
+		this.errorMessage = errorMessage;
+		this.errorCode = errorCode;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
-		this.cookie = __cookie == null ? null : restservices.proxies.Cookie.initialize(getContext(), __cookie);
-
 		// BEGIN USER CODE
-		RestConsumer.addCookieToNextRequest(cookie);
-		return true;
+		throw new CustomRestServiceException(errorCode, errorMessage, (int)(long) httpStatus);
 		// END USER CODE
 	}
 
@@ -45,7 +48,7 @@ public class addCookieToNextRequest extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "addCookieToNextRequest";
+		return "throwRestServiceException";
 	}
 
 	// BEGIN EXTRA CODE

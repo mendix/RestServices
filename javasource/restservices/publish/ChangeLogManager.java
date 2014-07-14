@@ -292,7 +292,7 @@ public class ChangeLogManager {
 		DataService service = RestServices.getServiceForEntity(source.getType());
 		
 		if (!service.def.getEnableChangeLog()) {
-			RestServices.LOGPUBLISH.warn("Skipped publishing delete, changetracking is not enabled for service " + service.getName());
+			RestServices.LOGPUBLISH.warn("Skipped publishing delete, changetracking is not enabled for service " + service.getRelativeUrl());
 			return;
 		}
 		
@@ -322,7 +322,7 @@ public class ChangeLogManager {
 		DataService service = RestServices.getServiceForEntity(source.getType());
 		
 		if (!service.def.getEnableChangeLog()) {
-			RestServices.LOGPUBLISH.warn("Skipped publishing update, changetracking is not enabled for service " + service.getName());
+			RestServices.LOGPUBLISH.warn("Skipped publishing update, changetracking is not enabled for service " + service.getRelativeUrl());
 			return;
 		}	
 		service.getChangeLogManager().publishUpdateHelper(context, source, checkConstraint);
@@ -370,8 +370,8 @@ public class ChangeLogManager {
 		
 		try {
 			final IContext context = Core.createSystemContext();
-			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. This might take a while...");
-			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. Marking old index dirty...");
+			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. This might take a while...");
+			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. Marking old index dirty...");
 			
 			//int NR_OF_BATCHES = 8;
 			
@@ -390,7 +390,7 @@ public class ChangeLogManager {
 					}
 				});
 			
-			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. Marking old index dirty... DONE. Rebuilding index for existing objects...");
+			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. Marking old index dirty... DONE. Rebuilding index for existing objects...");
 			
 			/** 
 			 * Republish all known objects, if they are part of the constraint (won' t result in an update if nothing actually changed)
@@ -408,7 +408,7 @@ public class ChangeLogManager {
 					}
 				});
 			
-			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
+			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. Rebuilding... DONE. Removing old entries...");
 
 			/**
 			 * Everything that is marked dirty, is either deleted earlier and shouldn' t be dirty, or should be deleted now. 
@@ -436,7 +436,7 @@ public class ChangeLogManager {
 			changeLog.set_ConfigurationHash(calculateServiceConfigurationHash(service.def));
 			changeLog.commit();
 			
-			RestServices.LOGPUBLISH.info(service.getName() + ": Initializing change log. DONE");
+			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. DONE");
 		}
 		finally {
 			isRebuildingChangeLog = false;

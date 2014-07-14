@@ -1,16 +1,23 @@
 package restservices.publish;
 
 
-import java.io.IOException;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
+
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,19 +26,23 @@ import restservices.RestServices;
 import restservices.consume.RestConsumeException;
 import restservices.consume.RestConsumer;
 import restservices.proxies.DataServiceDefinition;
+import restservices.proxies.HttpMethod;
+import restservices.proxies.RestServiceError;
 import restservices.publish.RestPublishException.RestExceptionType;
-import restservices.publish.RestServiceRequest.Function;
+import restservices.util.Function;
+import restservices.util.ICloseable;
+import restservices.util.UriTemplate;
 import restservices.util.Utils;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.externalinterface.connector.RequestHandler;
+import com.mendix.integration.WebserviceException;
 import com.mendix.m2ee.api.IMxRuntimeRequest;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
-import com.mendix.integration.WebserviceException;
 import com.mendix.systemwideinterfaces.core.IContext;
-
+import com.mendix.systemwideinterfaces.core.ISession;
 import communitycommons.XPath;
 
 public class RestServiceHandler extends RequestHandler{
@@ -39,13 +50,44 @@ public class RestServiceHandler extends RequestHandler{
 	private static RestServiceHandler instance = null;
 	private static boolean started = false;
 	
-	@SuppressWarnings("deprecation")
+	static class HandlerRegistration implements ICloseable {
+		final String method;
+		final UriTemplate template;
+		final String roleOrMicroflow;
+		final IRestServiceHandler handler;
+
+		HandlerRegistration(String method, UriTemplate template, String roleOrMicroflow, IRestServiceHandler handler) {
+			this.method = method;
+			this.template = template;
+			this.roleOrMicroflow = roleOrMicroflow;
+			this.handler = handler;
+		}
+		
+		@Override
+		public String toString() {
+			return ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+		}
+
+		@Override
+		public void close() {
+			services.remove(this);			
+		}
+	}
+	
+	private static List<HandlerRegistration> services = newCopyOnWriteArrayList();
+	private static List<String> metaServiceUrls = newCopyOnWriteArrayList();
+
+	static {
+		registerServiceOverviewHandler();
+	}
+	
 	public synchronized static void start(IContext context) throws Exception {
 		if (instance == null) {
 			RestServices.LOGPUBLISH.info("Starting RestServices module...");
-			
+
 			instance = new RestServiceHandler();
 			
+			@SuppressWarnings("deprecation")
 			boolean isSandbox = Core.getConfiguration().getApplicationRootUrl().contains(".mendixcloud.com") && "DEVELOPMENT".equalsIgnoreCase(Core.getConfiguration().getDTAPMode().toString());
 			if (isSandbox)
 				startSandboxCompatibilityMode();
@@ -53,6 +95,7 @@ public class RestServiceHandler extends RequestHandler{
 				Core.addRequestHandler(RestServices.PATH_REST, instance);
 			
 			started = true;
+
 			loadConfig(context);
 			
 			RestServices.LOGPUBLISH.info("Starting RestServices module... DONE");
@@ -76,7 +119,7 @@ public class RestServiceHandler extends RequestHandler{
 				while(!started) {
 					try {
 						Thread.sleep(1000);
-						RestConsumer.getObject(Core.createSystemContext(), Core.getConfiguration().getApplicationRootUrl() + "/ws/", null, null);
+						RestConsumer.getObject(Core.createSystemContext(), Core.getConfiguration().getApplicationRootUrl() + "/ws/", null);
 						started = true;
 					} catch (RestConsumeException e) {
 						started = e.getResponseData().getStatus() != HttpStatus.SC_BAD_GATEWAY;
@@ -90,7 +133,18 @@ public class RestServiceHandler extends RequestHandler{
 				RestServices.LOGPUBLISH.warn("The RestServices module has been started on basepath 'ws-doc/' for sandbox compatibility. Please use the alternative basepath for demo & testing purposes only, and do not share this path as integration endpoint");
 			}
 		}.start();
-		
+	}
+
+	private static void registerServiceOverviewHandler() {
+		registerServiceHandler(HttpMethod.GET, "/", "*", new IRestServiceHandler() {
+
+			@Override
+			public void execute(RestServiceRequest rsr,
+					Map<String, String> params) throws Exception {
+				ServiceDescriber.serveServiceOverview(rsr); 
+			}
+			
+		});
 	}
 
 	private static void loadConfig(IContext context) throws CoreException {
@@ -98,7 +152,7 @@ public class RestServiceHandler extends RequestHandler{
 			loadConfig(def, false);
 		}
 	}
-	
+
 	public static void loadConfig(DataServiceDefinition def, boolean throwOnFailure) {
 		if (!started)
 			return;
@@ -111,7 +165,7 @@ public class RestServiceHandler extends RequestHandler{
 		catch(Exception e) {
 			errors = "Failed to run consistency checks: " + e.getMessage();
 		}
-		
+
 		if (errors != null) {
 			String msg = "Failed to load service '" + def.getName() + "': \n" + errors;
 			RestServices.LOGPUBLISH.error(msg);
@@ -119,223 +173,200 @@ public class RestServiceHandler extends RequestHandler{
 				throw new IllegalStateException(msg);
 		}
 		else {
+			DataService service = DataService.getServiceByDefinition(def);
+			if (service != null) {
+				service.unregister();
+			}
+			
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
-			DataService service = new DataService(def);
-			RestServices.registerService(service.getName(), service);
+			service = new DataService(def);
+			service.register();
+			
 			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
+		}
+	}
+	
+	public static HandlerRegistration registerServiceHandler(HttpMethod method, String templatePath, String roleOrMicroflow, IRestServiceHandler handler) {
+		checkNotNull(method, "method");
+		
+		HandlerRegistration handlerRegistration = new HandlerRegistration(method.toString(), new UriTemplate(templatePath), roleOrMicroflow, handler);
+		services.add(handlerRegistration);
+
+		RestServices.LOGPUBLISH.info("Registered data service on '" + method + " " + templatePath + "'");
+		return handlerRegistration;
+	}
+	
+	private static void requestParamsToJsonMap(RestServiceRequest rsr, Map<String, String> params) {
+		for (String param : rsr.request.getParameterMap().keySet())
+			params.put(param, rsr.request.getParameter(param));
+	}
+	
+	public static void paramMapToJsonObject(Map<String, String> params, JSONObject data) {
+		for(Entry<String, String> pathValue : params.entrySet())
+			data.put(pathValue.getKey(), pathValue.getValue());		
+	}
+
+	private static void executeHandler(final RestServiceRequest rsr, String method, String relpath, ISession existingSession) throws Exception {
+		boolean pathExists = false;
+
+		final Map<String, String> params = Maps.newHashMap();
+		for (final HandlerRegistration reg : services) {
+			if (reg.template.match(relpath, params)) {
+				if (reg.method.equals(method)) {
+					// Mixin query parameters
+					requestParamsToJsonMap(rsr, params);
+
+					// Execute the reqeust
+					if (rsr.authenticate(reg.roleOrMicroflow, existingSession)) {
+
+						rsr.withTransaction(new Function<Boolean>() {
+
+							@Override
+							public Boolean apply() throws Exception {
+								reg.handler.execute(rsr, params);
+								return true;
+							}
+
+						});
+
+						return;
+					} else {
+						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
+					}
+				} else {
+					pathExists = true;
+				}
+			}
+		}
+
+		if (pathExists) {
+			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Method not allowed for service at: '" + relpath + "'");
+		} else {
+			throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service at: '" + relpath + "'");
 		}
 	}
 
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
-			String path) {
-		
+			String _) {
+
 		long start = System.currentTimeMillis();
 		
 		HttpServletRequest request = req.getHttpServletRequest();
 		HttpServletResponse response = resp.getHttpServletResponse();
 
 		String method = request.getMethod();
-		String requestStr =  method + " " + path;
 		URL u;
 		try {
 			u = new URL(request.getRequestURL().toString());
 		} catch (MalformedURLException e1) {
 			throw new IllegalStateException(e1);
 		}
-		
-		String[] basePath = u.getPath().split("/");
-		String[] parts = Arrays.copyOfRange(basePath, 2, basePath.length);
+
+		String relpath = u.getPath().substring(RestServices.PATH_REST.length() + 1);
+		String requestStr =  method + " " + relpath;
 
 		response.setCharacterEncoding(RestServices.UTF8);
 		response.setHeader("Expires", "-1");
 
 		if (RestServices.LOGPUBLISH.isDebugEnabled())
 			RestServices.LOGPUBLISH.debug("incoming request: " + Utils.getRequestUrl(request));
-	
-		RestServiceRequest rsr = new RestServiceRequest(request, response, resp);
+
+		RestServiceRequest rsr = new RestServiceRequest(request, response, resp, relpath);
 		try {
+			ISession existingSession = getSessionFromRequest(req);
 			
-			//service overview requiest
-			if ("GET".equals(method) && parts.length == 0) {
-				ServiceDescriber.serveServiceOverview(rsr);
-			}
+			executeHandler(rsr, method, relpath, existingSession);
 			
-			else {
-				//Find the service being invoked
-				DataService dataService = null;
-				MicroflowService mfService = null;
-	
-				if (parts.length > 0) {
-					parts[0] = parts[0].toLowerCase();
-					dataService = RestServices.getService(parts[0]);
-					mfService = RestServices.getPublishedMicroflow(parts[0]);
-					if (dataService == null && mfService == null) 
-						throw new RestPublishException(RestExceptionType.NOT_FOUND, "Unknown service: '" + parts[0] + "'");
-				}
-	
-				//Find request meta data
-				boolean isMeta = isMetaDataRequest(method, parts, rsr);
-				String authRole = dataService != null ? dataService.getRequiredRoleOrMicroflow() : mfService.getRequiredRoleOrMicroflow();
-				
-				//authenticate
-				if (!isMeta && (mfService != null || dataService != null)) {
-					//authenticate sets up session as side-effect
-					if (!rsr.authenticate(authRole, getSessionFromRequest(req)))
-						throw new RestPublishException(RestExceptionType.UNAUTHORIZED, "Unauthorized. Please provide valid credentials or set up a Mendix user session");
-				}
-				
-				executeRequest(method, parts, rsr, dataService, mfService);
-				
-				if (RestServices.LOGPUBLISH.isDebugEnabled())
+			if (RestServices.LOGPUBLISH.isDebugEnabled())
 					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
-			}
 		}
 		catch(RestPublishException rre) {
-			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + " " + rre.getType() + " " + rre.getMessage());
-			
-			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr, rre.getMessage());
+			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": " + rre.getType() + " " + rre.getMessage());
+
+			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr + " " + rre.getMessage(), rre.getType().toString());
 		}
 		catch(JSONException je) {
 			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
 
-			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data.", je.getMessage());
+			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data: " + je.getMessage(), "INVALID_JSON");
 		}
 		catch(Throwable e) {
 			Throwable cause = ExceptionUtils.getRootCause(e);
-			if (cause instanceof WebserviceException) {
-				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
-				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "Invalid request data at: " + requestStr, cause.getMessage());
+			if (cause instanceof CustomRestServiceException) {
+				CustomRestServiceException rse = (CustomRestServiceException) cause;
+				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getFaultCode(), rse.getMessage()));
+				serveErrorPage(rsr, rse.getHttpStatus(), rse.getMessage(), rse.getFaultCode());
 			}
-			else { 
+			else if (cause instanceof WebserviceException) {
+				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
+				serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, cause.getMessage(), ((WebserviceException) cause).getFaultCode());
+			}
+			else {
 				RestServices.LOGPUBLISH.error("Failed to serve " + requestStr + ": " +e.getMessage(), e);
-				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr, "An internal server error occurred. Please check the application logs or contact a system administrator.");
+				serveErrorPage(rsr, HttpStatus.SC_INTERNAL_SERVER_ERROR, "Failed to serve: " + requestStr + ": An internal server error occurred. Please check the application logs or contact a system administrator.", null);
 			}
 		}
 		finally {
-			rsr.dispose(); 
+			rsr.dispose();
 		}
 	}
 
-	private void executeRequest(final String method, final String[] parts,
-			final RestServiceRequest rsr, final DataService service,
-			final MicroflowService mf) throws Exception {
-		
-		rsr.withTransaction(new Function<Boolean>() {
-
-			@Override
-			public Boolean apply() throws Exception {
-				if (service == null) {
-					if (isMetaDataRequest(method, parts, rsr))
-						mf.serveDescription(rsr);
-					else
-						mf.execute(rsr);
-				}
-				else
-					dispatchDataService(method, parts, rsr, service);
-				
-				return true;
-			}
-
-		});
-	}
-
-	private boolean isMetaDataRequest(String method, String[] parts, RestServiceRequest rsr) {
-		return "GET".equals(method) && parts.length == 1 && rsr.request.getParameter(RestServices.PARAM_ABOUT) != null;
-	}
-
-	public static void requestParamsToJsonMap(RestServiceRequest rsr, JSONObject target) {
-		for (String param : rsr.request.getParameterMap().keySet())
-			target.put(param, rsr.request.getParameter(param));
-	}
-	
-	private void serveErrorPage(RestServiceRequest rsr, int status, String title,
-			String detail) {
+	private void serveErrorPage(RestServiceRequest rsr, int status, String error, String errorCode) {
 		rsr.response.reset();
 		rsr.response.setStatus(status);
-		
+
 		//reques authentication
 		if (status == HttpStatus.SC_UNAUTHORIZED)
 			rsr.response.addHeader(RestServices.HEADER_WWWAUTHENTICATE, "Basic realm=\"Rest Services\"");
-		
+
 		rsr.startDoc();
-		
+
 		switch(rsr.getResponseContentType()) {
 		default:
 		case HTML:
-			rsr.write("<h1>" + title + "</h1><p>" + detail + "</p><p>Status code:" + status + "</p>");
+			rsr.write("<h1>" + error + "</h1>");
+			if (errorCode != null)
+				rsr.write("<p>Error code: " + errorCode + "</p>");
+			rsr.write("<p>Http status code: " + status + "</p>");
 			break;
 		case JSON:
 		case XML:
-			rsr.datawriter.value(new JSONObject(ImmutableMap.of("error", (Object) title, "status", status, "message", detail)));
+			JSONObject data = new JSONObject();
+			data.put(RestServiceError.MemberNames.errorMessage.toString(), error);
+			if (errorCode != null && !errorCode.isEmpty())
+				data.put(RestServiceError.MemberNames.errorCode.toString(), errorCode);
+			rsr.datawriter.value(data);
 			break;
 		}
-		
+
 		rsr.endDoc();
 	}
 
-	private void dispatchDataService(String method, String[] parts, RestServiceRequest rsr, DataService service) throws Exception, IOException,
-			CoreException, RestPublishException {
-		boolean handled = false;
-		boolean isGet = "GET".equals(method);
-		
-		switch(parts.length) {
-		case 1:
-			if (isGet) {
-				handled = true;
-				if (rsr.request.getParameter(RestServices.PARAM_ABOUT) != null)
-					new ServiceDescriber(rsr, service.def).serveServiceDescription();
-				else if (rsr.request.getParameter(RestServices.PARAM_COUNT) != null)
-					service.serveCount(rsr);
-				else
-					service.serveListing(rsr, 
-							"true".equals(rsr.getRequestParameter(RestServices.PARAM_DATA,"false")), 
-							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_OFFSET, "-1")), 
-							Integer.valueOf(rsr.getRequestParameter(RestServices.PARAM_LIMIT, "-1")));
-			}
-			else if ("POST".equals(method)) {
-				handled = true;
-				JSONObject data;
-				if (RestServices.CONTENTTYPE_FORMENCODED.equalsIgnoreCase(rsr.request.getContentType())) {
-					data = new JSONObject();
-					requestParamsToJsonMap(rsr, data);
-				}
-				else {
-					String body = IOUtils.toString(rsr.request.getInputStream());
-					data = new JSONObject(body);
-				}
-				service.servePost(rsr, data);
-			}
-			break;
-		case 2:
-			if (isGet) {
-				handled = true;
-				service.serveGet(rsr, Utils.urlDecode(parts[1]));
-			}
-			else if ("PUT" .equals(method)) {
-				handled = true;
-				String body = IOUtils.toString(rsr.request.getInputStream());
-				service.servePut(rsr, Utils.urlDecode(parts[1]), new JSONObject(body), rsr.getETag());
-			}
-			else if ("DELETE".equals(method) && parts.length == 2) {
-				handled = true;
-				service.serveDelete(rsr, Utils.urlDecode(parts[1]), rsr.getETag());
-			}
-			break;
-		case 3:
-			if (isGet && "changes".equals(parts[1])) {
-				handled = true;
-				if ("list".equals(parts[2]))
-					service.getChangeLogManager().serveChanges(rsr, false);
-				else if ("feed".equals(parts[2]))
-					service.getChangeLogManager().serveChanges(rsr, true);
-				else
-					throw new RestPublishException(RestExceptionType.NOT_FOUND, "changes/"  + parts[2] + " is not a valid change request. Please use 'changes/list' or 'changes/feed'");
-			}
-		}
-
-		if (!handled)
-			throw new RestPublishException(RestExceptionType.METHOD_NOT_ALLOWED, "Unsupported operation: " + method + " on " + rsr.request.getPathInfo());
+	public static boolean isStarted() {
+		return started;
 	}
 
+	public static void clearServices() {
+		services.clear();	
+		registerServiceOverviewHandler();
+	}
+
+	public static ICloseable registerServiceHandlerMetaUrl(final String serviceBaseUrl) {
+		checkArgument(isNotEmpty(serviceBaseUrl));
+		metaServiceUrls.add(serviceBaseUrl);
+		
+		return new ICloseable() {
+
+			@Override
+			public void close() {
+				metaServiceUrls.remove(serviceBaseUrl);
+			}
+		};
+	}
+	
+	public static List<String> getServiceBaseUrls() {
+		return metaServiceUrls; 
+	}
+	
 }

@@ -3,14 +3,12 @@ package restservices.publish;
 import org.apache.commons.httpclient.HttpStatus;
 import org.json.JSONObject;
 
-import com.mendix.core.Core;
-
-import communitycommons.StringUtils;
-
 import restservices.RestServices;
 import restservices.proxies.DataServiceDefinition;
 import restservices.publish.RestServiceRequest.ResponseType;
 import restservices.util.JSONSchemaBuilder;
+import com.mendix.core.Core;
+import communitycommons.StringUtils;
 
 public class ServiceDescriber {
 
@@ -26,8 +24,8 @@ public class ServiceDescriber {
 			.key("RestServices").value(RestServices.VERSION)
 			.key("services").array();
 		
-		for (String service : RestServices.getServiceNames())
-			rsr.datawriter.value(RestServices.getServiceUrl(service) + "?" + RestServices.PARAM_ABOUT);
+		for (String service : RestServiceHandler.getServiceBaseUrls())
+			rsr.datawriter.value(RestServices.getAbsoluteUrl(service) + "?" + RestServices.PARAM_ABOUT);
 		
 		rsr.datawriter.endArray().endObject();
 		
@@ -53,14 +51,14 @@ public class ServiceDescriber {
 		rsr.datawriter.object()
 			.key("name").value(def.getName())
 			.key("description").value(def.getDescription())
-			.key("baseurl").value(RestServices.getServiceUrl(def.getName()))
+			.key("baseurl").value(RestServices.getAbsoluteUrl(def.getName()))
 			.key("worldreadable").value("*".equals(def.getAccessRole()))
 			.key("requiresETags").value(def.getUseStrictVersioning());
 			
 		if (isHTML)
 			rsr.datawriter.endObject();
 		else
-			rsr.datawriter.key("endpoints").object();
+			rsr.datawriter.key("endpoints").array();
 			
 		startEndpoint("GET", "?" + RestServices.PARAM_ABOUT, "This page");
 		addContentType();
@@ -125,7 +123,7 @@ public class ServiceDescriber {
 			}
 		
 		if (!isHTML)
-			rsr.datawriter.endObject().endObject();
+			rsr.datawriter.endArray().endObject();
 		
 		rsr.endDoc();
 	}
@@ -155,7 +153,7 @@ public class ServiceDescriber {
 	}
 
 	private void startEndpoint(String method, String path, String description) {
-		String url = RestServices.getServiceUrl(def.getName()) + path;
+		String url = RestServices.getAbsoluteUrl(def.getName()) + path;
 		if (isHTML) {
 			String link = "<small>" + RestServices.getBaseUrl() + "</small>" + StringUtils.HTMLEncode(url.substring(RestServices.getBaseUrl().length()));
 			if ("GET".equals(method))

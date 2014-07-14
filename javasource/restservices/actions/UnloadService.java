@@ -9,36 +9,34 @@
 
 package restservices.actions;
 
-import restservices.publish.MicroflowService;
+import restservices.publish.DataService;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
  * 
  */
-public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
+public class UnloadService extends CustomJavaAction<Boolean>
 {
-	private String microflowName;
-	private String securityRoleOrMicroflow;
-	private String description;
-	private restservices.proxies.HttpMethod httpMethod;
-	private String pathTemplate;
+	private IMendixObject __dataServiceDefinition;
+	private restservices.proxies.DataServiceDefinition dataServiceDefinition;
 
-	public StartMicroflowServiceJava(IContext context, String microflowName, String securityRoleOrMicroflow, String description, String httpMethod, String pathTemplate)
+	public UnloadService(IContext context, IMendixObject dataServiceDefinition)
 	{
 		super(context);
-		this.microflowName = microflowName;
-		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
-		this.description = description;
-		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
-		this.pathTemplate = pathTemplate;
+		this.__dataServiceDefinition = dataServiceDefinition;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
+		this.dataServiceDefinition = __dataServiceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __dataServiceDefinition);
+
 		// BEGIN USER CODE
-		new MicroflowService(microflowName, securityRoleOrMicroflow, httpMethod, pathTemplate, description);
+		DataService service = DataService.getServiceByDefinition(dataServiceDefinition);
+		if (service != null)
+			service.unregister();
 		return true;
 		// END USER CODE
 	}
@@ -49,7 +47,7 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartMicroflowServiceJava";
+		return "UnloadService";
 	}
 
 	// BEGIN EXTRA CODE

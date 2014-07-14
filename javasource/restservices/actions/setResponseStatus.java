@@ -9,36 +9,28 @@
 
 package restservices.actions;
 
-import restservices.publish.MicroflowService;
+import restservices.publish.RestServiceRequest;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
 /**
  * 
  */
-public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
+public class setResponseStatus extends CustomJavaAction<Boolean>
 {
-	private String microflowName;
-	private String securityRoleOrMicroflow;
-	private String description;
-	private restservices.proxies.HttpMethod httpMethod;
-	private String pathTemplate;
+	private Long status;
 
-	public StartMicroflowServiceJava(IContext context, String microflowName, String securityRoleOrMicroflow, String description, String httpMethod, String pathTemplate)
+	public setResponseStatus(IContext context, Long status)
 	{
 		super(context);
-		this.microflowName = microflowName;
-		this.securityRoleOrMicroflow = securityRoleOrMicroflow;
-		this.description = description;
-		this.httpMethod = httpMethod == null ? null : restservices.proxies.HttpMethod.valueOf(httpMethod);
-		this.pathTemplate = pathTemplate;
+		this.status = status;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		new MicroflowService(microflowName, securityRoleOrMicroflow, httpMethod, pathTemplate, description);
+		RestServiceRequest.setResponseStatus(getContext(), (int)(long) status);
 		return true;
 		// END USER CODE
 	}
@@ -49,7 +41,7 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "StartMicroflowServiceJava";
+		return "setResponseStatus";
 	}
 
 	// BEGIN EXTRA CODE
