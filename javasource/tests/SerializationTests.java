@@ -11,6 +11,7 @@ import restservices.util.JsonDeserializer;
 import restservices.util.JsonSerializer;
 import restservices.util.Utils;
 import tests.proxies.A;
+import tests.proxies.B;
 import tests.proxies.CustomBooleanTest;
 import tests.proxies.Task;
 
@@ -147,5 +148,46 @@ public class SerializationTests extends TestBase {
 		Assert.assertEquals(null, bt.gettest());
 
 		Assert.assertEquals(false, JsonSerializer.writeMendixObjectToJson(c, bt.getMendixObject()).has("test"));
+	}
+	
+	@Test
+	public void testComplexDeserialization() throws Exception {
+		IContext c = Core.createSystemContext();
+		
+		A a = new A(c);
+		JsonDeserializer.readJsonDataIntoMendixObject(c, new JSONObject("{\"super name\":\"1\"}"), a.getMendixObject(), true);
+		Assert.assertEquals("1", a.getsuper_name());
+
+		a = new A(c);
+		JsonDeserializer.readJsonDataIntoMendixObject(c, new JSONObject("{\"super$name\":\"1\"}"), a.getMendixObject(), true);
+		Assert.assertEquals("1", a.getsuper_name());
+
+		a = new A(c);
+		JsonDeserializer.readJsonDataIntoMendixObject(c, new JSONObject("{\"super-name\":\"1\"}"), a.getMendixObject(), true);
+		Assert.assertEquals("1", a.getsuper_name());
+	}
+	
+	@Test
+	public void testComplexSerialization() throws Exception {
+		IContext c = Core.createSystemContext();
+		
+		A a = new A(c);
+		
+		a.set_id("bla");
+		a.set_id_jsonkey("id");
+		a.setsuper_name("blaa");
+		a.setsuper_name_jsonkey(" a !@#$%");
+		
+		B b = new B(c);
+		b.setattr("bl");
+		a.setA_B(b);
+		a.setA_B_jsonkey("$-");
+		
+		JSONObject res = JsonSerializer.writeMendixObjectToJson(c, a.getMendixObject());
+		Assert.assertFalse(res.has("_id_jsonkey"));
+		Assert.assertFalse(res.has("A_B_jsonkey"));
+		Assert.assertEquals("bla", res.getString("id"));
+		Assert.assertEquals("blaa", res.getString(" a !@#$%"));
+		Assert.assertEquals("bl", res.getJSONObject("$-").getString("attr"));
 	}
 }
