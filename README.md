@@ -124,7 +124,18 @@ PLEASE NOTE THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHS
 
 Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms) or raw binary data (for efficient downloads for example).
 
-A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
+A published microflow should always have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). This means that if you have multiple primitive parameters for your service, for example `offset` and `limit`, you should create a new transient entity that has two fields with the names `offset` and `limit`. 
+
+Your service can now be invoked by either providing the values as HTTP parameters (for example: `GET http://apphost/rest/yourservice?offset=3&limit=5`) or by sending these fields in the json body of the request. In both cases the fields of your input parameter will be set. For example:
+
+```
+POST http://apphost/rest/yourservice
+{ offset : 3, limit : 5 }
+```
+
+Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
+
+It is possible to build publish services that accept or respond with files as well. See for more details the [working with files](#sending-and-receiving-files) section. 
 
 Publishing a microflow is as simple as calling `CreateMicroflowService` with the microflow that provides the implementation. The name of the operation will be derived form the microflow name. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*. For securing your microflow service see [Securing published services](#securing-published-services) 
 
