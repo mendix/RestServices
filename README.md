@@ -272,6 +272,7 @@ The JSON serialization process starts with a (preferably) transient object and c
 3. For each owned reference that points to a *transient* object, another key/value pair is added to the object. As key the name of the reference is used, but *excluding* the module name. As value either `null` is used if the reference is not set, or the child object is serialized into a JSON object as well, using this very same procedure.
 4. For each owned referenceset that points to a *transient* object, the same approach is taken, except that the value is an array (`[]`) to which each serialized child object is added.
 5. If an owned reference(set) points to a *a* persistent object the reference is not serialized, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result.
+6. For file documents special serialization rules apply. See the [working with files](#sending-and-receiving-files) section for details
 
 For example the following domain model results in the JSON object listed below, assuming that the serialization process is started with an *OrderView* instance:
 
@@ -360,7 +361,9 @@ When it comes to deserializing attributes for incoming objects (in, for example,
 It is possible to send or receive files using the RestServices module. To publish an operation that supports binary data you can define a microflow service which input or output argument (or both) inherits from a `System.FileDocument`. If the input parameter is a filedocument, it interprets requests with `Content-Type: multipart/form-data` correctly if there is one *part* that contains binary data. The other form data parameters can be picked up if a similarly named attribute is present in the type of the input argument. If the return type of a microflow service is a filedocument, the binary contents is streamed in raw format to the consumer, using `Content-Type: application/octet-stream`.
 
 ## Consuming operations that work with files
-It is possible to send binary data using the `post` java action. If the `submitAsFormData` parameter is set, the file is send using `Content-Type: multipart/form-data`, and other attributes of the filedocument are included as well as form parts. If `submitAsFormData` is set to false, the contents of the filedocument is streamed raw in the request body to the publisher. Any other attributes in the filedocument are added as request parameters to the target url.
+It is possible to send binary data using the `post` java action. If the `submitAsFormData` parameter is set, the file is send using `Content-Type: multipart/form-data`, and other attributes of the filedocument are included as well as form parts. If the root object has references to other filedocuments, each of the referred file documents will be added as part to the multipart request. The part name will equal the reference name. This way it is possible to send multiple files with a single request. 
+
+If `submitAsFormData` is set to false, the contents of the filedocument is streamed raw in the request body to the publisher. Any other attributes in the filedocument are added as request parameters to the target url.
 
 If the consumed service responds with binary data, this is picked up properly by the generic `request` java action if the `optResponseData` parameter inherits from `System.FileDocument.`
 

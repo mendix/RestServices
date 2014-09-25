@@ -455,10 +455,9 @@ public class DataService {
 		return res;
 	}
 	
-	JSONObject serializeToJson(final IContext context,
-			IMendixObject source) throws CoreException, Exception {
+	JSONObject serializeToJson(final IContext context, IMendixObject source) throws CoreException, Exception {
 		IMendixObject view = convertSourceToView(context, source);
-		return JsonSerializer.writeMendixObjectToJson(context, view);
+		return JsonSerializer.writeMendixObjectToJson(context, view, true);
 	}
 
 

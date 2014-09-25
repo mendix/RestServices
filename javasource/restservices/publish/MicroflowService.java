@@ -205,13 +205,13 @@ public class MicroflowService implements IRestServiceHandler{
 
 			rsr.datawriter.array();
 			for(Object item : (List<?>)result)
-				rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) item));
+				rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) item, true));
 			rsr.datawriter.endArray();
 			rsr.endDoc();
 		}
 		else if (result instanceof IMendixObject) {
 			rsr.startDoc();
-			rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) result));
+			rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) result, true));
 			rsr.endDoc();
 		}
 		else throw new IllegalStateException("Unexpected result from microflow " + microflowname + ": " + result.getClass().getName());

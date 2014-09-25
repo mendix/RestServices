@@ -29,15 +29,16 @@ public class JsonSerializer {
 	 * returns a json string containingURL if id is persistable or json object if with the json representation if the object is not. s
 	 * @param rsr
 	 * @param id
+	 * @param useServiceUrls 
 	 * @return
 	 * @throws Exception 
 	 */
-	public static Object identifierToJSON(IContext context, IMendixIdentifier id) throws Exception {
-		return identifierToJSON(context, id, new HashSet<Long>());
+	public static Object identifierToJSON(IContext context, IMendixIdentifier id, boolean useServiceUrls) throws Exception {
+		return identifierToJSON(context, id, new HashSet<Long>(), useServiceUrls);
 	}
 	
 	
-	private static Object identifierToJSON(IContext context, IMendixIdentifier id, Set<Long> alreadySeen) throws Exception {
+	private static Object identifierToJSON(IContext context, IMendixIdentifier id, Set<Long> alreadySeen, boolean useServiceUrls) throws Exception {
 		if (id == null)
 			return null;
 		
@@ -49,7 +50,9 @@ public class JsonSerializer {
 		
 		/* persistable object, generate url */
 		if (Core.getMetaObject(id.getObjectType()).isPersistable()) {
-		
+			if (!useServiceUrls)
+				return null;
+			
 			DataService service = RestServices.getServiceForEntity(id.getObjectType());
 			if (service == null) {
 				RestServices.LOGUTIL.warn("No RestService has been definied for type: " + id.getObjectType() + ", identifier could not be serialized");
@@ -73,14 +76,18 @@ public class JsonSerializer {
 			RestServices.LOGUTIL.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
 			return null;
 		}
-		return writeMendixObjectToJson(context, obj, alreadySeen);
+		return writeMendixObjectToJson(context, obj, alreadySeen, useServiceUrls);
 	}
 
 	public static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view) throws Exception {
-		return writeMendixObjectToJson(context, view, new HashSet<Long>());
+		return writeMendixObjectToJson(context, view, false);
 	}
 	
-	private static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view, Set<Long> alreadySeen) throws Exception {
+	public static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view, boolean useServiceUrls) throws Exception {
+		return writeMendixObjectToJson(context, view, new HashSet<Long>(), useServiceUrls);
+	}
+	
+	private static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view, Set<Long> alreadySeen, boolean useServiceUrls) throws Exception {
 		if (view == null)
 			throw new IllegalArgumentException("Mendix to JSON conversion expects an object");
 		
@@ -91,13 +98,13 @@ public class JsonSerializer {
 
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			serializeMember(context, res, e.getValue(), view.getMetaObject(), alreadySeen);
+			serializeMember(context, res, e.getValue(), view.getMetaObject(), alreadySeen, useServiceUrls);
 		
 		return res;
 	}
 
 	private static void serializeMember(IContext context, JSONObject target,
-			IMendixObjectMember<?> member, IMetaObject viewType, Set<Long> alreadySeen) throws Exception {
+			IMendixObjectMember<?> member, IMetaObject viewType, Set<Long> alreadySeen, boolean useServiceUrls) throws Exception {
 		if (context == null)
 			throw new IllegalStateException("Context is null");
 	
@@ -159,7 +166,7 @@ public class JsonSerializer {
 		 */
 		else if (member instanceof MendixObjectReference){
 			if (value != null) 
-				value = identifierToJSON(context, (IMendixIdentifier) value, alreadySeen);
+				value = identifierToJSON(context, (IMendixIdentifier) value, alreadySeen, useServiceUrls);
 			
 			if (value == null)
 				target.put(Utils.getShortMemberName(memberName), JSONObject.NULL);
@@ -176,7 +183,7 @@ public class JsonSerializer {
 				@SuppressWarnings("unchecked")
 				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
 				for(IMendixIdentifier id : ids) if (id != null) {
-					Object url = identifierToJSON(context, id, alreadySeen);
+					Object url = identifierToJSON(context, id, alreadySeen, useServiceUrls);
 					if (url != null)
 						ar.put(url);
 				}
