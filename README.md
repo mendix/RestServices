@@ -432,7 +432,7 @@ Fetches any missing changes from a remote collection (published by a change-trac
 #### get
 Fetches a (JSON) resource from a remote server by performing a HTTP GET request.
 
-#### get2
+#### getWithParams / get2
 See `get`, but automatically converts request data into URL parameters.
 
 #### getCollection
@@ -453,7 +453,7 @@ Returns the meta data and response body of the latest (failed) request.
 #### post
 Adds an object to a remote collection or performs a form post, using HTTP POST.
 
-#### post2
+#### postWithResult / post2
 Adds an object to a remote collection, using HTTP POST, parses the response data into a Mendix object.
 
 #### put
