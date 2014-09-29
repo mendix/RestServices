@@ -339,7 +339,7 @@ The JSON deserialization process is the inverse of the serialization process and
 
 ## Matching attibute names
 
-A member name matches if the names are the same in a case *in*sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. Furthermore, if the characters `-` or `$` are used in json (or any other strange characters that are not allowed in Mendix field names), this maps to the `_` underscore character in the Mendix attribute name. For associations, the module name is never considered.
+A member name matches if the names are the same in a case *in*sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. Furthermore, if the characters `-` or `$` are used in json (or any other strange characters that are not allowed in Mendix field names), this maps to the `_` underscore character in the Mendix attribute name. For associations, the module name is never considered. Pro tip: fill these properties with the proper default value.
 
 Some examples:
 

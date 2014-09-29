@@ -88,7 +88,7 @@ public class JsonDeserializer {
 		
 		while(it.hasNext()) {
 			String attr = it.next();
-			String targetattr =  attributeNameMap.get(attr.toLowerCase().replace('-', '_').replace('$', '_'));
+			String targetattr =  attributeNameMap.get(attr.toLowerCase().replaceAll("[^a-zA-Z0-9_]","_"));
 			
 			if (targetattr == null) {
 				if (RestServices.LOGUTIL.isDebugEnabled())

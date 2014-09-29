@@ -98,12 +98,21 @@ public class JsonSerializer {
 
 		Map<String, ? extends IMendixObjectMember<?>> members = view.getMembers(context);
 		for(java.util.Map.Entry<String, ? extends IMendixObjectMember<?>> e : members.entrySet())
-			serializeMember(context, res, e.getValue(), view.getMetaObject(), alreadySeen, useServiceUrls);
+			serializeMember(context, res, getTargetMemberName(context, view, e.getKey()), e.getValue(), view.getMetaObject(), alreadySeen, useServiceUrls);
 		
 		return res;
 	}
 
-	private static void serializeMember(IContext context, JSONObject target,
+	private static String getTargetMemberName(IContext context,
+			IMendixObject view, String sourceAttr) {
+		String name = Utils.getShortMemberName(sourceAttr);
+		if (view.hasMember(name + "_jsonkey"))
+			name = String.valueOf(view.getValue(context, name + "_jsonkey"));
+		return name;
+	}
+
+
+	private static void serializeMember(IContext context, JSONObject target, String targetMemberName, 
 			IMendixObjectMember<?> member, IMetaObject viewType, Set<Long> alreadySeen, boolean useServiceUrls) throws Exception {
 		if (context == null)
 			throw new IllegalStateException("Context is null");
@@ -111,11 +120,12 @@ public class JsonSerializer {
 		Object value = member.getValue(context);
 		String memberName = member.getName();
 		
-		if (Utils.isSystemAttribute(memberName)) {
+		if (Utils.isSystemAttribute(memberName) || memberName.endsWith("_jsonkey")) {
 			//skip
 		}
 		//Primitive?
 		else if (!(member instanceof MendixObjectReference) && !(member instanceof MendixObjectReferenceSet)) {
+			
 			switch(viewType.getMetaPrimitive(member.getName()).getType()) {
 			case AutoNumber:
 			case Long:
@@ -127,16 +137,16 @@ public class JsonSerializer {
 				if (value == null)
 					throw new IllegalStateException("Primitive member " + member.getName() + " should not be null!");
 	
-				target.put(memberName, value);
+				target.put(targetMemberName, value);
 				break;
 			case Enum:
 				//Support for built-in BooleanValue enumeration.
 				MendixEnum me = (MendixEnum) member;
 				if ("RestServices.BooleanValue".equals(me.getEnumeration().getName())) {
 					if (BooleanValue._true.toString().equals(me.getValue(context)))
-						target.put(memberName, true);
+						target.put(targetMemberName, true);
 					else if (BooleanValue._false.toString().equals(me.getValue(context)))
-						target.put(memberName, false);
+						target.put(targetMemberName, false);
 					break;
 				}
 				
@@ -144,15 +154,15 @@ public class JsonSerializer {
 			case HashString:
 			case String:
 				if (value == null)
-					target.put(memberName, JSONObject.NULL);
+					target.put(targetMemberName, JSONObject.NULL);
 				else
-					target.put(memberName, value);
+					target.put(targetMemberName, value);
 				break;
 			case DateTime:
 				if (value == null)
-					target.put(memberName, JSONObject.NULL);
+					target.put(targetMemberName, JSONObject.NULL);
 				else	
-					target.put(memberName, (((Date)value).getTime()));
+					target.put(targetMemberName, (((Date)value).getTime()));
 				break;
 			case Binary:
 				break;
@@ -169,9 +179,9 @@ public class JsonSerializer {
 				value = identifierToJSON(context, (IMendixIdentifier) value, alreadySeen, useServiceUrls);
 			
 			if (value == null)
-				target.put(Utils.getShortMemberName(memberName), JSONObject.NULL);
+				target.put(targetMemberName, JSONObject.NULL);
 			else
-				target.put(Utils.getShortMemberName(memberName), value);
+				target.put(targetMemberName, value);
 		}
 		
 		/**
@@ -188,7 +198,7 @@ public class JsonSerializer {
 						ar.put(url);
 				}
 			}
-			target.put(Utils.getShortMemberName(memberName), ar);			
+			target.put(targetMemberName, ar);			
 		}
 		
 		else
