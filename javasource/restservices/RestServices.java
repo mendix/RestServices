@@ -62,6 +62,7 @@ public class RestServices {
 	public static final String HEADER_AUTHORIZATION = "Authorization";
 	public static final String HEADER_CONTENTTYPE = "Content-Type";
 	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
+	public static final String HEADER_CONTENTDISPOSITION = "Content-Disposition";
 	
 	public static String PATH_REST = "rest/";
 	public static final String PATH_LIST = "list";
