@@ -507,7 +507,7 @@ public class RestConsumer {
 				Object value = data.get(realkey);
 				if (!(value instanceof JSONObject) && !(value instanceof JSONArray)) {
 					data.remove(realkey);
-					values.put(templateVar, value == null || value == JSONObject.NULL ? "" : (String) value);
+					values.put(templateVar, value == null || value == JSONObject.NULL ? "" : String.valueOf(value));
 				}
 			}
 		}
