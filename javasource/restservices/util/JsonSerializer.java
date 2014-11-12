@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import restservices.RestServices;
 import restservices.publish.DataService;
 import restservices.proxies.BooleanValue;
+import restservices.proxies.Primitive;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixEnum;
@@ -76,8 +77,31 @@ public class JsonSerializer {
 			RestServices.LOGUTIL.warn("Failed to retrieve identifier: " + id + ", does the object still exist?");
 			return null;
 		}
-		return writeMendixObjectToJson(context, obj, alreadySeen, useServiceUrls);
+		else if (obj.getType().equals(Primitive.entityName)) {
+			return writePrimitiveToJson(context, Primitive.initialize(context, obj));
+		}
+		else
+			return writeMendixObjectToJson(context, obj, alreadySeen, useServiceUrls);
 	}
+
+	private static Object writePrimitiveToJson(IContext context, Primitive primitive) {
+		if (primitive.getPrimitiveType() == null)
+			throw new IllegalStateException("PrimitiveType attribute of RestServices.Primitive should be set");
+		
+		switch (primitive.getPrimitiveType()) {
+			case Number:
+				return primitive.getNumberValue();
+			case String:
+				return primitive.getStringValue();
+			case _NULL:
+				return JSONObject.NULL;
+			case _Boolean:
+				return primitive.getBooleanValue();
+			default:
+				throw new IllegalStateException("PrimitiveType attribute of RestServices.Primitive should be set");
+		}
+	}
+
 
 	public static JSONObject writeMendixObjectToJson(IContext context, IMendixObject view) throws Exception {
 		return writeMendixObjectToJson(context, view, false);
