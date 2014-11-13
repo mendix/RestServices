@@ -12,9 +12,11 @@ public class CustomRestServiceException extends WebserviceException {
 	private int httpStatus;
 
 	public CustomRestServiceException(String errorCode, String error, int httpStatus) {
-		super(errorCode, error);
+		super(httpStatus < 500 ? WebserviceException.clientFaultCode : WebserviceException.serverFaultCode, error);
 		if (httpStatus < 400 || httpStatus >= 600)
 			throw new IllegalArgumentException("HttpStatus should be between 400 and 599");
+
+		this.setDetail(errorCode);
 		this.httpStatus = httpStatus;
 	}
 

@@ -254,8 +254,8 @@ public class RestServiceHandler extends RequestHandler{
 			Throwable cause = ExceptionUtils.getRootCause(e);
 			if (cause instanceof CustomRestServiceException) {
 				CustomRestServiceException rse = (CustomRestServiceException) cause;
-				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getFaultCode(), rse.getMessage()));
-				serveErrorPage(rsr, rse.getHttpStatus(), rse.getMessage(), rse.getFaultCode());
+				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getDetail(), rse.getMessage()));
+				serveErrorPage(rsr, rse.getHttpStatus(), rse.getMessage(), rse.getDetail());
 			}
 			else if (cause instanceof WebserviceException) {
 				RestServices.LOGPUBLISH.warn("Invalid request " + requestStr + ": " +cause.getMessage());
