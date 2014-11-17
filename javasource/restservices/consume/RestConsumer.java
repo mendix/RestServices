@@ -297,6 +297,7 @@ public class RestConsumer {
 	}
 	
 	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
+		lastConsumeError.set(null);
 		HttpResponseData response = doRequest("GET", url, null, null, null, new Predicate<InputStream>() {
 
 			@Override
@@ -327,8 +328,10 @@ public class RestConsumer {
 			}
 		});
 		
-		if (response.getStatus() != HttpStatus.SC_OK)
-			throw new RestConsumeException(response.getStatus(), "Failed to start request stream on '" + url + "', expected status to be 200 OK");
+		if (response.getStatus() != HttpStatus.SC_OK) {
+			lastConsumeError.set(response);
+			throw  new RestConsumeException(response.getStatus(), "Failed to start request stream on '" + url + "', expected status to be 200 OK");
+		}
 	}
 
 	public static void registerCredentials(String urlBasePath, String username, String password) throws MalformedURLException
