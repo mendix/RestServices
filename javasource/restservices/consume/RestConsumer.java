@@ -6,10 +6,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.commons.httpclient.Credentials;
@@ -57,11 +59,16 @@ import system.proxies.FileDocument;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
 import com.mendix.m2ee.api.IMxRuntimeResponse;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
+import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
+import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
+import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import communitycommons.StringUtils;
 
 public class RestConsumer {
@@ -290,6 +297,7 @@ public class RestConsumer {
 	}
 	
 	public static void readJsonObjectStream(String url, final Predicate<Object> onObject) throws Exception, IOException {
+		lastConsumeError.set(null);
 		HttpResponseData response = doRequest("GET", url, null, null, null, new Predicate<InputStream>() {
 
 			@Override
@@ -320,8 +328,10 @@ public class RestConsumer {
 			}
 		});
 		
-		if (response.getStatus() != HttpStatus.SC_OK)
-			throw new RestConsumeException(response.getStatus(), "Failed to start request stream on '" + url + "', expected status to be 200 OK");
+		if (response.getStatus() != HttpStatus.SC_OK) {
+			lastConsumeError.set(response);
+			throw  new RestConsumeException(response.getStatus(), "Failed to start request stream on '" + url + "', expected status to be 200 OK");
+		}
 	}
 
 	public static void registerCredentials(String urlBasePath, String username, String password) throws MalformedURLException
@@ -416,15 +426,16 @@ public class RestConsumer {
 		
 		final boolean isFileSource = source != null && Core.isSubClassOf(FileDocument.entityName, source.getType()); 
 		final boolean isFileTarget = target != null && Core.isSubClassOf(FileDocument.entityName, target.getType()); 
-
-		if (isFileSource && !(method == HttpMethod.POST || method == HttpMethod.PUT))
-			throw new IllegalArgumentException("Files can only be send with method is POST or PUT");
+		final boolean hasFileParts = source != null && hasFileParts(source.getMetaObject());
+		
+		if ((isFileSource || hasFileParts) && !(method == HttpMethod.POST || method == HttpMethod.PUT))
+			 throw new IllegalArgumentException("Files can only be send with method is POST or PUT");
 
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		Map<String, String> params = new HashMap<String, String>();
 		RequestEntity requestEntity = null;
 		
-		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source);
+		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source, false);
 		
 		boolean appendDataToUrl = source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE);
 		url = updateUrlPathComponentsWithParams(url, appendDataToUrl, isFileSource, data, params);
@@ -433,7 +444,7 @@ public class RestConsumer {
 		if (!asFormData && isFileSource) {
 			requestEntity = new InputStreamRequestEntity(Core.getFileDocumentContent(context, source));
 		}
-		else if (source != null && asFormData && isFileSource) {
+		else if (source != null && asFormData && (isFileSource || hasFileParts)) {
 			requestEntity = buildMultiPartEntity(context, source, params);
 		}
 		else if (asFormData && !isFileSource)
@@ -499,7 +510,7 @@ public class RestConsumer {
 				Object value = data.get(realkey);
 				if (!(value instanceof JSONObject) && !(value instanceof JSONArray)) {
 					data.remove(realkey);
-					values.put(templateVar, value == null || value == JSONObject.NULL ? "" : (String) value);
+					values.put(templateVar, value == null || value == JSONObject.NULL ? "" : String.valueOf(value));
 				}
 			}
 		}
@@ -524,23 +535,67 @@ public class RestConsumer {
 
 	private static RequestEntity buildMultiPartEntity(final IContext context,
 			final IMendixObject source, Map<String, String> params)
-			throws IOException {
-		//MWE: don't set contenttype to CONTENTTYPE_MULTIPART; this will be done by the request entity and add the boundaries
-		Part[] parts = new Part[params.size() + 1];
+			throws IOException, CoreException {
+		// MWE: don't set contenttype to CONTENTTYPE_MULTIPART; this will be
+		// done by the request entity and add the boundaries
+		List<Part> parts = Lists.newArrayList();
 
-		String fileName = (String) source.getValue(context, FileDocument.MemberNames.Name.toString()); 
-		ByteArrayPartSource p = new ByteArrayPartSource(fileName, IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
-		parts[0] = new FilePart(fileName, p);
-		
-		int i = 1;
-		for(Entry<String, String> e : params.entrySet())
-			parts[i++] = new StringPart(e.getKey(), e.getValue(), RestServices.UTF8);
-		
+		// This object self could be a filedocument
+		if (Core.isSubClassOf(FileDocument.entityName, source.getType())) {
+			addFilePart(context, getFileDocumentFileName(context, source),
+					source, parts);
+		}
+		// .. or one of its children could be a filedocument. This way multiple
+		// file parts, or specifically named file parts can be send
+		for (String name : getAssociationsReferingToFileDocs(source
+				.getMetaObject())) {
+			IMendixIdentifier subObject = (IMendixIdentifier) source.getValue(
+					context, name);
+			params.remove(Utils.getShortMemberName(name));
+			if (subObject != null) {
+				addFilePart(context, Utils.getShortMemberName(name),
+						Core.retrieveId(context, subObject), parts);
+			}
+		}
+
+		// serialize any other members as 'normal' key value pairs
+		for (Entry<String, String> e : params.entrySet()) {
+			parts.add(new StringPart(e.getKey(), e.getValue(),
+					RestServices.UTF8));
+		}
+
 		params.clear();
-		
-		return new MultipartRequestEntity(parts, new HttpMethodParams());
+		return new MultipartRequestEntity(parts.toArray(new Part[0]),
+				new HttpMethodParams());
 	}
-	
+
+	private static Set<String> getAssociationsReferingToFileDocs(
+			IMetaObject meta) {
+		Set<String> names = new HashSet<String>();
+		for (IMetaAssociation assoc : meta.getMetaAssociationsParent()) {
+			if (assoc.getType() == AssociationType.REFERENCE && Core.isSubClassOf(FileDocument.entityName, assoc.getChild().getName()))
+				names.add(assoc.getName());
+		}
+		return names;
+	}
+
+	private static boolean hasFileParts(IMetaObject metaObject) {
+		return getAssociationsReferingToFileDocs(metaObject).size() > 0;
+	}
+
+	private static void addFilePart(final IContext context, String partname,
+			final IMendixObject source, List<Part> parts) throws IOException {
+		ByteArrayPartSource p = new ByteArrayPartSource(
+				getFileDocumentFileName(context, source),
+				IOUtils.toByteArray(Core.getFileDocumentContent(context, source)));
+		parts.add(new FilePart(partname, p));
+	}
+
+	private static String getFileDocumentFileName(final IContext context,
+			final IMendixObject source) {
+		return (String) source.getValue(context, FileDocument.MemberNames.Name.toString());
+	}
+	   
 	private static boolean isFileDocAttr(String key) {
 		try {
 			FileDocument.MemberNames.valueOf(key); 
@@ -552,8 +607,7 @@ public class RestConsumer {
 		}
 	}
 
-	public static void addCredentialsToNextRequest(String username,
-			String password) {
+	public static void addCredentialsToNextRequest(String username, String password) {
 		addHeaderToNextRequest(RestServices.HEADER_AUTHORIZATION, RestServices.BASIC_AUTHENTICATION + " " + StringUtils.base64Encode(username + ":" + password));
 	}
 
@@ -646,6 +700,7 @@ public class RestConsumer {
 		HttpResponseData res = lastConsumeError.get();
 		if (res == null)
 			return null;
+		lastConsumeError.set(null);
 		return res.asRequestResult(context);
 	}
 }

@@ -20,7 +20,7 @@ public class RestServices {
 	/**
 	 * Version of the RestServices module
 	 */
-	public static final String VERSION = "1.3.1";
+	public static final String VERSION = "1.4.1";
 
 	/**
 	 * Amount of objects that are processed by the module at the same time.
@@ -62,6 +62,7 @@ public class RestServices {
 	public static final String HEADER_AUTHORIZATION = "Authorization";
 	public static final String HEADER_CONTENTTYPE = "Content-Type";
 	public static final String HEADER_WWWAUTHENTICATE = "WWW-Authenticate";
+	public static final String HEADER_CONTENTDISPOSITION = "Content-Disposition";
 	
 	public static String PATH_REST = "rest/";
 	public static final String PATH_LIST = "list";

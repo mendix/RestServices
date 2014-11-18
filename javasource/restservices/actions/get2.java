@@ -16,7 +16,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * 
+ * replaced by getWithParams
  */
 public class get2 extends CustomJavaAction<IMendixObject>
 {

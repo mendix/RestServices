@@ -15,7 +15,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * 
+ * replaced with postWithResult
  */
 public class post2 extends CustomJavaAction<IMendixObject>
 {

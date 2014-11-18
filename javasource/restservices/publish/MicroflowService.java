@@ -199,7 +199,9 @@ public class MicroflowService implements IRestServiceHandler{
 			if (!Utils.hasDataAccess(Core.getMetaObject(argType), rsr.getContext()))
 				throw new IllegalStateException("Cannot serialize filedocument of type '" + argType + "', the object is not accessiable for users with role " + rsr.getContext().getSession().getUserRolesNames() + ". Please check the access rules");
 
-			
+			String filename = ((IMendixObject)result).getValue(rsr.getContext(), FileDocument.MemberNames.Name.toString());
+			if (filename != null && !filename.isEmpty())
+				rsr.response.setHeader(RestServices.HEADER_CONTENTDISPOSITION, "attachment;filename=\"" + Utils.urlEncode(filename) + "\"");
 			InputStream stream  = Core.getFileDocumentContent(rsr.getContext(), (IMendixObject)result);
 			IOUtils.copy(stream, rsr.response.getOutputStream());
 		}
@@ -211,13 +213,13 @@ public class MicroflowService implements IRestServiceHandler{
 
 			rsr.datawriter.array();
 			for(Object item : (List<?>)result)
-				rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) item));
+				rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) item, true));
 			rsr.datawriter.endArray();
 			rsr.endDoc();
 		}
 		else if (result instanceof IMendixObject) {
 			rsr.startDoc();
-			rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) result));
+			rsr.datawriter.value(JsonSerializer.writeMendixObjectToJson(rsr.getContext(), (IMendixObject) result, true));
 			rsr.endDoc();
 		}
 		else throw new IllegalStateException("Unexpected result from microflow " + microflowname + ": " + result.getClass().getName());

@@ -124,7 +124,18 @@ PLEASE NOTE THAT TO BE ABLE TO PUBLISH ANY SERVICE, THE MICROFLOW `STARTPUBLISHS
 
 Publishing a microflow is conceptually very similar to publishing a webservice. It publishing a single operation based on a microflow. The difference with a normal Mendix webservice is the transport method; instead of SOAP the RestServices module provides an interface which supports JSON based messages or form / multipart encoded messages (typically used to submit webforms) or raw binary data (for efficient downloads for example).
 
-A published microflow should have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
+A published microflow should always have a single transient object as argument. Each field in this transient object is considered a parameter (from HTTP perspective). This means that if you have multiple primitive parameters for your service, for example `offset` and `limit`, you should create a new transient entity that has two fields with the names `offset` and `limit`. 
+
+Your service can now be invoked by either providing the values as HTTP parameters (for example: `GET http://apphost/rest/yourservice?offset=3&limit=5`) or by sending these fields in the json body of the request. In both cases the fields of your input parameter will be set. For example:
+
+```
+POST http://apphost/rest/yourservice
+{ offset : 3, limit : 5 }
+```
+
+Complex objects are supported if JSON is used as transport mechanism. The return type of the microflow should again be a transient object or a String or a filedocument. In the latter case, the string is considered to be the raw response of the operation which is not further processed.
+
+It is possible to build publish services that accept or respond with files as well. See for more details the [working with files](#sending-and-receiving-files) section. 
 
 Publishing a microflow is as simple as calling `CreateMicroflowService` with the microflow that provides the implementation. The name of the operation will be derived form the microflow name. The meta data of the operation is published on *&lt;app-url&gt;/rest/*, including a [JSON-schema](http://json-schema.org/) describing its arguments. The endpoint for the operation itself is *&lt;app-url&gt;/rest/&lt;public-name&gt;*. For securing your microflow service see [Securing published services](#securing-published-services) 
 
@@ -272,6 +283,7 @@ The JSON serialization process starts with a (preferably) transient object and c
 3. For each owned reference that points to a *transient* object, another key/value pair is added to the object. As key the name of the reference is used, but *excluding* the module name. As value either `null` is used if the reference is not set, or the child object is serialized into a JSON object as well, using this very same procedure.
 4. For each owned referenceset that points to a *transient* object, the same approach is taken, except that the value is an array (`[]`) to which each serialized child object is added.
 5. If an owned reference(set) points to a *a* persistent object the reference is not serialized, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result.
+6. For file documents special serialization rules apply. See the [working with files](#sending-and-receiving-files) section for details
 
 For example the following domain model results in the JSON object listed below, assuming that the serialization process is started with an *OrderView* instance:
 
@@ -298,18 +310,44 @@ For example the following domain model results in the JSON object listed below, 
 
 It is possible to manually trigger the serialization process by using the `serializeObjectToJson` java action.
 
+## Serializing complex attribute names
+
+Some API's that are consumed might require attribute names that would not be valid in Mendix. For example an API might require an attibute that is called `id` or `my-profile-url`. To override the default name under which a member is serialized, add an additional member to the Mendix object that has the exact same name as the member you want to serialize, but appended with `_jsonkey`. The value of this attribute should be a string and contain the name under which you want to serialize. This works for assocations as well (but note that the module name of the association should be skipped). 
+
+For example an object with the following attibutes and values: 
+
+* attribute `_id` with value "3"
+* attribute `_id_jsonkey with value "id"
+* attribute `profileUrl` with value "https://github.com/mweststrate"
+* attribute `profileUrl_jsonkey` with value "my-profile-url"
+
+Will result in the following JSON:
+
+```
+{ id : 3, my-profile-url : "https://github.com/mweststrate" }
+```
+
 # JSON Deserialization
 
 The JSON deserialization process is the inverse of the serialization process and can be triggered manually by calling `deserializeJsonToObject`. The process always starts with a freshly created transient object (the *target*) and the JSON structure as string. The root of the JSON structure should always be an JSON object (for arrays, see the `getCollection` method). The parse process then starts as follows:
 
-1. For each primitive *key*/*value* pair in the JSON object, a matching\* primitive attribute is searched in the transient object. If found, the *value* is parsed and set.
+1. For each primitive *key*/*value* pair in the JSON object, a matching (see below) primitive attribute is searched in the transient object. If found, the *value* is parsed and set.
 2. If the primitive is of type string, but the member with the same name in the transient object is a reference, the process assumes that the string value represents an url. The url is then fetched using a GET request and its result is also interpreted as JSON and deserialized. The resulting object is assigned to the reference.
 3. If the member in the *target* object is a reference, and the *value* is a JSON object, a new object of the child type of the reference is instantiated, and the JSON *value* is parsed into that object; which then is stored in the references.
 4. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *3.* but then a complete referenceset is filled.
 5. If you need to parse a JSON array of primitive values, use a referenceset that has as child `RestServices.Primitive`. These objects can hold a JSON primitive and allows to create primitive lists which don't exist natively in Mendix.
 
-\* <small>A member name matches if the names are the same in a case *in*sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. Furthermore, if the characters `-` or `$` are use in json, this maps to the `_` underscore character in the Mendix attribute name. For associations, the module name is never considered</small>
+## Matching attibute names
 
+A member name matches if the names are the same in a case *in*sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. Furthermore, if the characters `-` or `$` are used in json (or any other strange characters that are not allowed in Mendix field names), this maps to the `_` underscore character in the Mendix attribute name. For associations, the module name is never considered. Pro tip: fill these properties with the proper default value.
+
+Some examples:
+
+* The json key `count` maps to the Mendix attributes `count` and `_count`
+* The json key `id` maps to the Mendix attribute `_id` (since `id` is reserved in Mendix)
+* The json key `my super dooper complex @#-$#$% key` maps to the Mendix attribute `my_super_dooper_complex_________key`
+
+## Deserialization example
 For example `https://www.rijksmuseum.nl/api/en/collection/?key=XXXXX&format=json&q=geertgen` generates the following JSON (shortened a bit for readability) which can be parsed into the domain model as shown below, assuming that parsing starts with an instance of the `Query` entity. Note that only some specific attributes of interest are made part of the domain model.
 
 ```
@@ -360,7 +398,9 @@ When it comes to deserializing attributes for incoming objects (in, for example,
 It is possible to send or receive files using the RestServices module. To publish an operation that supports binary data you can define a microflow service which input or output argument (or both) inherits from a `System.FileDocument`. If the input parameter is a filedocument, it interprets requests with `Content-Type: multipart/form-data` correctly if there is one *part* that contains binary data. The other form data parameters can be picked up if a similarly named attribute is present in the type of the input argument. If the return type of a microflow service is a filedocument, the binary contents is streamed in raw format to the consumer, using `Content-Type: application/octet-stream`.
 
 ## Consuming operations that work with files
-It is possible to send binary data using the `post` java action. If the `submitAsFormData` parameter is set, the file is send using `Content-Type: multipart/form-data`, and other attributes of the filedocument are included as well as form parts. If `submitAsFormData` is set to false, the contents of the filedocument is streamed raw in the request body to the publisher. Any other attributes in the filedocument are added as request parameters to the target url.
+It is possible to send binary data using the `post` java action. If the `submitAsFormData` parameter is set, the file is send using `Content-Type: multipart/form-data`, and other attributes of the filedocument are included as well as form parts. If the root object has references to other filedocuments, each of the referred file documents will be added as part to the multipart request. The part name will equal the reference name. This way it is possible to send multiple files with a single request. 
+
+If `submitAsFormData` is set to false, the contents of the filedocument is streamed raw in the request body to the publisher. Any other attributes in the filedocument are added as request parameters to the target url.
 
 If the consumed service responds with binary data, this is picked up properly by the generic `request` java action if the `optResponseData` parameter inherits from `System.FileDocument.`
 
@@ -392,7 +432,7 @@ Fetches any missing changes from a remote collection (published by a change-trac
 #### get
 Fetches a (JSON) resource from a remote server by performing a HTTP GET request.
 
-#### get2
+#### getWithParams / get2
 See `get`, but automatically converts request data into URL parameters.
 
 #### getCollection
@@ -413,7 +453,7 @@ Returns the meta data and response body of the latest (failed) request.
 #### post
 Adds an object to a remote collection or performs a form post, using HTTP POST.
 
-#### post2
+#### postWithResult / post2
 Adds an object to a remote collection, using HTTP POST, parses the response data into a Mendix object.
 
 #### put
