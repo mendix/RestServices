@@ -700,6 +700,7 @@ public class RestConsumer {
 		HttpResponseData res = lastConsumeError.get();
 		if (res == null)
 			return null;
+		lastConsumeError.set(null);
 		return res.asRequestResult(context);
 	}
 }
