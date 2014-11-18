@@ -131,7 +131,10 @@ public class JsonSerializer {
 			IMendixObject view, String sourceAttr) {
 		String name = Utils.getShortMemberName(sourceAttr);
 		if (view.hasMember(name + "_jsonkey"))
-			name = String.valueOf(view.getValue(context, name + "_jsonkey"));
+			name = (String) view.getValue(context, name + "_jsonkey");
+		if (name == null || name.trim().isEmpty())
+			throw new IllegalStateException("During JSON serialization: Object of type '" + view.getType() + "', member '" + sourceAttr + "' has a corresponding '_jsonkey' attribute, but its value is empty.");
+		
 		return name;
 	}
 
