@@ -21,8 +21,10 @@ import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.NTCredentials;
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthPolicy;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.cookie.CookiePolicy;
 import org.apache.commons.httpclient.cookie.CookieSpec;
@@ -69,6 +71,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+
 import communitycommons.StringUtils;
 
 public class RestConsumer {
@@ -340,6 +343,22 @@ public class RestConsumer {
 		Credentials defaultcreds = new UsernamePasswordCredentials(username, password);
 		URL url = new URL(urlBasePath);
 		client.getState().setCredentials(new AuthScope(url.getHost(), url.getPort(), AuthScope.ANY_REALM), defaultcreds);
+	}
+	
+	public static void registerNTCredentials(String urlBasePath, String username, String password, String domain) throws MalformedURLException
+	{
+		client.getParams().setAuthenticationPreemptive(true);
+		URL url = new URL(urlBasePath);
+		Core.getLogger("NTLM").info(url.getHost());
+		Credentials defaultcreds = new NTCredentials(username, password, url.getHost(), domain);
+		
+		AuthPolicy.registerAuthScheme(AuthPolicy.NTLM, restservices.util.JCIFS_NTLMScheme.class);
+		
+		List<String> authpref = new ArrayList<String>();
+		authpref.add(AuthPolicy.NTLM);
+		
+		client.getParams().setParameter("http.auth.target-scheme-pref", authpref);
+		client.getState().setCredentials(new AuthScope(AuthScope.ANY), defaultcreds);
 	}
 
 	private static void getCollectionHelper(final IContext context, String collectionUrl, final Function<IContext, IMendixObject> objectFactory, final Function<IMendixObject, Boolean> callback) throws Exception
