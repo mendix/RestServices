@@ -23,6 +23,7 @@ import tests.proxies.Task;
 import com.google.common.collect.ImmutableList;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 
 public class SerializationTests extends TestBase {
 
@@ -190,105 +191,131 @@ public class SerializationTests extends TestBase {
 	
 	@Test
 	public void testComplexSerialization() throws Exception {
-		IContext c = Core.createSystemContext();
+		final IContext c = Core.createSystemContext();
+		Utils.withSessionCache(c, new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
+				A a = new A(c);
+				
+				a.set_id("bla");
+				a.set_id_jsonkey("id");
+				a.setsuper_name("blaa");
+				a.setsuper_name_jsonkey(" a !@#$%");
+				
+				B b = new B(c);
+				b.setattr("bl");
+				a.setA_B(b);
+				a.setA_B_jsonkey("$-");
+				
+				Assert.assertTrue(a.getA_B() != null);
+				Assert.assertTrue(a.getMendixObject().getValue(c, A.MemberNames.A_B.toString()) != null);
+				Assert.assertTrue(Core.retrieveId(c, (IMendixIdentifier) a.getMendixObject().getValue(c, A.MemberNames.A_B.toString())) != null);
+				
+				JSONObject res = JsonSerializer.writeMendixObjectToJson(c, a.getMendixObject());
+				Assert.assertFalse(res.has("_id_jsonkey"));
+				Assert.assertFalse(res.has("A_B_jsonkey"));
+				Assert.assertEquals("bla", res.getString("id"));
+				Assert.assertEquals("blaa", res.getString(" a !@#$%"));
+				Assert.assertEquals("bl", res.getJSONObject("$-").getString("attr"));
+				return true;
+			}
+			
+		});
 		
-		A a = new A(c);
-		
-		a.set_id("bla");
-		a.set_id_jsonkey("id");
-		a.setsuper_name("blaa");
-		a.setsuper_name_jsonkey(" a !@#$%");
-		
-		B b = new B(c);
-		b.setattr("bl");
-		a.setA_B(b);
-		a.setA_B_jsonkey("$-");
-		
-		JSONObject res = JsonSerializer.writeMendixObjectToJson(c, a.getMendixObject());
-		Assert.assertFalse(res.has("_id_jsonkey"));
-		Assert.assertFalse(res.has("A_B_jsonkey"));
-		Assert.assertEquals("bla", res.getString("id"));
-		Assert.assertEquals("blaa", res.getString(" a !@#$%"));
-		Assert.assertEquals("bl", res.getJSONObject("$-").getString("attr"));
 	}
 	
 	@Test
 	public void testStringArraySerialization() throws Exception {
-		IContext c = Core.createSystemContext();
+		final IContext c = Core.createSystemContext();
+		Utils.withSessionCache(c, new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
 		
-		StringArrayTest t = new StringArrayTest(c);
-		
-		Primitive string1 = new Primitive(c);
-		string1.setStringValue("a");
-		string1.setPrimitiveType(RestPrimitiveType.String);
-		
-		Primitive string2 = new Primitive(c);
-		string2.setStringValue("b");
-		string2.setPrimitiveType(RestPrimitiveType.String);
-		
-		Primitive nullP = new Primitive(c);
-		nullP.setPrimitiveType(RestPrimitiveType._NULL);
-		
-		JSONObject res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertTrue(res.has("items"));
-		Assert.assertTrue(res.isJSONArray("items"));
-		Assert.assertEquals(0, res.getJSONArray("items").length());
-		
-		List<Primitive> l = t.getitems();
-		l.add(string1);
-		l.add(string2);
-		l.add(nullP);
-		t.setitems(l);
-		
-		res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertTrue(res.has("items"));
-		Assert.assertTrue(res.isJSONArray("items"));
-		Assert.assertEquals(3, res.getJSONArray("items").length());
-		Assert.assertEquals("a", res.getJSONArray("items").getString(0));
-		Assert.assertEquals("b", res.getJSONArray("items").getString(1));
-		Assert.assertTrue(res.getJSONArray("items").isNull(2));		
+				StringArrayTest t = new StringArrayTest(c);
+				
+				Primitive string1 = new Primitive(c);
+				string1.setStringValue("a");
+				string1.setPrimitiveType(RestPrimitiveType.String);
+				
+				Primitive string2 = new Primitive(c);
+				string2.setStringValue("b");
+				string2.setPrimitiveType(RestPrimitiveType.String);
+				
+				Primitive nullP = new Primitive(c);
+				nullP.setPrimitiveType(RestPrimitiveType._NULL);
+				
+				JSONObject res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertTrue(res.has("items"));
+				Assert.assertTrue(res.isJSONArray("items"));
+				Assert.assertEquals(0, res.getJSONArray("items").length());
+				
+				List<Primitive> l = t.getitems();
+				l.add(string1);
+				l.add(string2);
+				l.add(nullP);
+				t.setitems(l);
+				
+				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertTrue(res.has("items"));
+				Assert.assertTrue(res.isJSONArray("items"));
+				Assert.assertEquals(3, res.getJSONArray("items").length());
+				Assert.assertEquals("a", res.getJSONArray("items").getString(0));
+				Assert.assertEquals("b", res.getJSONArray("items").getString(1));
+				Assert.assertTrue(res.getJSONArray("items").isNull(2));	
+				return true;
+			}
+		});
 	}
 	
 	@Test
 	public void testDynamicPrimitiveSerialization() throws Exception {
-		IContext c = Core.createSystemContext();
-		String KEY = "dynamicallyTypedItem";
-		
-		StringArrayTest t = new StringArrayTest(c);
-		
-		Primitive string1 = new Primitive(c);
-		string1.setStringValue("a");
-		string1.setPrimitiveType(RestPrimitiveType.String);
-		
-		Primitive bool1 = new Primitive(c);
-		bool1.setBooleanValue(true);
-		bool1.setPrimitiveType(RestPrimitiveType._Boolean);
-		
-		Primitive nullP = new Primitive(c);
-		nullP.setPrimitiveType(RestPrimitiveType._NULL);
-		
-		Primitive num1 = new Primitive(c);
-		num1.setPrimitiveType(RestPrimitiveType.Number);
-		num1.setNumberValue(4.7);
-		
-		JSONObject res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertTrue(res.has(KEY));
-		Assert.assertTrue(res.isNull(KEY));
-		
-		t.setdynamicallyTypedItem(nullP);
-		res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertTrue(res.isNull(KEY));
-		
-		t.setdynamicallyTypedItem(string1);
-		res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertEquals("a", res.get(KEY));
+		final IContext c = Core.createSystemContext();
+		Utils.withSessionCache(c, new Function<Boolean>() {
 
-		t.setdynamicallyTypedItem(num1);
-		res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertEquals(4.7, res.get(KEY));
+			@Override
+			public Boolean apply() throws Exception {
+				String KEY = "dynamicallyTypedItem";
+				
+				StringArrayTest t = new StringArrayTest(c);
+				
+				Primitive string1 = new Primitive(c);
+				string1.setStringValue("a");
+				string1.setPrimitiveType(RestPrimitiveType.String);
+				
+				Primitive bool1 = new Primitive(c);
+				bool1.setBooleanValue(true);
+				bool1.setPrimitiveType(RestPrimitiveType._Boolean);
+				
+				Primitive nullP = new Primitive(c);
+				nullP.setPrimitiveType(RestPrimitiveType._NULL);
+				
+				Primitive num1 = new Primitive(c);
+				num1.setPrimitiveType(RestPrimitiveType.Number);
+				num1.setNumberValue(4.7);
+				
+				JSONObject res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertTrue(res.has(KEY));
+				Assert.assertTrue(res.isNull(KEY));
+				
+				t.setdynamicallyTypedItem(nullP);
+				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertTrue(res.isNull(KEY));
+				
+				t.setdynamicallyTypedItem(string1);
+				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertEquals("a", res.get(KEY));
 		
-		t.setdynamicallyTypedItem(bool1);
-		res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-		Assert.assertEquals(true, res.get(KEY));
+				t.setdynamicallyTypedItem(num1);
+				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertEquals(4.7, res.get(KEY));
+				
+				t.setdynamicallyTypedItem(bool1);
+				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
+				Assert.assertEquals(true, res.get(KEY));
+				return true;
+			}
+		});
 	}
 }

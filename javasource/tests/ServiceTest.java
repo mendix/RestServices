@@ -21,6 +21,7 @@ import restservices.consume.RestConsumer;
 import restservices.proxies.HttpMethod;
 import restservices.proxies.RequestResult;
 import restservices.publish.MicroflowService;
+import restservices.util.Function;
 import restservices.util.Utils;
 import tests.proxies.ReplaceIn;
 import tests.proxies.ReplaceOut;
@@ -244,50 +245,59 @@ public class ServiceTest extends TestBase {
 
 	@Test
 	public void testFileTransfer() throws Exception {
-		IContext c = Core.createSystemContext();
-		try {
-			new MicroflowService("Tests.FileMultiplier", "*", HttpMethod.POST, "Multiplies the contents of a file");
-			String url = RestServices.getAbsoluteUrl("FileMultiplier");
+		final IContext c = Core.createSystemContext();
+		Utils.withSessionCache(c, new Function<Boolean>() {
 			
-			TestFile source = new TestFile(c);
-			source.setMultiplier(2);
-			StringUtils.stringToFile(c, "Yolo", source);
-			source.commit();
-			
-			TestFile destination = new TestFile(c);
-			
-			RestConsumer.request(c, HttpMethod.POST, url, source.getMendixObject(), destination.getMendixObject(), true);
-			
-			Assert.assertEquals("YoloYolo", StringUtils.stringFromFile(c, destination));
-
-			//request params should override
-			RestConsumer.request(c, HttpMethod.POST, Utils.appendParamToUrl(url, TestFile.MemberNames.Multiplier.toString(), "3"), source.getMendixObject(), destination.getMendixObject(), true);
-			
-			Assert.assertEquals("YoloYoloYolo", StringUtils.stringFromFile(c, destination));
-			
-			//do not use multipart but direct binary data
-			URL u = new URL(Utils.appendParamToUrl(url, TestFile.MemberNames.Multiplier.toString(), "3"));
-			HttpURLConnection con = (HttpURLConnection) u.openConnection();
-			con.setDoOutput(true);
-			con.setDoInput(true);
-			con.setRequestMethod("POST");
-			con.setRequestProperty("Connection", "Keep-Alive");
-			con.setRequestProperty("Content-Type", RestServices.CONTENTTYPE_OCTET);
-			con.connect();
-			OutputStream out =  con.getOutputStream();
-			IOUtils.copy(IOUtils.toInputStream("Yolo"), out);
-			out.flush();
-			out.close();
-			InputStream in = con.getInputStream();
-			List<String> lines = IOUtils.readLines(in);
-			in.close();
-			con.disconnect();
-			Assert.assertEquals(1, lines.size());
-			Assert.assertEquals("YoloYoloYolo", lines.get(0));
-		}
-		finally {
-			XPath.create(c, TestFile.class).deleteAll();
-		}
+			@Override
+			public Boolean apply() throws Exception {
+				try {
+					new MicroflowService("Tests.FileMultiplier", "*", HttpMethod.POST, "Multiplies the contents of a file");
+					String url = RestServices.getAbsoluteUrl("FileMultiplier");
+					
+					TestFile source = new TestFile(c);
+					source.setName("Name");
+					source.setMultiplier(2);
+					StringUtils.stringToFile(c, "Yolo", source);
+					source.commit();
+					
+					TestFile destination = new TestFile(c);
+					TestFile destination2 = new TestFile(c);
+					
+					RestConsumer.request(c, HttpMethod.POST, url, source.getMendixObject(), destination.getMendixObject(), true);
+					
+					Assert.assertEquals("YoloYolo", StringUtils.stringFromFile(c, destination));
+		
+					//request params should override
+					RestConsumer.request(c, HttpMethod.POST, Utils.appendParamToUrl(url, TestFile.MemberNames.Multiplier.toString(), "3"), source.getMendixObject(), destination2.getMendixObject(), true);
+					
+					Assert.assertEquals("YoloYoloYolo", StringUtils.stringFromFile(c, destination2));
+					
+					//do not use multipart but direct binary data
+					URL u = new URL(Utils.appendParamToUrl(url, TestFile.MemberNames.Multiplier.toString(), "3"));
+					HttpURLConnection con = (HttpURLConnection) u.openConnection();
+					con.setDoOutput(true);
+					con.setDoInput(true);
+					con.setRequestMethod("POST");
+					con.setRequestProperty("Connection", "Keep-Alive");
+					con.setRequestProperty("Content-Type", RestServices.CONTENTTYPE_OCTET);
+					con.connect();
+					OutputStream out =  con.getOutputStream();
+					IOUtils.copy(IOUtils.toInputStream("Yolo"), out);
+					out.flush();
+					out.close();
+					InputStream in = con.getInputStream();
+					List<String> lines = IOUtils.readLines(in);
+					in.close();
+					con.disconnect();
+					Assert.assertEquals(1, lines.size());
+					Assert.assertEquals("YoloYoloYolo", lines.get(0));
+				}
+				finally {
+					XPath.create(c, TestFile.class).deleteAll();
+				}
+				return true;
+			}
+		});
 	}
 
 	/*

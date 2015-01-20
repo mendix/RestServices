@@ -542,8 +542,10 @@ public class RestConsumer {
 
 		// This object self could be a filedocument
 		if (Core.isSubClassOf(FileDocument.entityName, source.getType())) {
-			addFilePart(context, getFileDocumentFileName(context, source),
-					source, parts);
+			String partName = getFileDocumentFileName(context, source);
+			if (partName == null || partName.isEmpty())
+				throw new IllegalArgumentException("The filename of a System.FileDocument in a multipart request should reflect the part name and cannot be empty");
+			addFilePart(context, partName, source, parts);
 		}
 		// .. or one of its children could be a filedocument. This way multiple
 		// file parts, or specifically named file parts can be send

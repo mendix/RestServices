@@ -282,17 +282,17 @@ public class RestServiceHandler extends RequestHandler{
 					RestServices.LOGPUBLISH.debug("Served " + requestStr + " in " + (System.currentTimeMillis() - start) + "ms.");
 		}
 		catch(RestPublishException rre) {
-			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": " + rre.getType() + " " + rre.getMessage());
-
-			serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr + " " + rre.getMessage(), rre.getType().toString());
+			handleRestPublishException(requestStr, rsr, rre);
 		}
 		catch(JSONException je) {
-			RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
-
-			serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data: " + je.getMessage(), "INVALID_JSON");
+			handleJsonException(requestStr, rsr, je);
 		}
 		catch(Throwable e) {
 			Throwable cause = ExceptionUtils.getRootCause(e);
+			if (cause instanceof RestPublishException)
+				handleRestPublishException(requestStr, rsr, (RestPublishException) cause);
+			else if (cause instanceof JSONException)
+				handleJsonException(requestStr, rsr, (JSONException) cause);
 			if (cause instanceof CustomRestServiceException) {
 				CustomRestServiceException rse = (CustomRestServiceException) cause;
 				RestServices.LOGPUBLISH.warn(String.format("Failed to serve %s: %d (code: %s): %s", requestStr, rse.getHttpStatus(), rse.getDetail(), rse.getMessage()));
@@ -310,6 +310,20 @@ public class RestServiceHandler extends RequestHandler{
 		finally {
 			rsr.dispose();
 		}
+	}
+
+	public void handleJsonException(String requestStr, RestServiceRequest rsr,
+			JSONException je) {
+		RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": Invalid JSON: " + je.getMessage());
+
+		serveErrorPage(rsr, HttpStatus.SC_BAD_REQUEST, "JSON is incorrect. Please review the request data: " + je.getMessage(), "INVALID_JSON");
+	}
+
+	public void handleRestPublishException(String requestStr,
+			RestServiceRequest rsr, RestPublishException rre) {
+		RestServices.LOGPUBLISH.warn("Failed to serve " + requestStr + ": " + rre.getType() + " " + rre.getMessage());
+
+		serveErrorPage(rsr, rre.getStatusCode(), rre.getType().toString() + ": " + requestStr + " " + rre.getMessage(), rre.getType().toString());
 	}
 
 	private void serveErrorPage(RestServiceRequest rsr, int status, String error, String errorCode) {
