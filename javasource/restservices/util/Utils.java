@@ -3,7 +3,10 @@ package restservices.util;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -17,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IDataType;
+import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
@@ -216,5 +220,23 @@ public class Utils {
 			else
 				throw new RuntimeException(e);
 		}
+	}
+	
+	public static void sortIdList(List<IMendixIdentifier> ids) {
+		Collections.sort(ids, new Comparator<IMendixIdentifier>() {
+
+			@Override
+			public int compare(IMendixIdentifier o1,
+					IMendixIdentifier o2) {
+				if (o2 == null && o1 == null)
+					return 0;
+				if (o2 == null)
+					return -1;
+				if (o1 == null)
+					return 1;
+				return Long.compare(o1.toLong(), o2.toLong());
+			}
+			
+		});
 	}
 }

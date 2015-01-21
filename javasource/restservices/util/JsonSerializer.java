@@ -10,9 +10,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import restservices.RestServices;
-import restservices.publish.DataService;
 import restservices.proxies.BooleanValue;
 import restservices.proxies.Primitive;
+import restservices.publish.DataService;
 
 import com.mendix.core.Core;
 import com.mendix.core.objectmanagement.member.MendixEnum;
@@ -219,6 +219,7 @@ public class JsonSerializer {
 			if (value != null) {
 				@SuppressWarnings("unchecked")
 				List<IMendixIdentifier> ids = (List<IMendixIdentifier>) value;
+				Utils.sortIdList(ids);
 				for(IMendixIdentifier id : ids) if (id != null) {
 					Object url = identifierToJSON(context, id, alreadySeen, useServiceUrls);
 					if (url != null)
@@ -231,5 +232,4 @@ public class JsonSerializer {
 		else
 			throw new IllegalStateException("Unimplemented membertype " + member.getClass().getSimpleName());
 	}
-
 }
