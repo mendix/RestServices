@@ -88,13 +88,15 @@ public class GenerateThumbnail extends CustomJavaAction<Boolean>
 		BufferedImage dstImage = new BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB);
 		dstImage.getGraphics().drawImage(img, dx1, dy1, dx2, dy2, sx1, sy1, sx2, sy2, null);
 
+		//MWE: disabled code; to keep this test project (RestServices) compatible with Mendix 5.3 ... 5.12
+		
 		//MWE: there is no Core api to just write the thumbnail stream, so lets do thet ourselves...
-        File basefilename = Core.getComponent().fileProcessor().getFileDocumentAsFile(getContext(), __sourceObj);
+        /*File basefilename = Core.getComponent().fileProcessor().getFileDocumentAsFile(getContext(), __sourceObj);
         String thumbfile = basefilename.getPath().replaceFirst(Pattern.quote(File.separator + "files" + File.separator),
                 Matcher.quoteReplacement(File.separator + "files" + File.separator + "thumbs" + File.separator));
 
         ImageIO.write(dstImage, "png", new File(thumbfile));
-
+	*/
         return true;
 		// END USER CODE
 	}
