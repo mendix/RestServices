@@ -267,8 +267,11 @@ public class RestConsumer {
 				onSuccess.apply(instream);
 			else if (instream != null)
 				response.setBody(IOUtils.toString(instream));
-				
-			RestServices.LOGCONSUME.info(response);
+			
+			if (RestServices.LOGCONSUME.isDebugEnabled())
+			{
+				RestServices.LOGCONSUME.debug(response);
+			}	
 			
 			return response;
 		}
