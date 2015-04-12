@@ -168,6 +168,8 @@ public class JsonDeserializer {
 		switch(primitive.getType()) {
 		case Currency:
 		case Float:
+			if (object.isNull(attr))
+				return null;
 			return object.getDouble(attr);
 		case Boolean:
 			return object.getBoolean(attr);
@@ -191,8 +193,12 @@ public class JsonDeserializer {
 			return object.getString(attr);
 		case AutoNumber:
 		case Long:
+			if (object.isNull(attr))
+				return null;
 			return object.getLong(attr);
 		case Integer:
+			if (object.isNull(attr))
+				return null;
 			return object.getInt(attr);
 		case Binary:
 		default:
