@@ -40,6 +40,7 @@ import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.BOMInputStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -69,6 +70,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation;
 import com.mendix.systemwideinterfaces.core.meta.IMetaAssociation.AssociationType;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
+
 import communitycommons.StringUtils;
 
 public class RestConsumer {
@@ -262,7 +264,10 @@ public class RestConsumer {
 			Header responseEtag = request.getResponseHeader(RestServices.HEADER_ETAG);
 			
 			HttpResponseData response = new HttpResponseData(method, url, status, responseEtag == null ? null : responseEtag.getValue(), request.getResponseHeaders());
-			InputStream instream = request.getResponseBodyAsStream(); 
+			InputStream rawstream = request.getResponseBodyAsStream(); 
+			InputStream instream = null;
+			if (rawstream != null)
+				instream = new BOMInputStream(rawstream); 
 			if (onSuccess != null && status >= 200 && status < 300 && instream != null) //NO CONENT doesnt yield a stream..
 				onSuccess.apply(instream);
 			else if (instream != null)
