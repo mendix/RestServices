@@ -87,8 +87,9 @@ public class RestServiceHandler extends RequestHandler{
 
 			instance = new RestServiceHandler();
 			
+			String rootUrl = Core.getConfiguration().getApplicationRootUrl();
 			@SuppressWarnings("deprecation")
-			boolean isSandbox = Core.getConfiguration().getApplicationRootUrl().contains(".mendixcloud.com") && "DEVELOPMENT".equalsIgnoreCase(Core.getConfiguration().getDTAPMode().toString());
+			boolean isSandbox = rootUrl != null && rootUrl.contains(".mendixcloud.com") && "DEVELOPMENT".equalsIgnoreCase(Core.getConfiguration().getDTAPMode().toString());
 			if (isSandbox)
 				startSandboxCompatibilityMode();
 			else
