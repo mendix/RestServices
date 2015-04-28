@@ -246,11 +246,12 @@ public class RestConsumer {
 				throw new IllegalStateException("Unsupported method: " + method);
 			
 			request.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
-			request.setRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
-			
+
 			if (requestHeaders != null) for(Entry<String, String> e : requestHeaders.entrySet())
 				request.addRequestHeader(e.getKey(), e.getValue());
 			includeHeaders(request);
+			if (request.getRequestHeader(RestServices.HEADER_ACCEPT) == null)
+				request.addRequestHeader(RestServices.HEADER_ACCEPT, RestServices.CONTENTTYPE_APPLICATIONJSON);
 			
 			if (params != null && request instanceof PostMethod) 
 				((PostMethod)request).addParameters(mapToNameValuePairs(params));
