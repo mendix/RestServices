@@ -121,8 +121,7 @@ public class SecurityTests extends TestBase {
 		
 		String serviceurl = RestServices.getAbsoluteUrl("securedobjects");
 		
-		@SuppressWarnings("deprecation")
-		IMendixObject first = Core.create(c, SecuredObjectView.entityName);
+		IMendixObject first = Core.instantiate(c, SecuredObjectView.entityName);
 		List<IMendixObject> results = Lists.newArrayList();
 		
 		try {
