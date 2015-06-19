@@ -2,7 +2,15 @@ package restservices.util;
 
 import java.io.OutputStream;
 import java.util.Stack;
-
+/*
+ * This module when i download from AppStore use Common.Lang 3
+ * Meanwhile the one use in github is Common.Lang 2
+ * So if I want to make this module works by versio in Appstore,
+ * I have to change the following to
+ * import org.apache.commons.lang3.StringEscapeUtils;
+ * There are some other places I have to fix like this.
+ * So please make them be the same.
+ */
 import org.apache.commons.lang.StringEscapeUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
