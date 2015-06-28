@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.AsyncContext;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 
 import restservices.RestServices;

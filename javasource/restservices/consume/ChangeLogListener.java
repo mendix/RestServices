@@ -2,7 +2,7 @@ package restservices.consume;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static restservices.RestServices.CHANGE_DATA;
 import static restservices.RestServices.CHANGE_DELETED;
 import static restservices.RestServices.CHANGE_KEY;
