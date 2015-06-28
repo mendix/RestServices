@@ -412,21 +412,7 @@ public final class Core
 	{
 		return component.core().instantiateAsync(context, objectType);
 	}
-	
-	/**
-	 * Creates a new IMendixObject with the given object type (synchronously). The object will be stored in the 
-	 * database immediately. The rollback method can be used to cancel this.
-	 * @param context the context.
-	 * @param objectType type of object to create (e.g. "System.User"). 
-	 * @return returns the newly created object.
-	 * @deprecated use Core.instantiate instead.
-	 */
-	@Deprecated
-	public static IMendixObject create(IContext context, String objectType) throws CoreException
-	{
-		return component.core().create(context, objectType);
-	}
-	
+		
 	/**
 	 * Creates a new IMendixObject with the given object type (synchronously). The object will NOT be stored in the 
 	 * database. This action is executed in a transaction.
@@ -1438,10 +1424,25 @@ public final class Core
 	 * @param xmlStream the xml stream to map and store.
 	 * @param xmlToDomainMappingName name of the mapping from xml to domain objects (as defined in the Mendix Business Modeler, e.g. "Orders.MyMapping").
 	 * @param mappingParameter parameter object used during the mapping (optional)
+	 * @deprecated Don't use this, it will be removed in the future. Use the version that allows you to pass a shouldValidate boolean.
 	 */
+	@Deprecated
 	public static void importXmlStream(IContext context, InputStream xmlStream, String xmlToDomainMappingName, IMendixObject mappingParameter)
 	{
-		integration.importXmlStream(context, xmlStream, xmlToDomainMappingName, mappingParameter);
+		integration.importXmlStream(context, xmlStream, xmlToDomainMappingName, mappingParameter, false);
+	}
+
+	/**
+	 * Import an xml stream, map this stream to domain objects and store those object in the Mendix database.
+	 * @param context the context.
+	 * @param xmlStream the xml stream to map and store.
+	 * @param xmlToDomainMappingName name of the mapping from xml to domain objects (as defined in the Mendix Business Modeler, e.g. "Orders.MyMapping").
+	 * @param mappingParameter parameter object used during the mapping (optional)
+	 * @param shouldValidate whether the xml should be validated.
+	 */
+	public static void importXmlStream(IContext context, InputStream xmlStream, String xmlToDomainMappingName, IMendixObject mappingParameter, boolean shouldValidate)
+	{
+		integration.importXmlStream(context, xmlStream, xmlToDomainMappingName, mappingParameter, shouldValidate);
 	}
 	
 	/**
@@ -1452,11 +1453,29 @@ public final class Core
 	 * @param mappingParameter parameter object used during the mapping (optional)
 	 * @param storeResultInVariable whether to store the result of the xml mapping in variable which will be returned by this method.
 	 * @param hasListReturnValue indicates whether the return value of the xml mapping is of type List.
+	 * @deprecated Don't use this, it will be removed in the future. Use the version that allows you to pass a shouldValidate boolean.
 	 */
+	@Deprecated
 	public static Object importXmlStream(IContext context, InputStream xmlStream, String xmlToDomainMappingName, IMendixObject mappingParameter,
 			boolean storeResultInVariable, boolean hasListReturnValue)
 	{
-		return integration.importXmlStream(context, xmlStream, xmlToDomainMappingName, mappingParameter, storeResultInVariable, -1, hasListReturnValue);
+		return integration.importXmlStream(context, xmlStream, xmlToDomainMappingName, mappingParameter, storeResultInVariable, -1, hasListReturnValue, false);
+	}
+
+	/**
+	 * Import an xml stream, map this stream to domain objects and store those object in the Mendix database.
+	 * @param context the context.
+	 * @param xmlStream the xml stream to map and store.
+	 * @param xmlToDomainMappingName name of the mapping from xml to domain objects (as defined in the Mendix Business Modeler, e.g. "Orders.MyMapping").
+	 * @param mappingParameter parameter object used during the mapping (optional)
+	 * @param storeResultInVariable whether to store the result of the xml mapping in variable which will be returned by this method.
+	 * @param hasListReturnValue indicates whether the return value of the xml mapping is of type List.
+	 * @param shouldValidate whether the xml should be validated.
+	 */
+	public static Object importXmlStream(IContext context, InputStream xmlStream, String xmlToDomainMappingName, IMendixObject mappingParameter,
+			boolean storeResultInVariable, boolean hasListReturnValue, boolean shouldValidate)
+	{
+		return integration.importXmlStream(context, xmlStream, xmlToDomainMappingName, mappingParameter, storeResultInVariable, -1, hasListReturnValue, shouldValidate);
 	}
 	
 	/**
@@ -1510,7 +1529,10 @@ public final class Core
 	 *</pre>
 	 * @throws WebserviceException
 	 * @throws IOException
+	 * @deprecated Don't use this, it will be removed in the future. If you want to build your own custom web
+	 * service calls, you can fully implement this yourself.
 	 */
+	@Deprecated   
 	public static IWebserviceResponse callWebservice(String location, String soapAction, String soapRequestMessage) 
 	{
 		return integration.callWebservice(location, soapAction, soapRequestMessage);
@@ -1567,7 +1589,10 @@ public final class Core
 	 *</pre>
 	 * @throws WebserviceException
 	 * @throws IOException
+	 * @deprecated Don't use this, it will be removed in the future. If you want to build your own custom web
+	 * service calls, you can fully implement this yourself.
 	 */
+	@Deprecated
 	public static IWebserviceResponse callWebservice(String location, String soapAction, InputStream soapRequestMessage) 
 	{
 		return integration.callWebservice(location, soapAction, soapRequestMessage);

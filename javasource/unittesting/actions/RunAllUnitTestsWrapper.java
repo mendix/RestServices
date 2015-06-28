@@ -9,7 +9,7 @@
 
 package unittesting.actions;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import unittesting.TestManager;
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;

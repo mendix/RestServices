@@ -32,6 +32,8 @@ import com.mendix.webui.CustomJavaAction;
  * MySpace: Based on the content filtering for the popular social networking site, relatively dangerous. This policy file gives the user a lot of freedom, and may be a good choice if users are submitting HTML for an entire page.
  * 
  * Slashdot: Based on the comment filtering on the popular news site, but not quite as strict. This policy file only allows strict text formatting, and may be a good choice if users are submitting HTML in a comment thread.
+ * 
+ * BootstrapRTE: Based on TinyMCE and allows hyperlinks and embedded images. Basically allows what the Bootstrap Rich Text widget provides.
  */
 public class XSSSanitize extends CustomJavaAction<String>
 {

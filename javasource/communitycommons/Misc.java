@@ -1,6 +1,7 @@
 package communitycommons;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -10,17 +11,22 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.apache.commons.io.IOUtils;
+import org.apache.pdfbox.Overlay;
+import org.apache.pdfbox.exceptions.COSVisitorException;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.util.PDFMergerUtility;
 
 import system.proxies.FileDocument;
+import system.proxies.Language;
 
 import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
@@ -201,7 +207,7 @@ public class Misc
         return true;
 	}
 
-	public static Long getFileSize(IContext context, IMendixObject document)
+    public static Long getFileSize(IContext context, IMendixObject document)
     {
         final int BUFFER_SIZE = 4096;
         long size = 0;
@@ -224,30 +230,56 @@ public class Misc
         }
         
         return size;
-    }      
+    }
 
 	public static void delay(long delaytime) throws InterruptedException
 	{
 		Thread.sleep(delaytime);
 	}
 
-	public static IContext getContextFor(IContext context, String username, boolean sudoContext) throws Exception {
-		if (username == null || username.isEmpty())
-			throw new Exception("Assertion: No username provided");
-		
-		ISession session  = Core.getActiveSession(username);
-		if (session == null) {
-			IUser user = Core.getUser(context, username);
-			if (user == null)
-				throw new Exception("Assertion: user with username '" + username + "' does not exist");
-			session = Core.initializeSession(user, null);
+	public static IContext getContextFor(IContext context, String username, boolean sudoContext) {
+		if (username == null || username.isEmpty()) {
+			throw new RuntimeException("Assertion: No username provided");
 		}
 		
+		ISession session = getSessionFor(context, username);
+		
 		IContext c = session.createContext();
-		if (sudoContext)
+		if (sudoContext) {
 			return c.getSudoContext();
-			
+		}
+		
 		return c;
+	}
+
+	private static ISession getSessionFor(IContext context, String username) {
+		ISession session  = Core.getActiveSession(username);
+		
+		if (session == null) {
+			IContext newContext = context.getSession().createContext().getSudoContext();
+			newContext.startTransaction();
+			try {
+				session = initializeSessionForUser(newContext, username);
+			} catch (CoreException e) {
+				newContext.rollbackTransAction();
+				
+				throw new RuntimeException("Failed to initialize session for user: " + username + ": " + e.getMessage(), e);
+			} finally {
+				newContext.endTransaction();
+			}
+		}
+		
+		return session;
+	}
+
+	private static ISession initializeSessionForUser(IContext context, String username) throws CoreException {
+		IUser user = Core.getUser(context, username);
+
+		if (user == null) {
+			throw new RuntimeException("Assertion: user with username '" + username + "' does not exist");
+		}
+
+		return Core.initializeSession(user, null);
 	}
 	
 	public static Object executeMicroflowAsUser(IContext context,
@@ -274,59 +306,63 @@ public class Misc
 
 	//MWE: based on: http://download.oracle.com/javase/6/docs/api/java/util/concurrent/Executor.html
 	
-	static class MFSerialExecutor implements Executor {
+	static class MFSerialExecutor {
+		private static final ILogNode LOG = Core.getLogger("communitycommons");
 		
-		final ExecutorService executer = Executors.newSingleThreadExecutor(new ThreadFactory() {
-
-			final ThreadFactory tf =  Executors.defaultThreadFactory();
-
-			@Override
-			public Thread newThread(Runnable arg0)
-			{
-				Thread t = tf.newThread(arg0);
-				t.setPriority(Thread.MIN_PRIORITY);
-				return t;
-			}
-			
-		});
-		
-		AtomicInteger tasknr = new AtomicInteger();
 		private static MFSerialExecutor _instance = new MFSerialExecutor();
+		
+		private final AtomicLong tasknr = new AtomicLong();
+		private final ExecutorService executor;
 		
 		public static MFSerialExecutor instance() {
 			return _instance;
 		}
 		
-		@Override
-		public void execute(final Runnable command)
-		{
-			final int currentask = tasknr.incrementAndGet();
-			
-			final ILogNode logger = Core.getLogger("communitycommons");
-			logger.info("[RunMicroflowAsyncInQueue] Scheduling task #" + currentask);
-			
-			//wrap the runnable in a new runnable with some logging
-			
-			executer.execute(new Runnable() {
+		private MFSerialExecutor() {
+			executor = Executors.newSingleThreadExecutor(new ThreadFactory() {
 				
+				//Default thread factory takes care of setting the proper thread context
+				private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
 				@Override
-				public void run() {
-					logger.debug("[RunMicroflowAsyncInQueue] Running task #" + currentask);
-					try {
-						command.run();
-					} catch(Exception e) {
-						logger.error("[RunMicroflowAsyncInQueue] Execution of task #" + currentask + " failed: " + e.getMessage(), e);
-					}
-					logger.info("[RunMicroflowAsyncInQueue] Completed task #" + currentask + " tasks.");
-			}
+				public Thread newThread(Runnable runnable) {
+					Thread t = defaultFactory.newThread(runnable);
+					t.setPriority(Thread.MIN_PRIORITY);
+					t.setName("CommunityCommons background pool executor thread");
+					return t;
+				}
+				
 			});
 		}
-
+		
+		public void execute(final Runnable command)
+		{
+			if (command == null) {
+				throw new NullPointerException("command");
+			}
+			
+			final long currenttasknr = tasknr.incrementAndGet();
+			LOG.info("[RunMicroflowAsyncInQueue] Scheduling task #" + currenttasknr);
+			
+			executor.submit(new Runnable() {
+				@Override
+				public void run() {
+					LOG.info("[RunMicroflowAsyncInQueue] Running task #" + currenttasknr);
+					try {
+						command.run();
+					} catch(RuntimeException e) {
+						LOG.error("[RunMicroflowAsyncInQueue] Execution of task #" + currenttasknr + " failed: " + e.getMessage(), e);
+						throw e; //single thread executor will continue, even if an exception is thrown.
+					}
+					LOG.info("[RunMicroflowAsyncInQueue] Completed task #" + currenttasknr + ". Tasks left: " + (tasknr.get() - currenttasknr));
+				}
+			});
+		}
 	}
 
 	public static Boolean runMicroflowAsyncInQueue(final String microflowName)
 	{
-		MFSerialExecutor.instance().execute( new Runnable() {
+		MFSerialExecutor.instance().execute(new Runnable() {
 			@Override
 			public void run()
 			{
@@ -526,5 +562,111 @@ public class Misc
 			return false;
 		return left.equals(right);
 	}
+	
+	/**
+	 * Get the default language
+	 * @param context
+	 * @return The default language
+	 * @throws CoreException
+	 */
+	public static Language getDefaultLanguage(IContext context) throws CoreException {
+		String languageCode = Core.getDefaultLanguage().getCode();
+		List<Language> languageList = Language.load(context, "[Code = '" + languageCode + "']");
+		if (languageList == null || languageList.isEmpty()) {
+			throw new RuntimeException("No language found for default language constant value " + languageCode);
+		}
+		return languageList.get(0);		
+	}
+	
+	public static boolean mergePDF(IContext context,List<FileDocument> documents,  IMendixObject mergedDocument ){
+		
+		int i = 0;
+		PDFMergerUtility  mergePdf = new  PDFMergerUtility();
+		for(i=0; i < documents.size(); i++)
+		{
+		    FileDocument file = documents.get(i);
+		    InputStream content = Core.getFileDocumentContent(context, file.getMendixObject());
+		    mergePdf.addSource(content);            
+		}
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		mergePdf.setDestinationStream(out);
+		try {
+			mergePdf.mergeDocuments();
+		} catch (COSVisitorException e) {
+			throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
+			
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
+			
+		}
+		 
+		Core.storeFileDocumentContent(context, mergedDocument, new ByteArrayInputStream(out.toByteArray()));
+
+		out.reset();
+		documents.clear();
+		
+		return true;	
+	}
+	
+
+	/**
+	 * Overlay a generated PDF document with another PDF (containing the company stationary for example)
+	 * @param context
+	 * @param generatedDocumentMendixObject The document to overlay
+	 * @param overlayMendixObject The document containing the overlay
+	 * @return boolean
+	 * @throws IOException
+	 * @throws COSVisitorException
+	 */
+	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject) throws IOException, COSVisitorException {
+		
+		ILogNode logger = Core.getLogger("OverlayPdf"); 
+		logger.trace("Overlay PDF start, retrieve overlay PDF");
+		PDDocument overlayDoc = PDDocument.load(Core.getFileDocumentContent(context, overlayMendixObject));
+		int overlayPageCount = overlayDoc.getNumberOfPages();
+		PDPage lastOverlayPage = (PDPage)overlayDoc.getDocumentCatalog().getAllPages().get(overlayPageCount - 1);
+
+		logger.trace("Retrieve generated document");
+		PDDocument offerteDoc = PDDocument.load(Core.getFileDocumentContent(context, generatedDocumentMendixObject));
+
+		int pageCount = offerteDoc.getNumberOfPages();
+		if (logger.isTraceEnabled()) {
+			logger.trace("Number of pages in overlay: " + overlayPageCount + ", in generated document: " + pageCount);						
+		}
+		if (pageCount > overlayPageCount) {
+			logger.trace("Duplicate last overlay page to match number of pages");
+			for (int i = overlayPageCount; i < pageCount; i++) {
+				overlayDoc.importPage(lastOverlayPage);
+			}
+		} else if (overlayPageCount > pageCount) {
+			logger.trace("Delete unnecessary pages from the overlay to match number of pages");
+			for (int i = pageCount; i < overlayPageCount; i++) {
+				overlayDoc.removePage(i);
+			}
+		}
+				
+		logger.trace("Perform overlay");
+		Overlay overlay = new Overlay();
+		overlay.overlay(offerteDoc,overlayDoc);
+		
+		logger.trace("Save result in output stream");
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		overlayDoc.save(baos);
+		
+		logger.trace("Duplicate result in input stream");
+		InputStream overlayedContent = new ByteArrayInputStream(baos.toByteArray());
+		
+		logger.trace("Store result in original document");
+		Core.storeFileDocumentContent(context, generatedDocumentMendixObject, overlayedContent);
+		
+		logger.trace("Close PDFs");
+		overlayDoc.close();
+		offerteDoc.close();
+		
+		logger.trace("Overlay PDF end");
+		return true;
+		
+	}
+	
 	
 }

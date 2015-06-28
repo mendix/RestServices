@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.Test;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
@@ -286,7 +286,7 @@ public class TestManager extends RunListener
 			if (cause != null && cause instanceof AssertionException)
 				test.setResultMessage(cause.getMessage());
 			else
-				test.setResultMessage("Exception: " + e.getMessage() + "\n\n" + ExceptionUtils.getFullStackTrace(e));
+				test.setResultMessage("Exception: " + e.getMessage() + "\n\n" + ExceptionUtils.getStackTrace(e));
 			return false;
 			
 		}

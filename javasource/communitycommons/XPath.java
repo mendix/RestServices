@@ -21,8 +21,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.mendix.core.Core;
 import com.mendix.core.CoreException;
@@ -293,24 +293,47 @@ public class XPath<T>
 	 */
 	public T findOrCreateNoCommit(Object... keysAndValues) throws CoreException
 	{
-		T res = findOrCreateHelper(keysAndValues);
+		T res = findFirst(keysAndValues);
 		
 		return res != null ? res : constructInstance(false, keysAndValues);
 	}
 
 	
 	public T findOrCreate(Object... keysAndValues) throws CoreException {
-		T res = findOrCreateHelper(keysAndValues);
-		
+		T res = findFirst(keysAndValues);
+
 		return res != null ? res : constructInstance(true, keysAndValues);
 
 	}
 	
-	private T findOrCreateHelper(Object... keysAndValues)
+	public T findOrCreateSynchronized(Object... keysAndValues) throws CoreException, InterruptedException {
+		T res = findFirst(keysAndValues);
+		
+		if (res != null) {
+			return res;
+		} else {
+			synchronized (Core.getMetaObject(entity)) {
+				IContext synchronizedContext = context.getSession().createContext().getSudoContext();
+				try {
+					synchronizedContext.startTransaction();
+					res = createProxy(synchronizedContext, proxyClass, XPath.create(synchronizedContext, entity).findOrCreate(keysAndValues));
+					synchronizedContext.endTransaction();
+					return res;
+				} catch (CoreException e) {
+					if (synchronizedContext.isInTransaction()) {
+						synchronizedContext.rollbackTransAction();
+					}
+					throw e;
+				}
+			}
+		}
+	}	
+	
+	public T findFirst(Object... keysAndValues)
 			throws IllegalStateException, CoreException
 	{
 		if (builder.length() > 0)
-			throw new IllegalStateException("Find or create can only be used on XPath which do not have constraints already");
+			throw new IllegalStateException("FindFirst can only be used on XPath which do not have constraints already");
 		
 		assertEven(keysAndValues);
 		for(int i = 0; i < keysAndValues.length; i+= 2)

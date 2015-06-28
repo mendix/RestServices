@@ -14,23 +14,33 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * Returns a random strong password containing at least one number, lowercase character,uppercase character and strange character
+ * Returns a random strong password containing a specified number of digits, uppercase and special characters.
+ * 
+ * Note:Minimumlength should be equal or larger than NrOfCapitalizedCharacters, NrOfDigits and NrOfSpecialCharacters
  */
 public class RandomStrongPassword extends CustomJavaAction<String>
 {
-	private Long length;
+	private Long MinLength;
+	private Long MaxLength;
+	private Long NrOfCapitalizedCharacters;
+	private Long NrOfDigits;
+	private Long NrOfSpecialCharacters;
 
-	public RandomStrongPassword(IContext context, Long length)
+	public RandomStrongPassword(IContext context, Long MinLength, Long MaxLength, Long NrOfCapitalizedCharacters, Long NrOfDigits, Long NrOfSpecialCharacters)
 	{
 		super(context);
-		this.length = length;
+		this.MinLength = MinLength;
+		this.MaxLength = MaxLength;
+		this.NrOfCapitalizedCharacters = NrOfCapitalizedCharacters;
+		this.NrOfDigits = NrOfDigits;
+		this.NrOfSpecialCharacters = NrOfSpecialCharacters;
 	}
 
 	@Override
 	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return StringUtils.randomStrongPassword(length.intValue());
+		return StringUtils.randomStrongPassword(safeLongToInt(this.MinLength), safeLongToInt(this.MaxLength),safeLongToInt(this.NrOfCapitalizedCharacters), safeLongToInt(NrOfDigits), safeLongToInt(NrOfSpecialCharacters));
 		// END USER CODE
 	}
 
@@ -44,5 +54,12 @@ public class RandomStrongPassword extends CustomJavaAction<String>
 	}
 
 	// BEGIN EXTRA CODE
+	public static int safeLongToInt(long l) {
+	    if (l < Integer.MIN_VALUE || l > Integer.MAX_VALUE) {
+	        throw new IllegalArgumentException
+	            (l + " cannot be cast to int without changing its value.");
+	    }
+	    return (int) l;
+	}
 	// END EXTRA CODE
 }
