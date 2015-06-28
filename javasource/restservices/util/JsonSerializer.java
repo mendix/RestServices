@@ -139,6 +139,7 @@ public class JsonSerializer {
 	}
 
 
+	@SuppressWarnings("deprecation")
 	private static void serializeMember(IContext context, JSONObject target, String targetMemberName, 
 			IMendixObjectMember<?> member, IMetaObject viewType, Set<Long> alreadySeen, boolean useServiceUrls) throws Exception {
 		if (context == null)
@@ -184,6 +185,12 @@ public class JsonSerializer {
 					target.put(targetMemberName, JSONObject.NULL);
 				else
 					target.put(targetMemberName, value);
+				break;
+			case Decimal:
+				if (value == null)
+					target.put(targetMemberName, JSONObject.NULL);
+				else
+					target.put(targetMemberName, value.toString());
 				break;
 			case DateTime:
 				if (value == null)

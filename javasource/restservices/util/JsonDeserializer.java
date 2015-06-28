@@ -1,5 +1,6 @@
 package restservices.util;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -164,13 +165,21 @@ public class JsonDeserializer {
 		return attrMap;
 	}
 
-	private static Object jsonAttributeToPrimitive(IMetaPrimitive primitive,	JSONObject object, String attr) throws Exception {
+	@SuppressWarnings("deprecation")
+	private static Object jsonAttributeToPrimitive(IMetaPrimitive primitive, JSONObject object, String attr) throws Exception {
 		switch(primitive.getType()) {
 		case Currency:
 		case Float:
 			if (object.isNull(attr))
 				return null;
 			return object.getDouble(attr);
+		case Decimal:
+			if (object.isNull(attr))
+				return null;
+			String asString = object.optString(attr, null);
+			if (asString != null)
+				return new BigDecimal(asString);
+			return new BigDecimal(object.getDouble(attr));
 		case Boolean:
 			return object.getBoolean(attr);
 		case DateTime: 

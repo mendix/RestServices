@@ -119,6 +119,7 @@ public class JSONSchemaBuilder {
 		return type;
 	}
 
+	@SuppressWarnings("deprecation")
 	private static JSONObject primitiveToJSONType(PrimitiveType type) {
 		switch(type) {
 		case AutoNumber:
@@ -137,6 +138,7 @@ public class JSONSchemaBuilder {
 			return orNull(new JSONObject().put("type", "string")); //TODO: use enum from the meta model!
 		case HashString:
 		case String:
+		case Decimal:
 			return orNull(new JSONObject().put("type", "string")); 
 		default:
 			throw new IllegalStateException("Unspported primitive type:  " + type);
