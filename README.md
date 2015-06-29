@@ -32,7 +32,7 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 # Getting Started
 
 1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 4.4.4+ or Mendix 5.3.1+.
-2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 4.3.2 or higher. Download this module as well if it is not already part of your project.
+2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 5.4 or higher. Download this module as well if it is not already part of your project.
 3. TODO: connect userroles and layouts (mx 5)
 3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well.
 4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application. Also, the 'rest/' request handler needs to be opened if running in the Mendix Standard Cloud (or on premise).
@@ -279,7 +279,7 @@ The state of the change log can be viewed in the RestServices overview form, bot
 The JSON serialization process starts with a (preferably) transient object and converts it into a JSON structure as follows:
 
 1. Given a transient object, a new JSON object is created (`{}`)
-2. Each of its primitives members is added as key value pair to the JSON object. The 'nearest' json type is used, for example integers and longs are turned into numbers, booleans in to booleans and the others into strings (or `null` values). For example: `{ "task" : 17, "description" : "Buy milk" }
+2. Each of its primitives members is added as key value pair to the JSON object. The 'nearest' json type is used, for example integers and longs are turned into numbers, booleans in to booleans and the others into strings (or `null` values). For example: `{ "task" : 17, "description" : "Buy milk" }`. Decimals are serialized as string to preserve precision. For a numeric presentation please use the Mendix float attribute type. 
 3. For each owned reference that points to a *transient* object, another key/value pair is added to the object. As key the name of the reference is used, but *excluding* the module name. As value either `null` is used if the reference is not set, or the child object is serialized into a JSON object as well, using this very same procedure.
 4. For each owned referenceset that points to a *transient* object, the same approach is taken, except that the value is an array (`[]`) to which each serialized child object is added.
 5. If an owned reference(set) points to a *a* persistent object the reference is not serialized, unless a data services is defined for the specified entity. In such a case, the url of the referred object is determined and added to the result.
@@ -577,64 +577,4 @@ It is also possible do share data using RestServices as the module generates RES
 # HTTP Verbs in Rest
 
 See the table at [http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services](http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services) to get an idea how the `get`, `put`, `post` and `delete` verbs should be used in combination with rest. The RestServices module respects these best practices as well.
-
-# Changelog
-
-## Version 1.3
-
-New features:
-* #16, #23: Introduced template paths for both consuming and publishing REST services. For example urls like `http://myapp.com/rest/groups/{groupId}/users/{userId}` can be used.
-* #15, #27: improved handling of errors
-
-Issues fixed:
-* #18: introduced RestServiceError entity for improved error handling
-* #19: improved handling of connection errors
-* #13: introduced setResponseStatus
-* #14: introduced alternative basepath for rest api's
-* #17: JSON deserialization is now case insensitive
-* #25: Microflow services now always require a HTTP verb upon definition
-* #24: Improved URL decoding
-* #26: Improved handling of booleans not available in the request data
-* #21, #22: Several optimizations in handling urls concerning casing and leading or trailing slashes
-* POST requests to a dataservice now return a JSON object with the object key
-
-## Version 1.2
-
-New features:
-* Introduced cookie management, both when consuming and publishing: `addCookieToNextRequest`, `getRequestCookies`, `getResponseCookies`, `setResponseCookie`. Fixes #6, #11, #12
-* Implemented #7: Service names will always be presented lowercase, but interpreted case-insensitive. 
-* Implemented #8: Microflow services are now allowed to return any type of data. 
-
-Fixes:
-* Wrongly typed JSON request data will now respond with status code `400 BAD REQUEST` (instead of `500`). Fixes #10.
-* Cookies will not be parsed and send automatically. Fixes #6.
-* Null values are now accepted as string values. Fixes #9. 
-* Request data is now parsed as JSON if no content-type is set. 
-* All requests are now served and send with content-type `application/json` instead of `text/json`. Fixes #5.
-
-## Version 1.1
-
-New features:
-
-* Introduced `get2`, which is similar to get, but takes an argument object as well, which is converted to url parameters
-* Introduced sandbox compatibility by falling back to `ws-doc/` because the `rest/` handler cannot be opened on sandboxes
-* Introduced `getBaseUrl` java action which returns the base endpoint of published restservices
-* Improved the rendering and styling of generated HTML pages
-* Introduced `getRestConsumeError` to be able to inspect response data after an exception has occured (fixes issue #3)
-* Introduced methods to be able to work with HTTP headers: `getResponseHeader`, `getRequestHeader` and `setResponseHeader`
-* Introduced new authentication method: a microflow can now be used for authentication. This microflow can perform authentication on, for example, apikey headers. 
-
-Fixes:
-* Reduced the number of layout dependencies on the hosting project project
-* Improved parameter names
-* Fixed issue with the garbage collector while publishing referenced data
-* Improved transaction handling
-* Fixed several minor bugs & exceptions
-
-## Version 1.0.1
-
-Initial release for Mendix 5
-
-## Version 1.0
-
-Initial release for Mendix 4
+See the table at [http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services](http://en.wikipedia.org/wiki/Representational_state_transfer#Applied_to_web_services
