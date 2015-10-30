@@ -452,9 +452,12 @@ public class RestConsumer {
 		}
 		else if (asFormData && !isFileSource)
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
-		else if (data != null && data.length() != 0)
+		else if (data != null && data.length() != 0) {				
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_APPLICATIONJSON, RestServices.UTF8);
-		
+			if (RestServices.LOGCONSUME.isDebugEnabled()) {
+				RestServices.LOGCONSUME.debug("[Body JSON Data] " + data.toString());
+			}
+		}
 		final StringBuilder bodyBuffer = new StringBuilder();
 		HttpResponseData response = doRequest(method.toString(), url, requestHeaders, params, requestEntity, new Predicate<InputStream>() {
 
