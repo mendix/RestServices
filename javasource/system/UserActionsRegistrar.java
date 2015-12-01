@@ -69,7 +69,6 @@ public class UserActionsRegistrar implements EventHandler
 			component.actionRegistry().registerUserAction(communitycommons.actions.GetApplicationUrl.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.getCreatedByUser.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.GetDefaultLanguage.class);
-			component.actionRegistry().registerUserAction(communitycommons.actions.getDTAPMode.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.GetFileContentsFromResource.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.getFileSize.class);
 			component.actionRegistry().registerUserAction(communitycommons.actions.getGUID.class);
