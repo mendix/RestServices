@@ -370,7 +370,7 @@ public class DataService {
 	}
 	
 	private boolean keyExists(IContext context, String key) throws CoreException {
-		return getObjectByKey(context.isSudo() ? context : context.getSudoContext(), key) != null; 
+		return getObjectByKey(context.isSudo() ? context : context.createSudoClone(), key) != null; 
 	}
 	
 	/**

@@ -1,5 +1,6 @@
 package tests;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -293,7 +294,7 @@ public class SerializationTests extends TestBase {
 				
 				Primitive num1 = new Primitive(c);
 				num1.setPrimitiveType(RestPrimitiveType.Number);
-				num1.setNumberValue(4.7);
+				num1.setNumberValue(BigDecimal.valueOf(4.7));
 				
 				JSONObject res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
 				Assert.assertTrue(res.has(KEY));
@@ -309,7 +310,7 @@ public class SerializationTests extends TestBase {
 		
 				t.setdynamicallyTypedItem(num1);
 				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());
-				Assert.assertEquals(4.7, res.get(KEY));
+				Assert.assertEquals(BigDecimal.valueOf(4.7), res.get(KEY));
 				
 				t.setdynamicallyTypedItem(bool1);
 				res = JsonSerializer.writeMendixObjectToJson(c, t.getMendixObject());

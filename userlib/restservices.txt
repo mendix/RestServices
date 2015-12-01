@@ -1,2 +1,0 @@
-The RestServices module depends on
-- commons-httpclient

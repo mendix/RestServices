@@ -61,7 +61,7 @@ public class JsonDeserializer {
 			}
 			else if (jsonValue instanceof Long || jsonValue instanceof Double || jsonValue instanceof Integer || jsonValue instanceof Float) {
 				prim.setPrimitiveType(RestPrimitiveType.Number);
-				prim.setNumberValue(Double.parseDouble(jsonValue.toString()));
+				prim.setNumberValue(new BigDecimal(jsonValue.toString()));
 			}
 			else
 				throw new RuntimeException("Unable to convert value of type '" + jsonValue.getClass().getName()+ "' to rest primitive: " + jsonValue.toString());
