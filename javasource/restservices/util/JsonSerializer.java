@@ -161,11 +161,14 @@ public class JsonSerializer {
 			case Currency:
 			case Float:
 			case Integer:
-				//Numbers or bools should never be null!
-				if (value == null)
-					throw new IllegalStateException("Primitive member " + member.getName() + " should not be null!");
-	
-				target.put(targetMemberName, value);
+				if (value == null) {
+					// Numbers or bools could be null in json, technically. 
+					// Mendix supports it as well. Technically.
+					RestServices.LOGUTIL.warn("Got 'null' as value for primitive '" + targetMemberName + "'");
+					target.put(targetMemberName, JSONObject.NULL);
+				} else {	
+					target.put(targetMemberName, value);
+				}
 				break;
 			case Enum:
 				//Support for built-in BooleanValue enumeration.

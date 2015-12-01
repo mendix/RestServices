@@ -126,14 +126,14 @@ public class JSONSchemaBuilder {
 		case DateTime:
 		case Integer:
 		case Long:  
-			return new JSONObject().put("type", "number").put("multipleOf", "1.0");
+			return orNull(new JSONObject().put("type", "number").put("multipleOf", "1.0"));
 		case Binary:
 			return null;
 		case Boolean:
-			return new JSONObject().put("type", "boolean");
+			return orNull(new JSONObject().put("type", "boolean"));
 		case Currency:
 		case Float:
-			return new JSONObject().put("type", "number");
+			return orNull(new JSONObject().put("type", "number"));
 		case Enum:
 			return orNull(new JSONObject().put("type", "string")); //TODO: use enum from the meta model!
 		case HashString:
