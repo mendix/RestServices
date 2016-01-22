@@ -18,13 +18,15 @@ import restservices.util.Utils;
 import tests.proxies.A;
 import tests.proxies.B;
 import tests.proxies.CustomBooleanTest;
+import tests.proxies.GoogleSearch;
+import tests.proxies.Item;
 import tests.proxies.StringArrayTest;
 import tests.proxies.Task;
-
 import com.google.common.collect.ImmutableList;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixIdentifier;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 public class SerializationTests extends TestBase {
 
@@ -39,6 +41,48 @@ public class SerializationTests extends TestBase {
 		
 		Assert.assertEquals(true, task.getCompleted());
 		Assert.assertEquals("browNIE", task.getDescription());
+	}
+	
+	@Test
+	public void testDeserializeWithGeneratedNpes() throws Exception {
+		final IContext c = Core.createSystemContext();
+		
+		final JSONObject googleSearchJSONResponse = new JSONObject();
+		
+		googleSearchJSONResponse.put("kind", "customsearch#search");	
+		
+		
+		JSONObject urlEntity = new JSONObject();
+		urlEntity.put("template", "https://www.googleapis.com/customsearch/v1?q={searchTerms}");
+		
+		JSONObject item1 = new JSONObject();
+		item1.put("title", "EE364b: Lecture Slides and Notes - Stanford");
+		item1.put("link", "http://stanford.edu/class/ee364b/lectures.html");
+						
+		JSONArray items = new JSONArray();
+		items.put(item1);
+		
+		googleSearchJSONResponse.put("url", urlEntity);
+		googleSearchJSONResponse.put("items_2", items);
+
+		Utils.withSessionCache(c, new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
+				GoogleSearch googleSearchObj = new GoogleSearch(c);			
+				JsonDeserializer.readJsonDataIntoMendixObject(c, googleSearchJSONResponse, googleSearchObj.getMendixObject(), false);				
+				Assert.assertEquals("customsearch#search", googleSearchObj.getKind());
+				Assert.assertEquals("https://www.googleapis.com/customsearch/v1?q={searchTerms}", googleSearchObj.geturl().getTemplate());
+				
+				List<IMendixObject> result = Core.retrieveByPath(c, googleSearchObj.getMendixObject(), "Tests.items_2");				
+				Item item = Item.initialize(c, result.get(0));
+				Assert.assertEquals("EE364b: Lecture Slides and Notes - Stanford", item.getTitle());
+				Assert.assertEquals("http://stanford.edu/class/ee364b/lectures.html", item.getLink());				
+				return true;
+			}
+			
+		});
+		
 	}
 	
 	@Test
