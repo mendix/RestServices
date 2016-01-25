@@ -39,21 +39,21 @@ public class JsonDeserializer {
 		readJsonDataIntoMendixObject(context, jsonValue, target, autoResolveReferences);
 		return target.getId();
 	}
-	
+
 	public static void readJsonDataIntoMendixObject(IContext context,
 			Object jsonValue, IMendixObject target, boolean autoResolveReferences) throws Exception {
 		if (!Utils.hasDataAccess(target.getMetaObject(), context))
 			throw new IllegalStateException("During JSON deserialization: Object of type '" + target.getType() + "' cannot be altered by users with role(s) " + context.getSession().getUserRolesNames() + ". Please check the security rules");
-	
+
 		String targetType = target.getType();
-		
+
 		//primitive
 		if (Core.isSubClassOf(Primitive.entityName, targetType)) {
 			Primitive prim = Primitive.initialize(context, target);
 			prim.setStringValue(String.valueOf(jsonValue));
 			if (jsonValue == null || jsonValue == JSONObject.NULL)
 				prim.setPrimitiveType(RestPrimitiveType._NULL);
-			else if (jsonValue instanceof String) 
+			else if (jsonValue instanceof String)
 				prim.setPrimitiveType(RestPrimitiveType.String);
 			else if (jsonValue instanceof Boolean) {
 				prim.setBooleanValue((Boolean) jsonValue);
@@ -66,54 +66,59 @@ public class JsonDeserializer {
 			else
 				throw new RuntimeException("Unable to convert value of type '" + jsonValue.getClass().getName()+ "' to rest primitive: " + jsonValue.toString());
 		}
-		
+
+		// generated primitive
+		else if (targetType.endsWith("Primitive")) {
+			target.setValue(context, "Value", jsonValue);
+		}
+
 		//string; autoresolve
 		else if (jsonValue instanceof String) {
 			if (!autoResolveReferences)
 				throw new RuntimeException("Unable to read url '" + jsonValue + "' into '" + targetType + "'; since references will not be resolved automatically for incoming data");
 			RestConsumer.request(context, HttpMethod.GET, (String) jsonValue, null, target, false);
 		}
-		
+
 		else if (jsonValue instanceof JSONObject) {
 			readJsonObjectIntoMendixObject(context, (JSONObject) jsonValue, target, autoResolveReferences);
 		}
-		
+
 		else
 			throw new RuntimeException("Unable to parse '" + jsonValue.toString() + "' into '" + targetType + "'");
 	}
-	
+
 	private static void readJsonObjectIntoMendixObject(IContext context, JSONObject object, IMendixObject target, boolean autoResolve) throws JSONException, Exception {
 		Iterator<String> it = object.keys();
 
 		Map<String, String> attributeNameMap = buildAttributeNameMap(target.getMetaObject());
-		
+
 		while(it.hasNext()) {
 			String attr = it.next();
 			String targetattr =  attributeNameMap.get(attr.toLowerCase().replaceAll("[^a-zA-Z0-9_]","_"));
-			
+
 			if (targetattr == null) {
 				if (RestServices.LOGUTIL.isDebugEnabled())
 					RestServices.LOGUTIL.debug("Skipping attribute '" + attr + "', not found in targettype: '" + target.getType() + "'");
 				continue;
 			}
-			
+
 			if(target.hasMember(targetattr))
 			{
 				IMendixObjectMember<?> member = target.getMember(context, targetattr);
-								
+
 				if (member.isVirtual())
 					continue;
-				
+
 				//Reference
 				if (member instanceof MendixObjectReference) {
 					String otherSideType = target.getMetaObject().getMetaAssociationParent(targetattr).getChild().getName();
 					if(otherSideType.equals(target.getMetaObject().getName()))
 						otherSideType= target.getMetaObject().getMetaAssociationChild(targetattr).getParent().getName();
-					
-					if (!object.isNull(attr)) 
+
+					if (!object.isNull(attr))
 						((MendixObjectReference)member).setValue(context, readJsonDataIntoMendixObject(context, object.get(attr), otherSideType, autoResolve));
 				}
-				
+
 				//ReferenceSet
 				else if (member instanceof MendixObjectReferenceSet){
 					String otherSideType = target.getMetaObject().getMetaAssociationParent(targetattr).getChild().getName();
@@ -122,21 +127,21 @@ public class JsonDeserializer {
 
 					JSONArray children = object.getJSONArray(attr);
 					List<IMendixIdentifier> ids = new ArrayList<IMendixIdentifier>();
-					
+
 					for(int i = 0; i < children.length(); i++) {
 						IMendixIdentifier child = readJsonDataIntoMendixObject(context, children.get(i), otherSideType, autoResolve);
 						if (child != null) {
 							/*
 							 * The core.createMendixIdentifier should be unnecessary, however, there is a bug there, see
-							 * support ticket 102188 
+							 * support ticket 102188
 							 */
 							ids.add(Core.createMendixIdentifier(child.toLong()));
 						}
 					}
-					
+
 					((MendixObjectReferenceSet)member).setValue(context, ids);
 				}
-				
+
 				//Primitive member
 				else
 				{
@@ -144,7 +149,7 @@ public class JsonDeserializer {
 					if (primitive.getType() != PrimitiveType.AutoNumber)
 						target.setValue(context, targetattr, jsonAttributeToPrimitive(primitive, object, attr));
 				}
-				
+
 			}
 			else
 			{
@@ -153,11 +158,11 @@ public class JsonDeserializer {
 				IMendixObject otherSideTarget = Core.instantiate(context, otherSideType);
 				Map<String, String> otherAttributeNameMap = buildAttributeNameMap(otherSideTarget.getMetaObject());
 				String otherTargetattr =  otherAttributeNameMap.get(attr.toLowerCase().replaceAll("[^a-zA-Z0-9_]","_"));
-				
+
 				IMendixObjectMember<?> otherMember = otherSideTarget.getMember(context, otherTargetattr);
-				
+
 				//Reference for arrays
-				if (otherMember instanceof MendixObjectReference) 
+				if (otherMember instanceof MendixObjectReference)
 				{
 					JSONArray jsonArray = object.getJSONArray(attr);
 					readJsonArrayIntoMendixObject(context, jsonArray, otherSideTarget, autoResolve, association.getName().split("\\.")[1], target.getId());
@@ -166,7 +171,7 @@ public class JsonDeserializer {
 		}
 		Core.commit(context, target);
 	}
-	
+
 	private static void readJsonArrayIntoMendixObject(IContext context, JSONArray object, IMendixObject target, boolean autoResolve, String associationName, IMendixIdentifier mainIdentifier) throws JSONException, Exception {
 
 		Map<String, String> attributeNameMap = buildAttributeNameMap(target.getMetaObject());
@@ -174,23 +179,19 @@ public class JsonDeserializer {
 		String targetattr =  attributeNameMap.get(associationName.toLowerCase().replaceAll("[^a-zA-Z0-9_]","_"));
 		IMetaAssociation association =  Core.getMetaAssociation(targetattr);
 		String otherSideType = association.getParent().getName();
-		
-		for(int i = 0; i < object.length(); i++) 
+
+		for(int i = 0; i < object.length(); i++)
 		{
 			IMendixObject otherSideTarget = Core.instantiate(context, otherSideType);
 			IMendixObjectMember<?> otherMember = otherSideTarget.getMember(context, targetattr);
 			((MendixObjectReference)otherMember).setValue(context, mainIdentifier);
 
 			Object childJsonValue = object.get(i);
-			if(childJsonValue instanceof JSONObject)
-			{
-				readJsonDataIntoMendixObject(context, childJsonValue, otherSideTarget, autoResolve);
-			}
-			else if(childJsonValue instanceof JSONArray)
+			if(childJsonValue instanceof JSONArray)
 			{
 				JSONArray childJsonArray = (JSONArray)childJsonValue;
 				Object[] attributeValues =attributeNameMap.keySet().toArray();
-				
+
 				String otherMemberName = associationName;
 				for(int a = 0; a < attributeValues.length; a++)
 				{
@@ -198,43 +199,47 @@ public class JsonDeserializer {
 					if(!v.equals(associationName))
 						otherMemberName = v;
 				}
-				
+
 				readJsonArrayIntoMendixObject(context, childJsonArray, otherSideTarget, autoResolve, otherMemberName, target.getId());
 			}
-			
+			else
+			{
+				readJsonDataIntoMendixObject(context, childJsonValue, otherSideTarget, autoResolve);
+			}
+
 			Core.commit(context, otherSideTarget);
 		}
 	}
 
 	private static final Map<String, Map<String,String>> metaAttributeMaps = new HashMap<String, Map<String, String>>();
-	
+
 	private static Map<String, String> buildAttributeNameMap(IMetaObject metaObject) {
 		if (metaAttributeMaps.containsKey(metaObject.getName()))
 			return metaAttributeMaps.get(metaObject.getName());
-		
+
 		Map<String, String> attrMap = new HashMap<String,String>();
-		
+
 		for(IMetaAssociation assoc : metaObject.getMetaAssociationsParent()) {
 			String name = assoc.getName().split("\\.")[1];
 			attrMap.put(name.toLowerCase(), assoc.getName());
 			if (name.startsWith("_"))
 				attrMap.put(name.substring(1).toLowerCase(), assoc.getName());
 		}
-		
+
 		for(IMetaAssociation assoc : metaObject.getMetaAssociationsChild()) {
 			String name = assoc.getName().split("\\.")[1];
 			attrMap.put(name.toLowerCase(), assoc.getName());
 			if (name.startsWith("_"))
 				attrMap.put(name.substring(1).toLowerCase(), assoc.getName());
 		}
-		
+
 		for(IMetaPrimitive prim : metaObject.getMetaPrimitives()) {
 			String name = prim.getName();
 			attrMap.put(name.toLowerCase(), name);
 			if (name.startsWith("_"))
 				attrMap.put(name.substring(1).toLowerCase(), name);
 		}
-		
+
 		metaAttributeMaps.put(metaObject.getName(), attrMap);
 		return attrMap;
 	}
@@ -256,7 +261,7 @@ public class JsonDeserializer {
 			return new BigDecimal(object.getDouble(attr));
 		case Boolean:
 			return object.getBoolean(attr);
-		case DateTime: 
+		case DateTime:
 			if (object.isNull(attr))
 				return null;
 			return new Date(object.getLong(attr));
@@ -267,7 +272,7 @@ public class JsonDeserializer {
 					return null;
 				return object.getBoolean(attr) ? BooleanValue._true.toString() : BooleanValue._false.toString();
 			}
-			
+
 			// fall-through intentional
 		case HashString:
 		case String:
@@ -286,7 +291,7 @@ public class JsonDeserializer {
 		case Binary:
 		default:
 			throw new Exception("Unsupported attribute type '" + primitive.getType() + "' in attribute '" + attr + "'");
-		}	
+		}
 	}
 
 }

@@ -332,10 +332,9 @@ Will result in the following JSON:
 The JSON deserialization process is the inverse of the serialization process and can be triggered manually by calling `deserializeJsonToObject`. The process always starts with a freshly created transient object (the *target*) and the JSON structure as string. The root of the JSON structure should always be an JSON object (for arrays, see the `getCollection` method). The parse process then starts as follows:
 
 1. For each primitive *key*/*value* pair in the JSON object, a matching (see below) primitive attribute is searched in the transient object. If found, the *value* is parsed and set.
-2. If the primitive is of type string, but the member with the same name in the transient object is a reference, the process assumes that the string value represents an url. The url is then fetched using a GET request and its result is also interpreted as JSON and deserialized. The resulting object is assigned to the reference.
-3. If the member in the *target* object is a reference, and the *value* is a JSON object, a new object of the child type of the reference is instantiated, and the JSON *value* is parsed into that object; which then is stored in the references.
-4. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *3.* but then a complete referenceset is filled.
-5. If you need to parse a JSON array of primitive values, use a referenceset that has as child `RestServices.Primitive`. These objects can hold a JSON primitive and allows to create primitive lists which don't exist natively in Mendix.
+2. If the member in the *target* object is a reference, and the *value* is a JSON object, a new object of the child type of the reference is instantiated, and the JSON *value* is parsed into that object; which then is stored in the references.
+3. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *2.* but then a complete referenceset is filled.
+4. If you need to parse a JSON array of primitive values of the same type, use a referenceset that has a child Entity with `Primitive` suffix in the name and an attribute with name `Value`.
 
 ## Matching attribute names
 

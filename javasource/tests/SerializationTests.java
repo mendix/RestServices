@@ -20,6 +20,7 @@ import tests.proxies.B;
 import tests.proxies.CustomBooleanTest;
 import tests.proxies.GoogleSearch;
 import tests.proxies.Item;
+import tests.proxies.PrimitiveArrayRoot;
 import tests.proxies.StringArrayTest;
 import tests.proxies.Task;
 import com.google.common.collect.ImmutableList;
@@ -41,6 +42,23 @@ public class SerializationTests extends TestBase {
 		
 		Assert.assertEquals(true, task.getCompleted());
 		Assert.assertEquals("browNIE", task.getDescription());
+	}
+	
+	@Test
+	public void testDeserializesGeneratedPrimitiveArrayOfSameType() throws Exception {
+		final String json = "{\"strings\":[\"a\", \"b\"]}";
+		
+		final IContext c = Core.createSystemContext();
+		final JSONObject response = new JSONObject(json);
+		
+		PrimitiveArrayRoot root = new PrimitiveArrayRoot(c);
+	
+		JsonDeserializer.readJsonDataIntoMendixObject(c, response, root.getMendixObject(), false);
+				
+		List<IMendixObject> strings = Core.retrieveByPath(c, root.getMendixObject(), "Tests.strings");
+		Assert.assertEquals(2, strings.size());
+		Assert.assertEquals("a", strings.get(0).getValue(c, "Value"));
+		Assert.assertEquals("b", strings.get(1).getValue(c, "Value"));
 	}
 	
 	@Test
