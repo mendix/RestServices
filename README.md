@@ -312,9 +312,9 @@ It is possible to manually trigger the serialization process by using the `seria
 
 ## Serializing complex attribute names
 
-Some API's that are consumed might require attribute names that would not be valid in Mendix. For example an API might require an attibute that is called `id` or `my-profile-url`. To override the default name under which a member is serialized, add an additional member to the Mendix object that has the exact same name as the member you want to serialize, but appended with `_jsonkey`. The value of this attribute should be a string and contain the name under which you want to serialize. This works for assocations as well (but note that the module name of the association should be skipped). 
+Some API's that are consumed might require attribute names that would not be valid in Mendix. For example an API might require an attribute that is called `id` or `my-profile-url`. To override the default name under which a member is serialized, add an additional member to the Mendix object that has the exact same name as the member you want to serialize, but appended with `_jsonkey`. The value of this attribute should be a string and contain the name under which you want to serialize. This works for assocations as well (but note that the module name of the association should be skipped). 
 
-For example an object with the following attibutes and values: 
+For example an object with the following attributes and values: 
 
 * attribute `_id` with value "3"
 * attribute `_id_jsonkey with value "id"
@@ -337,7 +337,7 @@ The JSON deserialization process is the inverse of the serialization process and
 4. If the member in the *target* object is a referenceset, and the *value* is a JSON array of JSON objects, well, that works the same as a mentioned in *3.* but then a complete referenceset is filled.
 5. If you need to parse a JSON array of primitive values, use a referenceset that has as child `RestServices.Primitive`. These objects can hold a JSON primitive and allows to create primitive lists which don't exist natively in Mendix.
 
-## Matching attibute names
+## Matching attribute names
 
 A member name matches if the names are the same in a case *in*sensitive way. The module will also look for attributes that have an additional underscore (`_`) as prefix. This is to be able to prevent name collisions with references and to be able to use attributes with a name that are reserved within Mendix. Furthermore, if the characters `-` or `$` are used in json (or any other strange characters that are not allowed in Mendix field names), this maps to the `_` underscore character in the Mendix attribute name. For associations, the module name is never considered. Pro tip: fill these properties with the proper default value.
 
