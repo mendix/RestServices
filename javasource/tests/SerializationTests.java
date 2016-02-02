@@ -18,8 +18,11 @@ import restservices.util.Utils;
 import tests.proxies.A;
 import tests.proxies.B;
 import tests.proxies.CustomBooleanTest;
+import tests.proxies.FacetsItem;
+import tests.proxies.FacetsItemItem;
 import tests.proxies.GoogleSearch;
 import tests.proxies.Item;
+import tests.proxies.JSON_structure;
 import tests.proxies.PrimitiveArrayRoot;
 import tests.proxies.StringArrayTest;
 import tests.proxies.Task;
@@ -49,16 +52,23 @@ public class SerializationTests extends TestBase {
 		final String json = "{\"strings\":[\"a\", \"b\"]}";
 		
 		final IContext c = Core.createSystemContext();
-		final JSONObject response = new JSONObject(json);
+		final JSONObject response = new JSONObject(json);	
 		
-		PrimitiveArrayRoot root = new PrimitiveArrayRoot(c);
-	
-		JsonDeserializer.readJsonDataIntoMendixObject(c, response, root.getMendixObject(), false);
+		Utils.withSessionCache(c, new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
+				PrimitiveArrayRoot root = new PrimitiveArrayRoot(c);
 				
-		List<IMendixObject> strings = Core.retrieveByPath(c, root.getMendixObject(), "Tests.strings");
-		Assert.assertEquals(2, strings.size());
-		Assert.assertEquals("a", strings.get(0).getValue(c, "Value"));
-		Assert.assertEquals("b", strings.get(1).getValue(c, "Value"));
+				JsonDeserializer.readJsonDataIntoMendixObject(c, response, root.getMendixObject(), false);
+						
+				List<IMendixObject> strings = Core.retrieveByPath(c, root.getMendixObject(), "Tests.strings");
+				Assert.assertEquals(2, strings.size());
+				Assert.assertEquals("a", strings.get(0).getValue(c, "Value"));
+				Assert.assertEquals("b", strings.get(1).getValue(c, "Value"));
+				return true;
+			}			
+		});		
 	}
 	
 	@Test
@@ -101,6 +111,48 @@ public class SerializationTests extends TestBase {
 			
 		});
 		
+	}
+	
+	@Test
+	public void testDeserializeWithDoubleNestedArray() throws Exception {
+		final IContext c = Core.createSystemContext();
+		
+		final JSONObject structJSON = new JSONObject();
+		
+		JSONArray array = new JSONArray();
+		JSONArray nestedArray = new JSONArray();
+		
+		JSONObject item = new JSONObject();
+		item.put("anchor", "Lectures");
+		item.put("label", "Lectures label");
+		item.put("label_with_op", "more:lectures");
+		
+		nestedArray.put(0, item);
+		array.put(0, nestedArray);
+		structJSON.put("facets", array);
+		
+		Utils.withSessionCache(c, new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
+				JSON_structure struct = new JSON_structure(c);			
+				JsonDeserializer.readJsonDataIntoMendixObject(c, structJSON, struct.getMendixObject(), false);				
+
+				List<IMendixObject> result = Core.retrieveByPath(c, struct.getMendixObject(), "Tests.facets");
+				Assert.assertEquals(1, result.size());
+				
+				FacetsItem item = FacetsItem.initialize(c, result.get(0));
+				
+				List<IMendixObject> result2 = Core.retrieveByPath(c, item.getMendixObject(), "Tests.facetsItemItems");
+
+				FacetsItemItem itemitem = FacetsItemItem.initialize(c, result2.get(0));
+				
+				Assert.assertEquals("Lectures", itemitem.getAnchor());
+				Assert.assertEquals("Lectures label", itemitem.getLabel());
+				Assert.assertEquals("more:lectures", itemitem.getLabel_with_op());
+				return true;
+			}			
+		});		
 	}
 	
 	@Test

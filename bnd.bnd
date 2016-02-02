@@ -1,0 +1,13 @@
+-buildpath: \
+	datastorage-api;version=latest,\
+	json;version=latest,\
+	logging;version=latest,\
+	m2ee-api;version=latest,\
+	mxruntime;version=latest,\
+	integration;version=latest,\
+	webui;version=latest,\
+	biz.aQute.bnd.annotation,\
+	osgi.cmpn,\
+	osgi.core,\
+	javax.servlet
+-sub: *.bnd

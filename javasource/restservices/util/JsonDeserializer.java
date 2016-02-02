@@ -182,7 +182,12 @@ public class JsonDeserializer {
 
 		for(int i = 0; i < object.length(); i++)
 		{
-			IMendixObject otherSideTarget = Core.instantiate(context, otherSideType);
+			IMendixObject otherSideTarget;
+			if(target.getType()==otherSideType && i==0)
+				otherSideTarget = target;
+			else
+				otherSideTarget = Core.instantiate(context, otherSideType);
+						
 			IMendixObjectMember<?> otherMember = otherSideTarget.getMember(context, targetattr);
 			((MendixObjectReference)otherMember).setValue(context, mainIdentifier);
 

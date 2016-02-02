@@ -1,0 +1,7 @@
+Private-Package: system, com.mendix.core, administration.proxies, administration.proxies.microflows, com.mendix.core, communitycommons, communitycommons.actions, communitycommons.proxies, communitycommons.proxies.constants, communitycommons.proxies.microflows, paydro.proxies, paydro.proxies.constants, paydro.proxies.microflows, postcode.proxies, postcode.proxies.constants, postcode.proxies.microflows, restservices, restservices.actions, restservices.consume, restservices.proxies, restservices.proxies.microflows, restservices.publish, restservices.util, rijksmuseum.proxies, rijksmuseum.proxies.constants, rijksmuseum.proxies.microflows, system, system.actions, system.proxies, system.proxies.microflows, test.proxies, test.proxies.microflows, testclient.proxies, testclient.proxies.microflows, tests, tests.actions, tests.proxies, tests.proxies.microflows, unittesting, unittesting.actions, unittesting.proxies, unittesting.proxies.microflows
+Import-Package: *;resolution:=optional
+Service-Component: *
+Include-Resource: userlib/;recursive:=true
+Bundle-ClassPath: .,antisamy-1.5.3.jar, com.google.guava-14.0.1.jar, com.springsource.org.apache.batik.css-1.7.0.jar, commons-httpclient-3.1.jar, fontbox-1.8.5.jar, jempbox-1.8.5.jar, joda-time-1.6.2.jar, junit-4.11.jar, nekohtml.jar, org.apache.commons.fileupload-1.2.1.jar, org.apache.commons.io-2.3.0.jar, org.apache.commons.lang3.jar, org.apache.servicemix.bundles.commons-codec-1.3.0.jar, pdfbox-1.8.5.jar, xml-apis-ext.jar
+-sourcepath: ${project}/javasource
+-classpath: deployment/run/bin

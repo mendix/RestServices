@@ -1,0 +1,5 @@
+Private-Package: .
+Include-Resource: deployment/run/i18n/translations_nl_NL.properties, deployment/run/i18n/translations.properties, deployment/run/i18n/translations_en_US.properties
+Fragment-Host: mxruntime
+-sourcepath: ${project}/javasource
+-classpath: deployment/run/i18n
