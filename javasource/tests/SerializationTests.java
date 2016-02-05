@@ -23,6 +23,7 @@ import tests.proxies.FacetsItemItem;
 import tests.proxies.GoogleSearch;
 import tests.proxies.Item;
 import tests.proxies.JSON_structure;
+import tests.proxies.ObjectWithEmptyProperyName;
 import tests.proxies.PrimitiveArrayRoot;
 import tests.proxies.StringArrayTest;
 import tests.proxies.Task;
@@ -111,6 +112,28 @@ public class SerializationTests extends TestBase {
 			
 		});
 		
+	}
+	
+	@Test
+	public void testEmptyAttributeName() throws Exception {
+		final String json = "{\"name\":\"Pete\",\"\":1}";
+		
+		final IContext c = Core.createSystemContext();
+		final JSONObject response = new JSONObject(json);	
+		
+		Utils.withSessionCache(c, new Function<Boolean>() {
+
+			@Override
+			public Boolean apply() throws Exception {
+				ObjectWithEmptyProperyName root = new ObjectWithEmptyProperyName(c);
+				
+				JsonDeserializer.readJsonDataIntoMendixObject(c, response, root.getMendixObject(), false);
+										
+				Assert.assertEquals(new Integer(1), root.get_(c));
+				Assert.assertEquals("Pete", root.getName(c));
+				return true;
+			}			
+		});		
 	}
 	
 	@Test
