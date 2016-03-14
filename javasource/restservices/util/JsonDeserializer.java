@@ -149,7 +149,6 @@ public class JsonDeserializer {
 		
 		for(IMetaAssociation assoc : metaObject.getMetaAssociationsParent()) {
 			String name = assoc.getName().split("\\.")[1];
-			attrMap.put(name.toLowerCase(), assoc.getName());
 			name = name.toLowerCase().replaceAll("^_+(?!$)", ""); // Replace leading underscores
 			attrMap.put(name, assoc.getName());	
 		}
