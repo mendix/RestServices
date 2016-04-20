@@ -468,6 +468,11 @@ Generic method to make a HTTP request. `post`, `put`, `get`, `delete` are wrappe
 #### resetChangeTracking
 Resets any state information this app has about a remote collection that is being tracked. 
 
+#### setGlobalRequestSettings
+Sets settings for all requests that are executed by RestServices module.
+* `maxConcurrentRequest` - number of maximum concurrent requests executed
+* `timeout` - timeout specified in milliseconds
+
 #### unfollowChanges
 Stops tracking a remote collection, which was being followed as result of a `followChanges` call. 
 
