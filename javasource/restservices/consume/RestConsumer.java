@@ -70,7 +70,7 @@ public class RestConsumer {
     static HttpClient client = new HttpClient(connectionManager);
 
 	static {
-		connectionManager.setMaxConnectionsPerHost(10);
+		connectionManager.getParams().setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION, 10);
 	}
 
 	public static class HttpResponseData{
