@@ -470,8 +470,8 @@ Resets any state information this app has about a remote collection that is bein
 
 #### setGlobalRequestSettings
 Sets settings for all requests that are executed by RestServices module.
-* `maxConcurrentRequest` - number of maximum concurrent requests executed
-* `timeout` - timeout specified in milliseconds
+* `maxConcurrentRequest` - number of maximum concurrent requests executed. This will set concurrency level per host. Total concurrency level is double this setting.
+* `timeout` - timeout specified in milliseconds. This will set timeout for both establishing connection and waiting between data chunks arrived from server.
 
 #### unfollowChanges
 Stops tracking a remote collection, which was being followed as result of a `followChanges` call. 
