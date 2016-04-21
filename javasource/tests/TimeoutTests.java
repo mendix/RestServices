@@ -23,7 +23,7 @@ public class TimeoutTests extends TestBase {
         } catch (RestConsumeException rce) {
             Assert.assertTrue(rce.getResponseData().getBody().startsWith("java.net.SocketTimeoutException"));
         } finally {
-            RestConsumer.setGlobalRequestSettings(null, 30000L);
+            RestConsumer.setGlobalRequestSettings(null, 0L);
         }
     }
 }
