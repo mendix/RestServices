@@ -10,32 +10,30 @@
 package restservices.actions;
 
 import restservices.consume.RestConsumer;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
 /**
  * 
  */
-public class postWithResult extends CustomJavaAction<IMendixObject>
+public class setGlobalRequestSettings extends CustomJavaAction<Boolean>
 {
-	private String collectionUrl;
-	private IMendixObject dataObject;
-	private IMendixObject responseData;
+	private Long maxConcurrentRequests;
+	private Long timeout;
 
-	public postWithResult(IContext context, String collectionUrl, IMendixObject dataObject, IMendixObject responseData)
+	public setGlobalRequestSettings(IContext context, Long maxConcurrentRequests, Long timeout)
 	{
 		super(context);
-		this.collectionUrl = collectionUrl;
-		this.dataObject = dataObject;
-		this.responseData = responseData;
+		this.maxConcurrentRequests = maxConcurrentRequests;
+		this.timeout = timeout;
 	}
 
 	@Override
-	public IMendixObject executeAction() throws Exception
+	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return RestConsumer.postObject(getContext(), collectionUrl, dataObject, responseData).getMendixObject();
+		RestConsumer.setGlobalRequestSettings(maxConcurrentRequests, timeout);
+        return true;
 		// END USER CODE
 	}
 
@@ -45,7 +43,7 @@ public class postWithResult extends CustomJavaAction<IMendixObject>
 	@Override
 	public String toString()
 	{
-		return "postWithResult";
+		return "setGlobalRequestSettings";
 	}
 
 	// BEGIN EXTRA CODE

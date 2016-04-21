@@ -14,15 +14,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpMethodBase;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.cookie.CookiePolicy;
 import org.apache.commons.httpclient.cookie.CookieSpec;
@@ -75,8 +67,12 @@ public class RestConsumer {
 	private static ThreadLocal<HttpResponseData> lastConsumeError = new ThreadLocal<HttpResponseData>();
 	
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
-    static	HttpClient client = new HttpClient(connectionManager);
-    
+    static HttpClient client = new HttpClient(connectionManager);
+
+	static {
+		connectionManager.getParams().setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION, 10);
+	}
+
 	public static class HttpResponseData{
 		private int status;
 		private String body = null;
@@ -180,7 +176,19 @@ public class RestConsumer {
 		}
 		return headers;
 	}
-	
+
+	public static synchronized void setGlobalRequestSettings(Long maxConcurrentRequests, Long timeout) {
+		if (timeout != null) {
+			client.getParams().setConnectionManagerTimeout(timeout);
+			client.getParams().setSoTimeout(timeout.intValue());
+		}
+
+		if (maxConcurrentRequests != null) {
+			connectionManager.getParams().setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION, maxConcurrentRequests.intValue());
+			connectionManager.getParams().setMaxTotalConnections(maxConcurrentRequests.intValue() * 2);
+		}
+	}
+
 	public static void addHeaderToNextRequest(String header, String value) {
 		prepareNextHeadersMap().put(header, value);
 	}
