@@ -110,7 +110,7 @@ public class RestServices {
 	}
 
 	public static String getBaseUrl() {
-		return Core.getConfiguration().getApplicationRootUrl() + PATH_REST;
+		return Utils.appendSlashToUrl(Core.getConfiguration().getApplicationRootUrl()) + PATH_REST;
 	}
 
 	/**
