@@ -39,6 +39,7 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 5. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally.
 
 # Consuming REST services
+NOTE: Since Mendix 6.6, you can consume REST services directly with the Call Rest microflow action. You can use Import and Export mappings to create and read messages. See https://world.mendix.com/display/refguide6/Consumed+REST+Services
 
 *This readme is the reference guide. For a quick how-to you might take a look at this [blog post](http://www.mendix.com/blog/consuming-first-rest-service/) as well.*
 
