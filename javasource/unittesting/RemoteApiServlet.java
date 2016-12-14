@@ -7,8 +7,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.auth.InvalidCredentialsException;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONArray;
+import com.mendix.thirdparty.org.json.JSONObject;
 
 import unittesting.proxies.TestSuite;
 import unittesting.proxies.UnitTest;

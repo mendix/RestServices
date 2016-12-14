@@ -2,8 +2,8 @@ package restservices.util;
 
 import java.util.HashMap;
 
-import org.json.JSONObject;
-import org.json.JSONArray;
+import com.mendix.thirdparty.org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONArray;
 
 import restservices.RestServices;
 

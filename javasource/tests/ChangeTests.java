@@ -1,9 +1,9 @@
 package tests;
 
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONArray;
+import com.mendix.thirdparty.org.json.JSONException;
+import com.mendix.thirdparty.org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 

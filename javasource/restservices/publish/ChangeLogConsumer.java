@@ -6,7 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletOutputStream;
 
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.util.RestServiceRuntimeException;
