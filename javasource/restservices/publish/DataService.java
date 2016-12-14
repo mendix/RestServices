@@ -1,6 +1,7 @@
 package restservices.publish;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -187,14 +188,7 @@ public class DataService {
 	}
 
 	private void serveListingFromDB(RestServiceRequest rsr, boolean includeData, int baseoffset, int limit) throws Exception {
-		IRetrievalSchema schema = Core.createRetrievalSchema();
 		boolean hasOffset = baseoffset >= 0;
-		
-		if (!includeData) {
-			schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
-			//schema.addMetaPrimitiveName(getKeyAttribute());
-		}
-		
 		int offset = hasOffset ? baseoffset : 0;
 
 		String xpath = "//" + getSourceEntity() + getConstraint(rsr.getContext());
@@ -202,13 +196,9 @@ public class DataService {
 		
 		do {
 			int amount = hasOffset && limit > 0 ? Math.min(baseoffset + limit - offset, RestServices.BATCHSIZE) : RestServices.BATCHSIZE;
-			schema.setOffset(offset);
-			schema.setAmount(amount);
-			
-			result = !includeData
-					? Core.retrieveXPathQuery(rsr.getContext(), xpath, amount, offset, ImmutableMap.of(getKeyAttribute(), "ASC")) 
-					: Core.retrieveXPathSchema(rsr.getContext(), xpath , schema, false);
-		
+
+			result = Core.retrieveXPathQuery(rsr.getContext(), xpath, amount, offset, ImmutableMap.of(getKeyAttribute(), "ASC"));
+
 			for(IMendixObject item : result) {
 				if (!includeData) {
 					if (!Utils.isValidKey(getKey(rsr.getContext(), item)))
