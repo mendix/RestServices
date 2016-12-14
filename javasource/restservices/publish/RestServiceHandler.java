@@ -247,7 +247,7 @@ public class RestServiceHandler extends RequestHandler{
 
 	@Override
 	public void processRequest(IMxRuntimeRequest req, IMxRuntimeResponse resp,
-			String _) {
+			String var3) {
 
 		long start = System.currentTimeMillis();
 		

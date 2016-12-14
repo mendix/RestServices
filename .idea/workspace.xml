@@ -2,25 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b95f0ac8-5bcd-4806-9547-36f6b2a0790b" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/actions/deserializeJsonToObject.java" afterPath="$PROJECT_DIR$/javasource/restservices/actions/deserializeJsonToObject.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/consume/ChangeLogListener.java" afterPath="$PROJECT_DIR$/javasource/restservices/consume/ChangeLogListener.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/consume/RestConsumer.java" afterPath="$PROJECT_DIR$/javasource/restservices/consume/RestConsumer.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/publish/ChangeLogConsumer.java" afterPath="$PROJECT_DIR$/javasource/restservices/publish/ChangeLogConsumer.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/publish/ChangeLogManager.java" afterPath="$PROJECT_DIR$/javasource/restservices/publish/ChangeLogManager.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/RestServices.mpr" afterPath="$PROJECT_DIR$/RestServices.mpr" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/communitycommons/Misc.java" afterPath="$PROJECT_DIR$/javasource/communitycommons/Misc.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/publish/DataService.java" afterPath="$PROJECT_DIR$/javasource/restservices/publish/DataService.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/publish/MicroflowService.java" afterPath="$PROJECT_DIR$/javasource/restservices/publish/MicroflowService.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java" afterPath="$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/publish/ServiceDescriber.java" afterPath="$PROJECT_DIR$/javasource/restservices/publish/ServiceDescriber.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/util/DataWriter.java" afterPath="$PROJECT_DIR$/javasource/restservices/util/DataWriter.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/util/JSONSchemaBuilder.java" afterPath="$PROJECT_DIR$/javasource/restservices/util/JSONSchemaBuilder.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/util/JsonDeserializer.java" afterPath="$PROJECT_DIR$/javasource/restservices/util/JsonDeserializer.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/restservices/util/JsonSerializer.java" afterPath="$PROJECT_DIR$/javasource/restservices/util/JsonSerializer.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/tests/BasicTests.java" afterPath="$PROJECT_DIR$/javasource/tests/BasicTests.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/tests/ChangeTests.java" afterPath="$PROJECT_DIR$/javasource/tests/ChangeTests.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/tests/SerializationTests.java" afterPath="$PROJECT_DIR$/javasource/tests/SerializationTests.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/tests/ServiceTest.java" afterPath="$PROJECT_DIR$/javasource/tests/ServiceTest.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/tests/UpdateTests.java" afterPath="$PROJECT_DIR$/javasource/tests/UpdateTests.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/javasource/unittesting/RemoteApiServlet.java" afterPath="$PROJECT_DIR$/javasource/unittesting/RemoteApiServlet.java" />
     </list>
     <ignored path="RestServices.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -41,26 +27,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="SerializationTests.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/javasource/tests/SerializationTests.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="102">
-              <caret line="6" column="29" selection-start-line="6" selection-start-column="29" selection-end-line="6" selection-end-column="29" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="build_core_compile_log.txt" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/deployment/log/build_core_compile_log.txt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="346">
-              <caret line="137" column="12" selection-start-line="137" selection-start-column="12" selection-end-line="137" selection-end-column="12" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="deserializeJsonToObject.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/javasource/restservices/actions/deserializeJsonToObject.java">
           <provider selected="true" editor-type-id="text-editor">
@@ -128,21 +94,43 @@
       <file leaf-file-name="Misc.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/javasource/communitycommons/Misc.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="316">
-              <caret line="655" column="67" selection-start-line="655" selection-start-column="67" selection-end-line="655" selection-end-column="67" />
+            <state relative-caret-position="211">
+              <caret line="288" column="40" selection-start-line="288" selection-start-column="40" selection-end-line="288" selection-end-column="40" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="RestServiceHandler.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="DataService.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/DataService.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="178">
+              <caret line="194" column="18" selection-start-line="194" selection-start-column="18" selection-end-line="194" selection-end-column="18" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="RestServiceHandler.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="229">
+            <state relative-caret-position="220">
               <caret line="249" column="23" selection-start-line="249" selection-start-column="23" selection-end-line="249" selection-end-column="23" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="RequestHandler.class" pinned="false" current-in-tab="false">
+        <entry file="jar://E:/Mendix/7.0.0-rc1/runtime/bundles/com.mendix.public-api.jar!/com/mendix/externalinterface/connector/RequestHandler.class">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="450">
+              <caret line="56" column="0" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -160,11 +148,9 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java" />
         <option value="$PROJECT_DIR$/javasource/tests/UpdateTests.java" />
         <option value="$PROJECT_DIR$/javasource/restservices/util/JSONSchemaBuilder.java" />
         <option value="$PROJECT_DIR$/javasource/restservices/publish/ChangeLogManager.java" />
-        <option value="$PROJECT_DIR$/javasource/restservices/publish/DataService.java" />
         <option value="$PROJECT_DIR$/javasource/restservices/publish/ChangeLogConsumer.java" />
         <option value="$PROJECT_DIR$/javasource/restservices/util/DataWriter.java" />
         <option value="$PROJECT_DIR$/javasource/restservices/publish/ServiceDescriber.java" />
@@ -179,6 +165,9 @@
         <option value="$PROJECT_DIR$/javasource/restservices/util/JsonSerializer.java" />
         <option value="$PROJECT_DIR$/javasource/tests/ChangeTests.java" />
         <option value="$PROJECT_DIR$/javasource/unittesting/RemoteApiServlet.java" />
+        <option value="$PROJECT_DIR$/javasource/communitycommons/Misc.java" />
+        <option value="$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java" />
+        <option value="$PROJECT_DIR$/javasource/restservices/publish/DataService.java" />
       </list>
     </option>
   </component>
@@ -716,14 +705,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/DataService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="153">
-          <caret line="9" column="29" selection-start-line="9" selection-start-column="29" selection-end-line="9" selection-end-column="29" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/ChangeLogConsumer.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
@@ -852,18 +833,36 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/javasource/communitycommons/Misc.java">
+    <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="316">
-          <caret line="655" column="67" selection-start-line="655" selection-start-column="67" selection-end-line="655" selection-end-column="67" />
+        <state relative-caret-position="220">
+          <caret line="249" column="23" selection-start-line="249" selection-start-column="23" selection-end-line="249" selection-end-column="23" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://E:/Mendix/7.0.0-rc1/runtime/bundles/com.mendix.public-api.jar!/com/mendix/externalinterface/connector/RequestHandler.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="450">
+          <caret line="56" column="0" selection-start-line="56" selection-start-column="0" selection-end-line="56" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/RestServiceHandler.java">
+    <entry file="file://$PROJECT_DIR$/javasource/communitycommons/Misc.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="229">
-          <caret line="249" column="23" selection-start-line="249" selection-start-column="23" selection-end-line="249" selection-end-column="23" />
+        <state relative-caret-position="211">
+          <caret line="288" column="40" selection-start-line="288" selection-start-column="40" selection-end-line="288" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/javasource/restservices/publish/DataService.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="178">
+          <caret line="194" column="18" selection-start-line="194" selection-start-column="18" selection-end-line="194" selection-end-column="18" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

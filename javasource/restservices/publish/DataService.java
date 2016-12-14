@@ -192,7 +192,7 @@ public class DataService {
 		
 		if (!includeData) {
 			schema.addSortExpression(getKeyAttribute(), SortDirection.ASC);
-			schema.addMetaPrimitiveName(getKeyAttribute());
+			//schema.addMetaPrimitiveName(getKeyAttribute());
 		}
 		
 		int offset = hasOffset ? baseoffset : 0;
