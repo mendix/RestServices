@@ -19,7 +19,7 @@ import com.mendix.webui.CustomJavaAction;
  * - dateTime : the original (oldest) dateTime
  * - compareDate: the second date. If EMPTY, the current datetime will be used. Effectively this means that the age of the dateTime is calculated.
  */
-public class YearsBetween extends CustomJavaAction<Long>
+public class YearsBetween extends CustomJavaAction<java.lang.Long>
 {
 	private java.util.Date dateTime;
 	private java.util.Date compareDate;
@@ -32,7 +32,7 @@ public class YearsBetween extends CustomJavaAction<Long>
 	}
 
 	@Override
-	public Long executeAction() throws Exception
+	public java.lang.Long executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		try {
@@ -47,7 +47,7 @@ public class YearsBetween extends CustomJavaAction<Long>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "YearsBetween";
 	}

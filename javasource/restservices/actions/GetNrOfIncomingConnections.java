@@ -15,10 +15,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class GetNrOfIncomingConnections extends CustomJavaAction<Long>
+public class GetNrOfIncomingConnections extends CustomJavaAction<java.lang.Long>
 {
 	private IMendixObject __index;
 	private restservices.proxies.ChangeLog index;
@@ -30,7 +27,7 @@ public class GetNrOfIncomingConnections extends CustomJavaAction<Long>
 	}
 
 	@Override
-	public Long executeAction() throws Exception
+	public java.lang.Long executeAction() throws Exception
 	{
 		this.index = __index == null ? null : restservices.proxies.ChangeLog.initialize(getContext(), __index);
 
@@ -58,7 +55,7 @@ public class GetNrOfIncomingConnections extends CustomJavaAction<Long>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "GetNrOfIncomingConnections";
 	}

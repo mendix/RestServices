@@ -16,18 +16,18 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * makes sure the input url ends with '/' if this is not already the case
  */
-public class appendSlashToUrl extends CustomJavaAction<String>
+public class appendSlashToUrl extends CustomJavaAction<java.lang.String>
 {
-	private String url;
+	private java.lang.String url;
 
-	public appendSlashToUrl(IContext context, String url)
+	public appendSlashToUrl(IContext context, java.lang.String url)
 	{
 		super(context);
 		this.url = url;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Utils.appendSlashToUrl(url);
@@ -38,7 +38,7 @@ public class appendSlashToUrl extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "appendSlashToUrl";
 	}

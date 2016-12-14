@@ -16,7 +16,7 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Removes old locks
  */
-public class releaseAllInactiveLocks extends CustomJavaAction<Boolean>
+public class releaseAllInactiveLocks extends CustomJavaAction<java.lang.Boolean>
 {
 	public releaseAllInactiveLocks(IContext context)
 	{
@@ -24,7 +24,7 @@ public class releaseAllInactiveLocks extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ORM.releaseOldLocks();
@@ -38,7 +38,7 @@ public class releaseAllInactiveLocks extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "releaseAllInactiveLocks";
 	}

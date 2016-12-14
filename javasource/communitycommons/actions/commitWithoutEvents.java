@@ -19,7 +19,7 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * N.B. This function is not very useful when called from the model, but it is useful when called from custom Java code.
  */
-public class commitWithoutEvents extends CustomJavaAction<Boolean>
+public class commitWithoutEvents extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject subject;
 
@@ -30,7 +30,7 @@ public class commitWithoutEvents extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return ORM.commitWithoutEvents(this.getContext(), subject);
@@ -41,7 +41,7 @@ public class commitWithoutEvents extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "commitWithoutEvents";
 	}

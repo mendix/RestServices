@@ -16,12 +16,12 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Sets a header that will be used in the next request being made by the modele
  */
-public class addHeaderToNextRequest extends CustomJavaAction<Boolean>
+public class addHeaderToNextRequest extends CustomJavaAction<java.lang.Boolean>
 {
-	private String header;
-	private String value;
+	private java.lang.String header;
+	private java.lang.String value;
 
-	public addHeaderToNextRequest(IContext context, String header, String value)
+	public addHeaderToNextRequest(IContext context, java.lang.String header, java.lang.String value)
 	{
 		super(context);
 		this.header = header;
@@ -29,7 +29,7 @@ public class addHeaderToNextRequest extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.addHeaderToNextRequest(header, value);
@@ -41,7 +41,7 @@ public class addHeaderToNextRequest extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "addHeaderToNextRequest";
 	}

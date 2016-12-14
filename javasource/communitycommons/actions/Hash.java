@@ -21,12 +21,12 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Returns a SHA-256 hash of 'value', with length 'length'
  */
-public class Hash extends CustomJavaAction<String>
+public class Hash extends CustomJavaAction<java.lang.String>
 {
-	private String value;
-	private Long length;
+	private java.lang.String value;
+	private java.lang.Long length;
 
-	public Hash(IContext context, String value, Long length)
+	public Hash(IContext context, java.lang.String value, java.lang.Long length)
 	{
 		super(context);
 		this.value = value;
@@ -34,7 +34,7 @@ public class Hash extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.hash(value, length.intValue());
@@ -45,7 +45,7 @@ public class Hash extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "Hash";
 	}

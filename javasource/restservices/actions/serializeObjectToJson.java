@@ -14,10 +14,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class serializeObjectToJson extends CustomJavaAction<String>
+public class serializeObjectToJson extends CustomJavaAction<java.lang.String>
 {
 	private IMendixObject sourceObject;
 
@@ -28,7 +25,7 @@ public class serializeObjectToJson extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return JsonSerializer.writeMendixObjectToJson(getContext(), sourceObject).toString(4);
@@ -39,7 +36,7 @@ public class serializeObjectToJson extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "serializeObjectToJson";
 	}

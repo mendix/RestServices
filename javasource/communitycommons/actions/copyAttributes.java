@@ -19,7 +19,7 @@ import communitycommons.ORM;
  * 
  * Note that no automatic type conversion is done. 
  */
-public class copyAttributes extends CustomJavaAction<Boolean>
+public class copyAttributes extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject source;
 	private IMendixObject target;
@@ -32,7 +32,7 @@ public class copyAttributes extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ORM.copyAttributes(getContext(), source, target);
@@ -44,7 +44,7 @@ public class copyAttributes extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "copyAttributes";
 	}

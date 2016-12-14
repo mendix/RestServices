@@ -13,16 +13,13 @@ import restservices.consume.ChangeLogListener;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class fetchChanges extends CustomJavaAction<Boolean>
+public class fetchChanges extends CustomJavaAction<java.lang.Boolean>
 {
-	private String collectionUrl;
-	private String updateMicroflow;
-	private String deleteMicroflow;
+	private java.lang.String collectionUrl;
+	private java.lang.String updateMicroflow;
+	private java.lang.String deleteMicroflow;
 
-	public fetchChanges(IContext context, String collectionUrl, String updateMicroflow, String deleteMicroflow)
+	public fetchChanges(IContext context, java.lang.String collectionUrl, java.lang.String updateMicroflow, java.lang.String deleteMicroflow)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
@@ -31,7 +28,7 @@ public class fetchChanges extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ChangeLogListener.fetch(collectionUrl, updateMicroflow, deleteMicroflow);
@@ -43,7 +40,7 @@ public class fetchChanges extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "fetchChanges";
 	}

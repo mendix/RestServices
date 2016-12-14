@@ -18,12 +18,12 @@ import com.mendix.webui.CustomJavaAction;
  * Identical to acquirelock, but on failure, waits until the lock can be obtained.
  * Returns true if the lock has been granted, or false if the timeout (in seconds) has expired.
  */
-public class waitForLock extends CustomJavaAction<Boolean>
+public class waitForLock extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject item;
-	private Long timeOutSeconds;
+	private java.lang.Long timeOutSeconds;
 
-	public waitForLock(IContext context, IMendixObject item, Long timeOutSeconds)
+	public waitForLock(IContext context, IMendixObject item, java.lang.Long timeOutSeconds)
 	{
 		super(context);
 		this.item = item;
@@ -31,7 +31,7 @@ public class waitForLock extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return ORM.waitForLock(this.getContext(), item, timeOutSeconds);
@@ -42,7 +42,7 @@ public class waitForLock extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "waitForLock";
 	}

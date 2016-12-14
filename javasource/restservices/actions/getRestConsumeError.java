@@ -15,9 +15,6 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
 public class getRestConsumeError extends CustomJavaAction<IMendixObject>
 {
 	public getRestConsumeError(IContext context)
@@ -38,7 +35,7 @@ public class getRestConsumeError extends CustomJavaAction<IMendixObject>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getRestConsumeError";
 	}

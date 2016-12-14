@@ -18,10 +18,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 import communitycommons.Misc;
 
-/**
- * 
- */
-public class multiplefile extends CustomJavaAction<Boolean>
+public class multiplefile extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __file;
 	private tests.proxies.TestFile file;
@@ -33,7 +30,7 @@ public class multiplefile extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.file = __file == null ? null : tests.proxies.TestFile.initialize(getContext(), __file);
 
@@ -60,7 +57,7 @@ public class multiplefile extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "multiplefile";
 	}

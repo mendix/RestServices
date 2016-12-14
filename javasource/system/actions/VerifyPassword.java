@@ -17,12 +17,12 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Verifies that the specified user name/password combination is valid.
  */
-public class VerifyPassword extends CustomJavaAction<Boolean>
+public class VerifyPassword extends CustomJavaAction<java.lang.Boolean>
 {
-	private String userName;
-	private String password;
+	private java.lang.String userName;
+	private java.lang.String password;
 
-	public VerifyPassword(IContext context, String userName, String password)
+	public VerifyPassword(IContext context, java.lang.String userName, java.lang.String password)
 	{
 		super(context);
 		this.userName = userName;
@@ -30,7 +30,7 @@ public class VerifyPassword extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		IUser user = Core.getUser(getContext(), userName);
@@ -42,7 +42,7 @@ public class VerifyPassword extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "VerifyPassword";
 	}

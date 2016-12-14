@@ -20,11 +20,11 @@ import com.mendix.webui.CustomJavaAction;
  */
 public class get2 extends CustomJavaAction<IMendixObject>
 {
-	private String resourceUrl;
+	private java.lang.String resourceUrl;
 	private IMendixObject requestData;
 	private IMendixObject targetObject;
 
-	public get2(IContext context, String resourceUrl, IMendixObject requestData, IMendixObject targetObject)
+	public get2(IContext context, java.lang.String resourceUrl, IMendixObject requestData, IMendixObject targetObject)
 	{
 		super(context);
 		this.resourceUrl = resourceUrl;
@@ -44,7 +44,7 @@ public class get2 extends CustomJavaAction<IMendixObject>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "get2";
 	}

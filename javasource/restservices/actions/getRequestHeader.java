@@ -13,21 +13,18 @@ import restservices.publish.RestServiceRequest;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class getRequestHeader extends CustomJavaAction<String>
+public class getRequestHeader extends CustomJavaAction<java.lang.String>
 {
-	private String headerName;
+	private java.lang.String headerName;
 
-	public getRequestHeader(IContext context, String headerName)
+	public getRequestHeader(IContext context, java.lang.String headerName)
 	{
 		super(context);
 		this.headerName = headerName;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return RestServiceRequest.getRequestHeader(getContext(), headerName);
@@ -38,7 +35,7 @@ public class getRequestHeader extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getRequestHeader";
 	}

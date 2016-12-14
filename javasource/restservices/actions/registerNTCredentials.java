@@ -13,17 +13,14 @@ import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class registerNTCredentials extends CustomJavaAction<Boolean>
+public class registerNTCredentials extends CustomJavaAction<java.lang.Boolean>
 {
-	private String urlBasePath;
-	private String username;
-	private String password;
-	private String domain;
+	private java.lang.String urlBasePath;
+	private java.lang.String username;
+	private java.lang.String password;
+	private java.lang.String domain;
 
-	public registerNTCredentials(IContext context, String urlBasePath, String username, String password, String domain)
+	public registerNTCredentials(IContext context, java.lang.String urlBasePath, java.lang.String username, java.lang.String password, java.lang.String domain)
 	{
 		super(context);
 		this.urlBasePath = urlBasePath;
@@ -33,7 +30,7 @@ public class registerNTCredentials extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.registerNTCredentials(urlBasePath, username, password, domain);
@@ -45,7 +42,7 @@ public class registerNTCredentials extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "registerNTCredentials";
 	}

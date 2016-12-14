@@ -27,12 +27,12 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Locks will be released automatically if another session request a lock on the same object, and the session is not active anymore.
  */
-public class releaseLock extends CustomJavaAction<Boolean>
+public class releaseLock extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject item;
-	private Boolean force;
+	private java.lang.Boolean force;
 
-	public releaseLock(IContext context, IMendixObject item, Boolean force)
+	public releaseLock(IContext context, IMendixObject item, java.lang.Boolean force)
 	{
 		super(context);
 		this.item = item;
@@ -40,7 +40,7 @@ public class releaseLock extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return ORM.releaseLock(this.getContext(), item, force);
@@ -51,7 +51,7 @@ public class releaseLock extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "releaseLock";
 	}

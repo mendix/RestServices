@@ -19,7 +19,7 @@ import com.mendix.webui.FeedbackHelper;
  * 
  * - instance : This object is used to identify the type of objects that need to be refreshed. For example passing $currentUser will refresh all System.Account's.
  */
-public class refreshClassByObject extends CustomJavaAction<Boolean>
+public class refreshClassByObject extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject instance;
 
@@ -30,7 +30,7 @@ public class refreshClassByObject extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		if (instance != null) {
@@ -44,7 +44,7 @@ public class refreshClassByObject extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "refreshClassByObject";
 	}

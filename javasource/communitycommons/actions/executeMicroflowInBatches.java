@@ -31,15 +31,15 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Note, if new objects are added to the dataset while the batch is still running, those objects will be processed as well.
  */
-public class executeMicroflowInBatches extends CustomJavaAction<Boolean>
+public class executeMicroflowInBatches extends CustomJavaAction<java.lang.Boolean>
 {
-	private String xpath;
-	private String microflow;
-	private Long batchsize;
-	private Boolean waitUntilFinished;
-	private Boolean ascending;
+	private java.lang.String xpath;
+	private java.lang.String microflow;
+	private java.lang.Long batchsize;
+	private java.lang.Boolean waitUntilFinished;
+	private java.lang.Boolean ascending;
 
-	public executeMicroflowInBatches(IContext context, String xpath, String microflow, Long batchsize, Boolean waitUntilFinished, Boolean ascending)
+	public executeMicroflowInBatches(IContext context, java.lang.String xpath, java.lang.String microflow, java.lang.Long batchsize, java.lang.Boolean waitUntilFinished, java.lang.Boolean ascending)
 	{
 		super(context);
 		this.xpath = xpath;
@@ -50,7 +50,7 @@ public class executeMicroflowInBatches extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Misc.executeMicroflowInBatches(xpath, microflow, batchsize.intValue(), waitUntilFinished.booleanValue(), ascending);
@@ -61,7 +61,7 @@ public class executeMicroflowInBatches extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "executeMicroflowInBatches";
 	}

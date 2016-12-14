@@ -29,14 +29,14 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * timeout of individual in seconds (longer is more efficient, but might cause firewall issues). 0 for unlimited. negative for timeout or return on the first change. Default value should be -50. 
  */
-public class followChanges extends CustomJavaAction<Boolean>
+public class followChanges extends CustomJavaAction<java.lang.Boolean>
 {
-	private String collectionUrl;
-	private String updateMicroflow;
-	private String deleteMicroflow;
-	private Long timeout;
+	private java.lang.String collectionUrl;
+	private java.lang.String updateMicroflow;
+	private java.lang.String deleteMicroflow;
+	private java.lang.Long timeout;
 
-	public followChanges(IContext context, String collectionUrl, String updateMicroflow, String deleteMicroflow, Long timeout)
+	public followChanges(IContext context, java.lang.String collectionUrl, java.lang.String updateMicroflow, java.lang.String deleteMicroflow, java.lang.Long timeout)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
@@ -46,7 +46,7 @@ public class followChanges extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ChangeLogListener.follow(collectionUrl, updateMicroflow, deleteMicroflow, timeout);
@@ -58,7 +58,7 @@ public class followChanges extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "followChanges";
 	}

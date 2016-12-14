@@ -15,21 +15,18 @@ import restservices.util.Utils;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class setRestBasePath extends CustomJavaAction<Boolean>
+public class setRestBasePath extends CustomJavaAction<java.lang.Boolean>
 {
-	private String basePath;
+	private java.lang.String basePath;
 
-	public setRestBasePath(IContext context, String basePath)
+	public setRestBasePath(IContext context, java.lang.String basePath)
 	{
 		super(context);
 		this.basePath = basePath;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		if (RestServiceHandler.isStarted())
@@ -50,7 +47,7 @@ public class setRestBasePath extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "setRestBasePath";
 	}

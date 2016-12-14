@@ -20,13 +20,13 @@ import com.mendix.webui.CustomJavaAction;
  * * errorMessage:	The error message
  * * errorCode: Custom error code for this exception, to make the error easier recognizable and referable. 
  */
-public class throwRestServiceException extends CustomJavaAction<Boolean>
+public class throwRestServiceException extends CustomJavaAction<java.lang.Boolean>
 {
-	private Long httpStatus;
-	private String errorMessage;
-	private String errorCode;
+	private java.lang.Long httpStatus;
+	private java.lang.String errorMessage;
+	private java.lang.String errorCode;
 
-	public throwRestServiceException(IContext context, Long httpStatus, String errorMessage, String errorCode)
+	public throwRestServiceException(IContext context, java.lang.Long httpStatus, java.lang.String errorMessage, java.lang.String errorCode)
 	{
 		super(context);
 		this.httpStatus = httpStatus;
@@ -35,7 +35,7 @@ public class throwRestServiceException extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		throw new CustomRestServiceException(errorCode, errorMessage, (int)(long) httpStatus);
@@ -46,7 +46,7 @@ public class throwRestServiceException extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "throwRestServiceException";
 	}

@@ -17,12 +17,12 @@ import com.mendix.webui.CustomJavaAction;
  * Decrypts an AES encrypted string.
  * The keylength should exactly be 16 characters (128 bit).
  */
-public class EncryptString extends CustomJavaAction<String>
+public class EncryptString extends CustomJavaAction<java.lang.String>
 {
-	private String valueToEncrypt;
-	private String key;
+	private java.lang.String valueToEncrypt;
+	private java.lang.String key;
 
-	public EncryptString(IContext context, String valueToEncrypt, String key)
+	public EncryptString(IContext context, java.lang.String valueToEncrypt, java.lang.String key)
 	{
 		super(context);
 		this.valueToEncrypt = valueToEncrypt;
@@ -30,7 +30,7 @@ public class EncryptString extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.encryptString(key, valueToEncrypt);
@@ -41,7 +41,7 @@ public class EncryptString extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "EncryptString";
 	}

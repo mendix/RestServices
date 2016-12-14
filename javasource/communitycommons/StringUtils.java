@@ -8,8 +8,6 @@ import java.io.StringReader;
 import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.regex.MatchResult;
@@ -27,14 +25,10 @@ import javax.swing.text.html.parser.ParserDelegator;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.owasp.validator.html.AntiSamy;
 import org.owasp.validator.html.CleanResults;
 import org.owasp.validator.html.Policy;
-
-import system.proxies.FileDocument;
 
 import com.google.common.base.Function;
 import com.mendix.core.Core;
@@ -43,6 +37,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 import communitycommons.proxies.XSSPolicy;
+import system.proxies.FileDocument;
 
 public class StringUtils
 {

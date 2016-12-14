@@ -14,18 +14,15 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class getCollection extends CustomJavaAction<Boolean>
+public class getCollection extends CustomJavaAction<java.lang.Boolean>
 {
-	private String collectionUrl;
+	private java.lang.String collectionUrl;
 	private java.util.List<IMendixObject> __resultList;
 	private java.util.List<restservices.proxies.AnyObject> resultList;
 	private IMendixObject __firstResult;
 	private restservices.proxies.AnyObject firstResult;
 
-	public getCollection(IContext context, String collectionUrl, java.util.List<IMendixObject> resultList, IMendixObject firstResult)
+	public getCollection(IContext context, java.lang.String collectionUrl, java.util.List<IMendixObject> resultList, IMendixObject firstResult)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
@@ -34,7 +31,7 @@ public class getCollection extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.resultList = new java.util.ArrayList<restservices.proxies.AnyObject>();
 		if (__resultList != null)
@@ -57,7 +54,7 @@ public class getCollection extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getCollection";
 	}

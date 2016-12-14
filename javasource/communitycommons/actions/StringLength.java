@@ -17,18 +17,18 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * DEPRECATED: The length() function is preferred. (See: https://world.mendix.com/display/NRG/String+function+calls)
  */
-public class StringLength extends CustomJavaAction<Long>
+public class StringLength extends CustomJavaAction<java.lang.Long>
 {
-	private String value;
+	private java.lang.String value;
 
-	public StringLength(IContext context, String value)
+	public StringLength(IContext context, java.lang.String value)
 	{
 		super(context);
 		this.value = value;
 	}
 
 	@Override
-	public Long executeAction() throws Exception
+	public java.lang.Long executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		if (this.value == null)
@@ -41,7 +41,7 @@ public class StringLength extends CustomJavaAction<Long>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "StringLength";
 	}

@@ -13,15 +13,12 @@ import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class getCollectionAsync extends CustomJavaAction<Boolean>
+public class getCollectionAsync extends CustomJavaAction<java.lang.Boolean>
 {
-	private String collectionUrl;
-	private String callbackMicroflow;
+	private java.lang.String collectionUrl;
+	private java.lang.String callbackMicroflow;
 
-	public getCollectionAsync(IContext context, String collectionUrl, String callbackMicroflow)
+	public getCollectionAsync(IContext context, java.lang.String collectionUrl, java.lang.String callbackMicroflow)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
@@ -29,7 +26,7 @@ public class getCollectionAsync extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.getCollectionAsync(collectionUrl, callbackMicroflow);
@@ -41,7 +38,7 @@ public class getCollectionAsync extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getCollectionAsync";
 	}

@@ -19,13 +19,13 @@ import com.mendix.webui.CustomJavaAction;
  * - LogLevel. The loglevel used to print the result.
  * - The message to be printed in the log.
  */
-public class TimeMeasureEnd extends CustomJavaAction<Long>
+public class TimeMeasureEnd extends CustomJavaAction<java.lang.Long>
 {
-	private String TimerName;
+	private java.lang.String TimerName;
 	private communitycommons.proxies.LogLevel Loglevel;
-	private String message;
+	private java.lang.String message;
 
-	public TimeMeasureEnd(IContext context, String TimerName, String Loglevel, String message)
+	public TimeMeasureEnd(IContext context, java.lang.String TimerName, java.lang.String Loglevel, java.lang.String message)
 	{
 		super(context);
 		this.TimerName = TimerName;
@@ -34,7 +34,7 @@ public class TimeMeasureEnd extends CustomJavaAction<Long>
 	}
 
 	@Override
-	public Long executeAction() throws Exception
+	public java.lang.Long executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Logging.measureEnd(TimerName, Loglevel, message);
@@ -45,7 +45,7 @@ public class TimeMeasureEnd extends CustomJavaAction<Long>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "TimeMeasureEnd";
 	}

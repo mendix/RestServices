@@ -19,11 +19,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.apache.commons.io.IOUtils;
-import org.apache.pdfbox.Overlay;
-import org.apache.pdfbox.exceptions.COSVisitorException;
+import org.apache.pdfbox.multipdf.Overlay;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.util.PDFMergerUtility;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 
 import system.proxies.FileDocument;
 import system.proxies.Language;
@@ -143,20 +141,33 @@ public class Misc
 	}
 
 	public static Boolean duplicateFileDocument(IContext context, IMendixObject toClone, IMendixObject target) throws Exception
-	{
-		if (toClone == null || target == null)
-			throw new Exception("No file to clone or to clone into provided");
-		
-		 MendixBoolean hasContents = (MendixBoolean) toClone.getMember(context, FileDocument.MemberNames.HasContents.toString());
-     if (!hasContents.getValue(context))
-    	 return false;
+    {
+        if (toClone == null || target == null)
+            throw new Exception("No file to clone or to clone into provided");
 
-		InputStream inputStream = Core.getFileDocumentContent(context, toClone); 
-	
-		Core.storeFileDocumentContent(context, target, (String) toClone.getValue(context, system.proxies.FileDocument.MemberNames.Name.toString()),  inputStream); 
-		return true;
-	}
-	
+         MendixBoolean hasContents = (MendixBoolean) toClone.getMember(context, FileDocument.MemberNames.HasContents.toString());
+     if (!hasContents.getValue(context))
+         return false;
+
+        InputStream inputStream = Core.getFileDocumentContent(context, toClone); 
+
+        try {
+            Core.storeFileDocumentContent(context, target, (String) toClone.getValue(context, system.proxies.FileDocument.MemberNames.Name.toString()),  inputStream); 
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        finally{
+            try {
+                if(inputStream != null)
+                inputStream.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+
   public static Boolean duplicateImage(IContext context, IMendixObject toClone, IMendixObject target, int thumbWidth, int thumbHeight) throws Exception
   {
       if (toClone == null || target == null)
@@ -168,8 +179,21 @@ public class Misc
 
       InputStream inputStream = Core.getImage(context, toClone, false); 
 
-      Core.storeImageDocumentContent(context, target, inputStream, thumbWidth, thumbHeight);
+      try {
+        Core.storeImageDocumentContent(context, target, inputStream, thumbWidth, thumbHeight);
 
+          return true;
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+      finally {
+          try {
+            if(inputStream!= null)
+              inputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+      }
       return true;
   }
 
@@ -241,22 +265,30 @@ public class Misc
 		if (username == null || username.isEmpty()) {
 			throw new RuntimeException("Assertion: No username provided");
 		}
-		
-		ISession session = getSessionFor(context, username);
-		
-		IContext c = session.createContext();
-		if (sudoContext) {
-			return c.getSudoContext();
+
+        // Session does not have a user when it's a scheduled event.
+		if (context.getSession().getUser() != null && username.equals(context.getSession().getUser().getName()))
+		{
+			return context;
 		}
+		else
+		{
+			ISession session = getSessionFor(context, username);
 		
-		return c;
+			IContext c = session.createContext();
+			if (sudoContext) {
+				return c.createSudoClone();
+			}
+		
+			return c;
+		}
 	}
 
 	private static ISession getSessionFor(IContext context, String username) {
 		ISession session  = Core.getActiveSession(username);
 		
 		if (session == null) {
-			IContext newContext = context.getSession().createContext().getSudoContext();
+			IContext newContext = context.getSession().createContext().createSudoClone();
 			newContext.startTransaction();
 			try {
 				session = initializeSessionForUser(newContext, username);
@@ -342,19 +374,19 @@ public class Misc
 			}
 			
 			final long currenttasknr = tasknr.incrementAndGet();
-			LOG.info("[RunMicroflowAsyncInQueue] Scheduling task #" + currenttasknr);
+			LOG.debug("[RunMicroflowAsyncInQueue] Scheduling task #" + currenttasknr);
 			
 			executor.submit(new Runnable() {
 				@Override
 				public void run() {
-					LOG.info("[RunMicroflowAsyncInQueue] Running task #" + currenttasknr);
+					LOG.debug("[RunMicroflowAsyncInQueue] Running task #" + currenttasknr);
 					try {
 						command.run();
 					} catch(RuntimeException e) {
 						LOG.error("[RunMicroflowAsyncInQueue] Execution of task #" + currenttasknr + " failed: " + e.getMessage(), e);
 						throw e; //single thread executor will continue, even if an exception is thrown.
 					}
-					LOG.info("[RunMicroflowAsyncInQueue] Completed task #" + currenttasknr + ". Tasks left: " + (tasknr.get() - currenttasknr));
+					LOG.debug("[RunMicroflowAsyncInQueue] Completed task #" + currenttasknr + ". Tasks left: " + (tasknr.get() - currenttasknr));
 				}
 			});
 		}
@@ -383,10 +415,6 @@ public class Misc
 	public static Boolean runMicroflowInBackground(final IContext context, final String microflowName,
 			final IMendixObject paramObject)
 	{
-		final ISession session = context.getSession();
-		
-		if (paramObject != null)
-			session.retain(paramObject);
 			
 		MFSerialExecutor.instance().execute(new Runnable() {
 
@@ -406,11 +434,7 @@ public class Misc
 				{
 					throw new RuntimeException("Failed to run Async: "+ microflowName + ": " + e.getMessage(), e);
 				}
-				
-				finally {
-					if (paramObject != null)
-						session.release(paramObject.getId());
-				}
+
 			}
 			
 		});
@@ -579,7 +603,6 @@ public class Misc
 	}
 	
 	public static boolean mergePDF(IContext context,List<FileDocument> documents,  IMendixObject mergedDocument ){
-		
 		int i = 0;
 		PDFMergerUtility  mergePdf = new  PDFMergerUtility();
 		for(i=0; i < documents.size(); i++)
@@ -591,10 +614,7 @@ public class Misc
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		mergePdf.setDestinationStream(out);
 		try {
-			mergePdf.mergeDocuments();
-		} catch (COSVisitorException e) {
-			throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
-			
+			mergePdf.mergeDocuments(null);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
 			
@@ -616,42 +636,24 @@ public class Misc
 	 * @param overlayMendixObject The document containing the overlay
 	 * @return boolean
 	 * @throws IOException
-	 * @throws COSVisitorException
 	 */
-	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject) throws IOException, COSVisitorException {
-		
+	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject) throws IOException {	
 		ILogNode logger = Core.getLogger("OverlayPdf"); 
+		logger.trace("Retrieve generated document");
+		PDDocument inputDoc = PDDocument.load(Core.getFileDocumentContent(context, generatedDocumentMendixObject));
+		
 		logger.trace("Overlay PDF start, retrieve overlay PDF");
 		PDDocument overlayDoc = PDDocument.load(Core.getFileDocumentContent(context, overlayMendixObject));
-		int overlayPageCount = overlayDoc.getNumberOfPages();
-		PDPage lastOverlayPage = (PDPage)overlayDoc.getDocumentCatalog().getAllPages().get(overlayPageCount - 1);
-
-		logger.trace("Retrieve generated document");
-		PDDocument offerteDoc = PDDocument.load(Core.getFileDocumentContent(context, generatedDocumentMendixObject));
-
-		int pageCount = offerteDoc.getNumberOfPages();
-		if (logger.isTraceEnabled()) {
-			logger.trace("Number of pages in overlay: " + overlayPageCount + ", in generated document: " + pageCount);						
-		}
-		if (pageCount > overlayPageCount) {
-			logger.trace("Duplicate last overlay page to match number of pages");
-			for (int i = overlayPageCount; i < pageCount; i++) {
-				overlayDoc.importPage(lastOverlayPage);
-			}
-		} else if (overlayPageCount > pageCount) {
-			logger.trace("Delete unnecessary pages from the overlay to match number of pages");
-			for (int i = pageCount; i < overlayPageCount; i++) {
-				overlayDoc.removePage(i);
-			}
-		}
 				
 		logger.trace("Perform overlay");
 		Overlay overlay = new Overlay();
-		overlay.overlay(offerteDoc,overlayDoc);
+		overlay.setInputPDF(inputDoc);
+		overlay.setDefaultOverlayPDF(overlayDoc);
+		overlay.setOverlayPosition(Overlay.Position.BACKGROUND);
 		
 		logger.trace("Save result in output stream");
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		overlayDoc.save(baos);
+		overlay.overlay(new HashMap<Integer, String>()).save(baos);
 		
 		logger.trace("Duplicate result in input stream");
 		InputStream overlayedContent = new ByteArrayInputStream(baos.toByteArray());
@@ -661,12 +663,9 @@ public class Misc
 		
 		logger.trace("Close PDFs");
 		overlayDoc.close();
-		offerteDoc.close();
+		inputDoc.close();
 		
 		logger.trace("Overlay PDF end");
 		return true;
-		
 	}
-	
-	
 }

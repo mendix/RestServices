@@ -16,18 +16,18 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Converts a plain string to a base64 encoded string
  */
-public class Base64Encode extends CustomJavaAction<String>
+public class Base64Encode extends CustomJavaAction<java.lang.String>
 {
-	private String value;
+	private java.lang.String value;
 
-	public Base64Encode(IContext context, String value)
+	public Base64Encode(IContext context, java.lang.String value)
 	{
 		super(context);
 		this.value = value;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.base64Encode(value);
@@ -38,7 +38,7 @@ public class Base64Encode extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "Base64Encode";
 	}

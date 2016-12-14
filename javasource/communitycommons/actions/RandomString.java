@@ -16,18 +16,18 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Generates a random alphanumeric string of the desired length.
  */
-public class RandomString extends CustomJavaAction<String>
+public class RandomString extends CustomJavaAction<java.lang.String>
 {
-	private Long length;
+	private java.lang.Long length;
 
-	public RandomString(IContext context, Long length)
+	public RandomString(IContext context, java.lang.Long length)
 	{
 		super(context);
 		this.length = length;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.randomString(length.intValue());
@@ -38,7 +38,7 @@ public class RandomString extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "RandomString";
 	}

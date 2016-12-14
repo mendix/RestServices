@@ -14,10 +14,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class LoadService extends CustomJavaAction<Boolean>
+public class LoadService extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __def;
 	private restservices.proxies.DataServiceDefinition def;
@@ -29,7 +26,7 @@ public class LoadService extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.def = __def == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __def);
 
@@ -43,7 +40,7 @@ public class LoadService extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "LoadService";
 	}

@@ -22,16 +22,16 @@ import com.mendix.webui.CustomJavaAction;
  * Returns true if copied, returns file if the source had no contents, throws exception in any other case.
  * Pre condition: HasContents of the 'fileToClone' need to be set to true, otherwise the action will not copy anything.
  */
-public class DuplicateImageDocument extends CustomJavaAction<Boolean>
+public class DuplicateImageDocument extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __fileToClone;
 	private system.proxies.Image fileToClone;
 	private IMendixObject __cloneTarget;
 	private system.proxies.Image cloneTarget;
-	private Long thumbWidth;
-	private Long thumbHeight;
+	private java.lang.Long thumbWidth;
+	private java.lang.Long thumbHeight;
 
-	public DuplicateImageDocument(IContext context, IMendixObject fileToClone, IMendixObject cloneTarget, Long thumbWidth, Long thumbHeight)
+	public DuplicateImageDocument(IContext context, IMendixObject fileToClone, IMendixObject cloneTarget, java.lang.Long thumbWidth, java.lang.Long thumbHeight)
 	{
 		super(context);
 		this.__fileToClone = fileToClone;
@@ -41,7 +41,7 @@ public class DuplicateImageDocument extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.fileToClone = __fileToClone == null ? null : system.proxies.Image.initialize(getContext(), __fileToClone);
 
@@ -56,7 +56,7 @@ public class DuplicateImageDocument extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "DuplicateImageDocument";
 	}

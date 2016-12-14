@@ -15,18 +15,15 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
 public class request extends CustomJavaAction<IMendixObject>
 {
 	private restservices.proxies.HttpMethod method;
-	private String url;
+	private java.lang.String url;
 	private IMendixObject optRequestData;
 	private IMendixObject optResponseData;
-	private Boolean sendWithFormEncoding;
+	private java.lang.Boolean sendWithFormEncoding;
 
-	public request(IContext context, String method, String url, IMendixObject optRequestData, IMendixObject optResponseData, Boolean sendWithFormEncoding)
+	public request(IContext context, java.lang.String method, java.lang.String url, IMendixObject optRequestData, IMendixObject optResponseData, java.lang.Boolean sendWithFormEncoding)
 	{
 		super(context);
 		this.method = method == null ? null : restservices.proxies.HttpMethod.valueOf(method);
@@ -48,7 +45,7 @@ public class request extends CustomJavaAction<IMendixObject>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "request";
 	}

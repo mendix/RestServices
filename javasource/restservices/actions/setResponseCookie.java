@@ -14,10 +14,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class setResponseCookie extends CustomJavaAction<Boolean>
+public class setResponseCookie extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __cookie;
 	private restservices.proxies.Cookie cookie;
@@ -29,7 +26,7 @@ public class setResponseCookie extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.cookie = __cookie == null ? null : restservices.proxies.Cookie.initialize(getContext(), __cookie);
 
@@ -43,7 +40,7 @@ public class setResponseCookie extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "setResponseCookie";
 	}

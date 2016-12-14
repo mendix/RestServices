@@ -13,21 +13,18 @@ import restservices.consume.ChangeLogListener;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class resetChangeTracking extends CustomJavaAction<Boolean>
+public class resetChangeTracking extends CustomJavaAction<java.lang.Boolean>
 {
-	private String collectionUrl;
+	private java.lang.String collectionUrl;
 
-	public resetChangeTracking(IContext context, String collectionUrl)
+	public resetChangeTracking(IContext context, java.lang.String collectionUrl)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ChangeLogListener.resetDataSyncState(collectionUrl);
@@ -39,7 +36,7 @@ public class resetChangeTracking extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "resetChangeTracking";
 	}

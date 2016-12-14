@@ -13,15 +13,12 @@ import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class addCredentialsToNextRequest extends CustomJavaAction<Boolean>
+public class addCredentialsToNextRequest extends CustomJavaAction<java.lang.Boolean>
 {
-	private String username;
-	private String password;
+	private java.lang.String username;
+	private java.lang.String password;
 
-	public addCredentialsToNextRequest(IContext context, String username, String password)
+	public addCredentialsToNextRequest(IContext context, java.lang.String username, java.lang.String password)
 	{
 		super(context);
 		this.username = username;
@@ -29,7 +26,7 @@ public class addCredentialsToNextRequest extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.addCredentialsToNextRequest(username, password);
@@ -41,7 +38,7 @@ public class addCredentialsToNextRequest extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "addCredentialsToNextRequest";
 	}

@@ -16,13 +16,13 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Adds a URL parameter to a url. Make sure that any encoding required is applied
  */
-public class appendParamToUrl extends CustomJavaAction<String>
+public class appendParamToUrl extends CustomJavaAction<java.lang.String>
 {
-	private String url;
-	private String paramName;
-	private String paramValue;
+	private java.lang.String url;
+	private java.lang.String paramName;
+	private java.lang.String paramValue;
 
-	public appendParamToUrl(IContext context, String url, String paramName, String paramValue)
+	public appendParamToUrl(IContext context, java.lang.String url, java.lang.String paramName, java.lang.String paramValue)
 	{
 		super(context);
 		this.url = url;
@@ -31,7 +31,7 @@ public class appendParamToUrl extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Utils.appendParamToUrl(url, paramName, paramValue);
@@ -42,7 +42,7 @@ public class appendParamToUrl extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "appendParamToUrl";
 	}
