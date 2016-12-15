@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.apache.commons.io.IOUtils;
-import org.apache.pdfbox.exceptions.COSVisitorException;
 import org.apache.pdfbox.multipdf.Overlay;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
@@ -638,7 +637,7 @@ public class Misc
 	 * @return boolean
 	 * @throws IOException
 	 */
-	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject) throws IOException, COSVisitorException {
+	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject) throws IOException {	
 		ILogNode logger = Core.getLogger("OverlayPdf"); 
 		logger.trace("Retrieve generated document");
 		PDDocument inputDoc = PDDocument.load(Core.getFileDocumentContent(context, generatedDocumentMendixObject));
