@@ -9,7 +9,7 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 3. (Real time) Synchronization of data between Mendix applications
 
 ## Related resources
-* RestServices on [GitHub](https://github.com/mweststrate/RestServices)
+* RestServices on [GitHub](https://github.com/mendix/RestServices)
 * Restservices in the [Mendix Appstore](https://appstore.mendix.com/link/app/rest%20services)
 * Blog post: [Consuming your first REST service](http://www.mendix.com/blog/consuming-first-rest-service/)
 * Blog post: [REST Part II: Publishing Microflows with REST](http://www.mendix.com/blog/rest-part-ii-publishing-microflows-rest/)
@@ -31,9 +31,8 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 
 # Getting Started
 
-1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 4.4.4+ or Mendix 5.3.1+.
-2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 5.4 or higher. Download this module as well if it is not already part of your project.
-3. TODO: connect userroles and layouts (mx 5)
+1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 6.0.1+.
+2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 6.1 or higher. Download this module as well if it is not already part of your project.
 3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well.
 4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application. Also, the 'rest/' request handler needs to be opened if running in the Mendix Standard Cloud (or on premise).
 5. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally.
