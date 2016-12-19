@@ -1,7 +1,7 @@
 package restservices.publish;
 
 import org.apache.commons.httpclient.HttpStatus;
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONObject;
 
 import restservices.RestServices;
 import restservices.proxies.DataServiceDefinition;

@@ -29,12 +29,12 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Returns true if scheduled successfully.
  */
-public class executeMicroflowInBackground extends CustomJavaAction<Boolean>
+public class executeMicroflowInBackground extends CustomJavaAction<java.lang.Boolean>
 {
-	private String microflowName;
+	private java.lang.String microflowName;
 	private IMendixObject contextObject;
 
-	public executeMicroflowInBackground(IContext context, String microflowName, IMendixObject contextObject)
+	public executeMicroflowInBackground(IContext context, java.lang.String microflowName, IMendixObject contextObject)
 	{
 		super(context);
 		this.microflowName = microflowName;
@@ -42,7 +42,7 @@ public class executeMicroflowInBackground extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return  Misc.runMicroflowInBackground(getContext(), microflowName, contextObject);
@@ -53,7 +53,7 @@ public class executeMicroflowInBackground extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "executeMicroflowInBackground";
 	}

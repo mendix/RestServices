@@ -313,7 +313,7 @@ public class XPath<T>
 			return res;
 		} else {
 			synchronized (Core.getMetaObject(entity)) {
-				IContext synchronizedContext = context.getSession().createContext().getSudoContext();
+				IContext synchronizedContext = context.getSession().createContext().createSudoClone();
 				try {
 					synchronizedContext.startTransaction();
 					res = createProxy(synchronizedContext, proxyClass, XPath.create(synchronizedContext, entity).findOrCreate(keysAndValues));

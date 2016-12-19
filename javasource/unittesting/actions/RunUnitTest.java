@@ -10,15 +10,11 @@
 package unittesting.actions;
 
 import unittesting.TestManager;
-import com.mendix.systemwideinterfaces.core.IMendixObject;
-import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IContext;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class RunUnitTest extends CustomJavaAction<Boolean>
+public class RunUnitTest extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __unitTest;
 	private unittesting.proxies.UnitTest unitTest;
@@ -30,12 +26,12 @@ public class RunUnitTest extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.unitTest = __unitTest == null ? null : unittesting.proxies.UnitTest.initialize(getContext(), __unitTest);
 
 		// BEGIN USER CODE
-		TestManager.instance().runTest(unitTest, getContext(), this);
+		TestManager.instance().runTest(getContext(), unitTest);
 		return true;
 		// END USER CODE
 	}
@@ -44,7 +40,7 @@ public class RunUnitTest extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "RunUnitTest";
 	}

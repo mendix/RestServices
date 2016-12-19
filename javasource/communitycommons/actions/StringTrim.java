@@ -16,18 +16,18 @@ import com.mendix.webui.CustomJavaAction;
  * Left and right trims a string (that is; removes all surrounding whitespace characters such as tabs, spaces and returns). 
  * Returns the empty string if value is the empty value. Returns the trimmed string otherwise.
  */
-public class StringTrim extends CustomJavaAction<String>
+public class StringTrim extends CustomJavaAction<java.lang.String>
 {
-	private String value;
+	private java.lang.String value;
 
-	public StringTrim(IContext context, String value)
+	public StringTrim(IContext context, java.lang.String value)
 	{
 		super(context);
 		this.value = value;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		if (this.value == null)
@@ -40,7 +40,7 @@ public class StringTrim extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "StringTrim";
 	}

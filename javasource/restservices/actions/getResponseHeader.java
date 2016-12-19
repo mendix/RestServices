@@ -14,16 +14,13 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class getResponseHeader extends CustomJavaAction<String>
+public class getResponseHeader extends CustomJavaAction<java.lang.String>
 {
 	private IMendixObject __requestResult;
 	private restservices.proxies.RequestResult requestResult;
-	private String headerName;
+	private java.lang.String headerName;
 
-	public getResponseHeader(IContext context, IMendixObject requestResult, String headerName)
+	public getResponseHeader(IContext context, IMendixObject requestResult, java.lang.String headerName)
 	{
 		super(context);
 		this.__requestResult = requestResult;
@@ -31,7 +28,7 @@ public class getResponseHeader extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		this.requestResult = __requestResult == null ? null : restservices.proxies.RequestResult.initialize(getContext(), __requestResult);
 
@@ -44,7 +41,7 @@ public class getResponseHeader extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getResponseHeader";
 	}

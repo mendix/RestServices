@@ -18,18 +18,18 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * This saves resources of both the client and server. 
  */
-public class addIfNoneMatchHeader extends CustomJavaAction<Boolean>
+public class addIfNoneMatchHeader extends CustomJavaAction<java.lang.Boolean>
 {
-	private String ETag;
+	private java.lang.String ETag;
 
-	public addIfNoneMatchHeader(IContext context, String ETag)
+	public addIfNoneMatchHeader(IContext context, java.lang.String ETag)
 	{
 		super(context);
 		this.ETag = ETag;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.useETagInNextRequest(ETag);
@@ -41,7 +41,7 @@ public class addIfNoneMatchHeader extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "addIfNoneMatchHeader";
 	}

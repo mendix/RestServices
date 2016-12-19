@@ -13,16 +13,13 @@ import restservices.consume.RestConsumer;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class registerCredentials extends CustomJavaAction<Boolean>
+public class registerCredentials extends CustomJavaAction<java.lang.Boolean>
 {
-	private String urlBasePath;
-	private String username;
-	private String password;
+	private java.lang.String urlBasePath;
+	private java.lang.String username;
+	private java.lang.String password;
 
-	public registerCredentials(IContext context, String urlBasePath, String username, String password)
+	public registerCredentials(IContext context, java.lang.String urlBasePath, java.lang.String username, java.lang.String password)
 	{
 		super(context);
 		this.urlBasePath = urlBasePath;
@@ -31,7 +28,7 @@ public class registerCredentials extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.registerCredentials(urlBasePath, username, password);
@@ -43,7 +40,7 @@ public class registerCredentials extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "registerCredentials";
 	}

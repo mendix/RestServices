@@ -18,7 +18,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 /**
  * This function commits an object in a seperate context and transaction, making sure it gets persisted in the database (regarding which exception happens after invocation).
  */
-public class commitInSeparateDatabaseTransaction extends CustomJavaAction<Boolean>
+public class commitInSeparateDatabaseTransaction extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject mxObject;
 
@@ -29,7 +29,7 @@ public class commitInSeparateDatabaseTransaction extends CustomJavaAction<Boolea
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ISession session = getContext().getSession();
@@ -44,7 +44,7 @@ public class commitInSeparateDatabaseTransaction extends CustomJavaAction<Boolea
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "commitInSeparateDatabaseTransaction";
 	}

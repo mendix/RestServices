@@ -19,18 +19,18 @@ import communitycommons.StringUtils;
  * "< Joe & John >" will be converted to 
  * "&lt; Joe &amp; John &gt;"
  */
-public class EscapeHTML extends CustomJavaAction<String>
+public class EscapeHTML extends CustomJavaAction<java.lang.String>
 {
-	private String rawString;
+	private java.lang.String rawString;
 
-	public EscapeHTML(IContext context, String rawString)
+	public EscapeHTML(IContext context, java.lang.String rawString)
 	{
 		super(context);
 		this.rawString = rawString;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.escapeHTML(rawString);
@@ -41,7 +41,7 @@ public class EscapeHTML extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "EscapeHTML";
 	}

@@ -13,21 +13,18 @@ import restservices.publish.RestServiceRequest;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class setResponseStatus extends CustomJavaAction<Boolean>
+public class setResponseStatus extends CustomJavaAction<java.lang.Boolean>
 {
-	private Long status;
+	private java.lang.Long status;
 
-	public setResponseStatus(IContext context, Long status)
+	public setResponseStatus(IContext context, java.lang.Long status)
 	{
 		super(context);
 		this.status = status;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestServiceRequest.setResponseStatus(getContext(), (int)(long) status);
@@ -39,7 +36,7 @@ public class setResponseStatus extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "setResponseStatus";
 	}

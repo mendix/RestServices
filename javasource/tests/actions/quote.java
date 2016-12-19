@@ -13,21 +13,18 @@ import java.util.regex.Pattern;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class quote extends CustomJavaAction<String>
+public class quote extends CustomJavaAction<java.lang.String>
 {
-	private String unquotedLiteral;
+	private java.lang.String unquotedLiteral;
 
-	public quote(IContext context, String unquotedLiteral)
+	public quote(IContext context, java.lang.String unquotedLiteral)
 	{
 		super(context);
 		this.unquotedLiteral = unquotedLiteral;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Pattern.quote(unquotedLiteral);
@@ -38,7 +35,7 @@ public class quote extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "quote";
 	}

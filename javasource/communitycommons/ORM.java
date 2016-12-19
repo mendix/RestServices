@@ -286,7 +286,6 @@ public class ORM
 	public static synchronized Boolean acquireLock(IContext context, IMendixObject item) 
 	{
 		if (!isLocked(item)) {
-			if (!context.getSession().getUser().getName().equals(getLockOwner(item))) 
 			locks.put(item.getId().toLong(), context.getSession());
 			return true;
 		}

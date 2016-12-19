@@ -19,18 +19,18 @@ import com.mendix.webui.FeedbackHelper;
  * -objectType : Type of the domain objects to refresh, such as System.User or MyModule.MyFirstEntity.
  *  (you can use getTypeAsString to determine this dynamically, so that the invoke of this action is not be sensitive to domain model changes).
  */
-public class refreshClass extends CustomJavaAction<Boolean>
+public class refreshClass extends CustomJavaAction<java.lang.Boolean>
 {
-	private String objectType;
+	private java.lang.String objectType;
 
-	public refreshClass(IContext context, String objectType)
+	public refreshClass(IContext context, java.lang.String objectType)
 	{
 		super(context);
 		this.objectType = objectType;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		FeedbackHelper.addRefreshClass(this.getContext(), objectType);
@@ -42,7 +42,7 @@ public class refreshClass extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "refreshClass";
 	}

@@ -1,6 +1,6 @@
 package tests;
 
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -14,15 +14,12 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
 public class put extends CustomJavaAction<IMendixObject>
 {
-	private String resourceUrl;
+	private java.lang.String resourceUrl;
 	private IMendixObject requestData;
 
-	public put(IContext context, String resourceUrl, IMendixObject requestData)
+	public put(IContext context, java.lang.String resourceUrl, IMendixObject requestData)
 	{
 		super(context);
 		this.resourceUrl = resourceUrl;
@@ -41,7 +38,7 @@ public class put extends CustomJavaAction<IMendixObject>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "put";
 	}

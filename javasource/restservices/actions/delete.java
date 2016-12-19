@@ -14,14 +14,11 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
 public class delete extends CustomJavaAction<IMendixObject>
 {
-	private String resourceUrl;
+	private java.lang.String resourceUrl;
 
-	public delete(IContext context, String resourceUrl)
+	public delete(IContext context, java.lang.String resourceUrl)
 	{
 		super(context);
 		this.resourceUrl = resourceUrl;
@@ -39,7 +36,7 @@ public class delete extends CustomJavaAction<IMendixObject>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "delete";
 	}

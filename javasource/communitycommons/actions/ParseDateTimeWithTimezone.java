@@ -21,12 +21,12 @@ import com.mendix.webui.CustomJavaAction;
  */
 public class ParseDateTimeWithTimezone extends CustomJavaAction<java.util.Date>
 {
-	private String date;
-	private String pattern;
-	private String timeZone;
+	private java.lang.String date;
+	private java.lang.String pattern;
+	private java.lang.String timeZone;
 	private java.util.Date defaultValue;
 
-	public ParseDateTimeWithTimezone(IContext context, String date, String pattern, String timeZone, java.util.Date defaultValue)
+	public ParseDateTimeWithTimezone(IContext context, java.lang.String date, java.lang.String pattern, java.lang.String timeZone, java.util.Date defaultValue)
 	{
 		super(context);
 		this.date = date;
@@ -58,7 +58,7 @@ public class ParseDateTimeWithTimezone extends CustomJavaAction<java.util.Date>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "ParseDateTimeWithTimezone";
 	}

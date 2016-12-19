@@ -16,7 +16,7 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Returns true if the environment is a development environment. Calls Core.getConfiguration().isInDevelopment().
  */
-public class IsInDevelopment extends CustomJavaAction<Boolean>
+public class IsInDevelopment extends CustomJavaAction<java.lang.Boolean>
 {
 	public IsInDevelopment(IContext context)
 	{
@@ -24,7 +24,7 @@ public class IsInDevelopment extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Core.getConfiguration().isInDevelopment();
@@ -35,7 +35,7 @@ public class IsInDevelopment extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "IsInDevelopment";
 	}

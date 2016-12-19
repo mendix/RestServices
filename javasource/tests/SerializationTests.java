@@ -3,8 +3,8 @@ package tests;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONArray;
+import com.mendix.thirdparty.org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 

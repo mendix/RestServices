@@ -21,9 +21,9 @@ import java.util.Map;
 
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.methods.GetMethod;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONTokener;
+import com.mendix.thirdparty.org.json.JSONException;
+import com.mendix.thirdparty.org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONTokener;
 
 import restservices.RestServices;
 import restservices.proxies.DataSyncState;

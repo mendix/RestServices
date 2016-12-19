@@ -18,7 +18,7 @@ import com.mendix.webui.CustomJavaAction;
  * Tries to acquire a lock. Returns true if granted, or if already locked by this session.
  * Invoking this action multiple times is safe.
  */
-public class acquireLock extends CustomJavaAction<Boolean>
+public class acquireLock extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject item;
 
@@ -29,7 +29,7 @@ public class acquireLock extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return ORM.acquireLock(this.getContext(), item);
@@ -40,7 +40,7 @@ public class acquireLock extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "acquireLock";
 	}

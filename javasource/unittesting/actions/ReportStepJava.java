@@ -10,25 +10,21 @@
 package unittesting.actions;
 
 import unittesting.TestManager;
-import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class ReportStepJava extends CustomJavaAction<Boolean>
+public class ReportStepJava extends CustomJavaAction<java.lang.Boolean>
 {
-	private String message;
+	private java.lang.String message;
 
-	public ReportStepJava(IContext context, String message)
+	public ReportStepJava(IContext context, java.lang.String message)
 	{
 		super(context);
 		this.message = message;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		TestManager.instance().reportStep(message);
@@ -40,7 +36,7 @@ public class ReportStepJava extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "ReportStepJava";
 	}

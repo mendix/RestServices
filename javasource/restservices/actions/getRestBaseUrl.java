@@ -13,10 +13,7 @@ import restservices.RestServices;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class getRestBaseUrl extends CustomJavaAction<String>
+public class getRestBaseUrl extends CustomJavaAction<java.lang.String>
 {
 	public getRestBaseUrl(IContext context)
 	{
@@ -24,7 +21,7 @@ public class getRestBaseUrl extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return RestServices.getBaseUrl();
@@ -35,7 +32,7 @@ public class getRestBaseUrl extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getRestBaseUrl";
 	}

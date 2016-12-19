@@ -24,14 +24,14 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * NOTE: For images, no thumbnail will be generated.
  */
-public class storeURLToFileDocument extends CustomJavaAction<Boolean>
+public class storeURLToFileDocument extends CustomJavaAction<java.lang.Boolean>
 {
-	private String url;
+	private java.lang.String url;
 	private IMendixObject __document;
 	private system.proxies.FileDocument document;
-	private String filename;
+	private java.lang.String filename;
 
-	public storeURLToFileDocument(IContext context, String url, IMendixObject document, String filename)
+	public storeURLToFileDocument(IContext context, java.lang.String url, IMendixObject document, java.lang.String filename)
 	{
 		super(context);
 		this.url = url;
@@ -40,7 +40,7 @@ public class storeURLToFileDocument extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.document = __document == null ? null : system.proxies.FileDocument.initialize(getContext(), __document);
 
@@ -53,7 +53,7 @@ public class storeURLToFileDocument extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "storeURLToFileDocument";
 	}

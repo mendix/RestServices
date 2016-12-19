@@ -11,17 +11,12 @@ package unittesting.actions;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import unittesting.TestManager;
-import com.google.common.collect.ImmutableMap;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.core.IContext;
-import com.mendix.systemwideinterfaces.core.IFeedback.MessageType;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class RunAllUnitTestsWrapper extends CustomJavaAction<Boolean>
+public class RunAllUnitTestsWrapper extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __testRun;
 	private unittesting.proxies.TestSuite testRun;
@@ -33,17 +28,18 @@ public class RunAllUnitTestsWrapper extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.testRun = __testRun == null ? null : unittesting.proxies.TestSuite.initialize(getContext(), __testRun);
 
 		// BEGIN USER CODE
 		try {
-			Core.execute(Core.createSystemContext(), "UnitTesting.StartUnittestRunInner", false, ImmutableMap.of("TestRun", (Object) testRun.getMendixObject()));
+			//Run tests in a new context without transaction!
+			TestManager.instance().runTestSuite(Core.createSystemContext(), testRun);
 		}
 		catch(Exception e) {
 			TestManager.LOG.error("An error occurred while trying to run the unit tests: " + ExceptionUtils.getRootCauseMessage(e), e);
-			this.addTextMessageFeedback(MessageType.WARNING, "An error occurred while trying to run the unit tests: " + ExceptionUtils.getRootCauseMessage(e), true);
+			return false;
 		}
 		return true;
 		// END USER CODE
@@ -53,7 +49,7 @@ public class RunAllUnitTestsWrapper extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "RunAllUnitTestsWrapper";
 	}

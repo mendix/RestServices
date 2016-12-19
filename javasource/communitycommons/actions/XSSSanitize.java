@@ -35,12 +35,12 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * BootstrapRTE: Based on TinyMCE and allows hyperlinks and embedded images. Basically allows what the Bootstrap Rich Text widget provides.
  */
-public class XSSSanitize extends CustomJavaAction<String>
+public class XSSSanitize extends CustomJavaAction<java.lang.String>
 {
-	private String html;
+	private java.lang.String html;
 	private communitycommons.proxies.XSSPolicy policy;
 
-	public XSSSanitize(IContext context, String html, String policy)
+	public XSSSanitize(IContext context, java.lang.String html, java.lang.String policy)
 	{
 		super(context);
 		this.html = html;
@@ -48,7 +48,7 @@ public class XSSSanitize extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.XSSSanitize(html, policy);
@@ -59,7 +59,7 @@ public class XSSSanitize extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "XSSSanitize";
 	}

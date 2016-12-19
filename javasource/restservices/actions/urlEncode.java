@@ -16,18 +16,18 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * applies URL encoding to a value
  */
-public class urlEncode extends CustomJavaAction<String>
+public class urlEncode extends CustomJavaAction<java.lang.String>
 {
-	private String value;
+	private java.lang.String value;
 
-	public urlEncode(IContext context, String value)
+	public urlEncode(IContext context, java.lang.String value)
 	{
 		super(context);
 		this.value = value;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return Utils.urlEncode(value);
@@ -38,7 +38,7 @@ public class urlEncode extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "urlEncode";
 	}

@@ -13,15 +13,12 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 import restservices.consume.RestConsumer;
 
-/**
- * 
- */
-public class setGlobalRequestSettings extends CustomJavaAction<Boolean>
+public class setGlobalRequestSettings extends CustomJavaAction<java.lang.Boolean>
 {
-	private Long maxConcurrentRequests;
-	private Long timeout;
+	private java.lang.Long maxConcurrentRequests;
+	private java.lang.Long timeout;
 
-	public setGlobalRequestSettings(IContext context, Long maxConcurrentRequests, Long timeout)
+	public setGlobalRequestSettings(IContext context, java.lang.Long maxConcurrentRequests, java.lang.Long timeout)
 	{
 		super(context);
 		this.maxConcurrentRequests = maxConcurrentRequests;
@@ -29,7 +26,7 @@ public class setGlobalRequestSettings extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestConsumer.setGlobalRequestSettings(maxConcurrentRequests, timeout);
@@ -41,7 +38,7 @@ public class setGlobalRequestSettings extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "setGlobalRequestSettings";
 	}

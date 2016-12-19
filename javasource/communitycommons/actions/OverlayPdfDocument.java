@@ -17,7 +17,7 @@ import communitycommons.Misc;
 /**
  * Overlay a generated PDF document with another PDF (containing the company stationary for example)
  */
-public class OverlayPdfDocument extends CustomJavaAction<Boolean>
+public class OverlayPdfDocument extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject __generatedDocument;
 	private system.proxies.FileDocument generatedDocument;
@@ -32,7 +32,7 @@ public class OverlayPdfDocument extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.generatedDocument = __generatedDocument == null ? null : system.proxies.FileDocument.initialize(getContext(), __generatedDocument);
 
@@ -47,7 +47,7 @@ public class OverlayPdfDocument extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "OverlayPdfDocument";
 	}

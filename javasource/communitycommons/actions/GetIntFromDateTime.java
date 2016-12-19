@@ -21,12 +21,12 @@ import communitycommons.DateTime;
  * - month (returns 1-12)
  * - day (returns 1-31)
  */
-public class GetIntFromDateTime extends CustomJavaAction<Long>
+public class GetIntFromDateTime extends CustomJavaAction<java.lang.Long>
 {
 	private java.util.Date dateObj;
 	private communitycommons.proxies.DatePartSelector selectorObj;
 
-	public GetIntFromDateTime(IContext context, java.util.Date dateObj, String selectorObj)
+	public GetIntFromDateTime(IContext context, java.util.Date dateObj, java.lang.String selectorObj)
 	{
 		super(context);
 		this.dateObj = dateObj;
@@ -34,7 +34,7 @@ public class GetIntFromDateTime extends CustomJavaAction<Long>
 	}
 
 	@Override
-	public Long executeAction() throws Exception
+	public java.lang.Long executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return DateTime.dateTimeToInteger(dateObj, selectorObj);
@@ -45,7 +45,7 @@ public class GetIntFromDateTime extends CustomJavaAction<Long>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "GetIntFromDateTime";
 	}

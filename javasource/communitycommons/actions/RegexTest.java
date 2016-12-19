@@ -20,12 +20,12 @@ import com.mendix.webui.CustomJavaAction;
  * http://download.oracle.com/javase/1.4.2/docs/api/java/util/regex/Pattern.html
  * A decent regexp tester can be found at:
  */
-public class RegexTest extends CustomJavaAction<Boolean>
+public class RegexTest extends CustomJavaAction<java.lang.Boolean>
 {
-	private String value;
-	private String regex;
+	private java.lang.String value;
+	private java.lang.String regex;
 
-	public RegexTest(IContext context, String value, String regex)
+	public RegexTest(IContext context, java.lang.String value, java.lang.String regex)
 	{
 		super(context);
 		this.value = value;
@@ -33,7 +33,7 @@ public class RegexTest extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.regexTest(value, regex);
@@ -44,7 +44,7 @@ public class RegexTest extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "RegexTest";
 	}

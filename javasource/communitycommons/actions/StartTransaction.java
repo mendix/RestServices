@@ -15,7 +15,7 @@ import com.mendix.webui.CustomJavaAction;
 /**
  * Starts a new transaction.
  */
-public class StartTransaction extends CustomJavaAction<Boolean>
+public class StartTransaction extends CustomJavaAction<java.lang.Boolean>
 {
 	public StartTransaction(IContext context)
 	{
@@ -23,7 +23,7 @@ public class StartTransaction extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		getContext().startTransaction();
@@ -35,7 +35,7 @@ public class StartTransaction extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "StartTransaction";
 	}

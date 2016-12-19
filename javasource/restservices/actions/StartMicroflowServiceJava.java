@@ -13,18 +13,15 @@ import restservices.publish.MicroflowService;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
+public class StartMicroflowServiceJava extends CustomJavaAction<java.lang.Boolean>
 {
-	private String microflowName;
-	private String securityRoleOrMicroflow;
-	private String description;
+	private java.lang.String microflowName;
+	private java.lang.String securityRoleOrMicroflow;
+	private java.lang.String description;
 	private restservices.proxies.HttpMethod httpMethod;
-	private String pathTemplate;
+	private java.lang.String pathTemplate;
 
-	public StartMicroflowServiceJava(IContext context, String microflowName, String securityRoleOrMicroflow, String description, String httpMethod, String pathTemplate)
+	public StartMicroflowServiceJava(IContext context, java.lang.String microflowName, java.lang.String securityRoleOrMicroflow, java.lang.String description, java.lang.String httpMethod, java.lang.String pathTemplate)
 	{
 		super(context);
 		this.microflowName = microflowName;
@@ -35,7 +32,7 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		new MicroflowService(microflowName, securityRoleOrMicroflow, httpMethod, pathTemplate, description);
@@ -47,7 +44,7 @@ public class StartMicroflowServiceJava extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "StartMicroflowServiceJava";
 	}

@@ -19,13 +19,13 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Note that targetFile will be committed.
  */
-public class Base64DecodeToFile extends CustomJavaAction<Boolean>
+public class Base64DecodeToFile extends CustomJavaAction<java.lang.Boolean>
 {
-	private String encoded;
+	private java.lang.String encoded;
 	private IMendixObject __targetFile;
 	private system.proxies.FileDocument targetFile;
 
-	public Base64DecodeToFile(IContext context, String encoded, IMendixObject targetFile)
+	public Base64DecodeToFile(IContext context, java.lang.String encoded, IMendixObject targetFile)
 	{
 		super(context);
 		this.encoded = encoded;
@@ -33,7 +33,7 @@ public class Base64DecodeToFile extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		this.targetFile = __targetFile == null ? null : system.proxies.FileDocument.initialize(getContext(), __targetFile);
 
@@ -47,7 +47,7 @@ public class Base64DecodeToFile extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "Base64DecodeToFile";
 	}

@@ -14,10 +14,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class ServiceConsistencyCheck extends CustomJavaAction<String>
+public class ServiceConsistencyCheck extends CustomJavaAction<java.lang.String>
 {
 	private IMendixObject __def;
 	private restservices.proxies.DataServiceDefinition def;
@@ -29,7 +26,7 @@ public class ServiceConsistencyCheck extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		this.def = __def == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __def);
 
@@ -45,7 +42,7 @@ public class ServiceConsistencyCheck extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "ServiceConsistencyCheck";
 	}

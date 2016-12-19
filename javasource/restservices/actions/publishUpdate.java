@@ -21,7 +21,7 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * publishUpdate can be used in afterCommit events
  */
-public class publishUpdate extends CustomJavaAction<Boolean>
+public class publishUpdate extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject source;
 
@@ -32,7 +32,7 @@ public class publishUpdate extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		ChangeLogManager.publishUpdate(getContext(), source);
@@ -44,7 +44,7 @@ public class publishUpdate extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "publishUpdate";
 	}

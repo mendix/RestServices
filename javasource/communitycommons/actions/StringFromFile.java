@@ -19,7 +19,7 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Note that this might give strange results when using with binary files. In that case, use the Base64 functions.
  */
-public class StringFromFile extends CustomJavaAction<String>
+public class StringFromFile extends CustomJavaAction<java.lang.String>
 {
 	private IMendixObject __source;
 	private system.proxies.FileDocument source;
@@ -31,7 +31,7 @@ public class StringFromFile extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		this.source = __source == null ? null : system.proxies.FileDocument.initialize(getContext(), __source);
 
@@ -44,7 +44,7 @@ public class StringFromFile extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "StringFromFile";
 	}

@@ -20,13 +20,13 @@ import com.mendix.webui.CustomJavaAction;
  * - username: The user that should be used to execute the microflow
  * - sudoContext: whether entity access should be applied.
  */
-public class executeMicroflowAsUser extends CustomJavaAction<String>
+public class executeMicroflowAsUser extends CustomJavaAction<java.lang.String>
 {
-	private String microflowName;
-	private String username;
-	private Boolean sudoContext;
+	private java.lang.String microflowName;
+	private java.lang.String username;
+	private java.lang.Boolean sudoContext;
 
-	public executeMicroflowAsUser(IContext context, String microflowName, String username, Boolean sudoContext)
+	public executeMicroflowAsUser(IContext context, java.lang.String microflowName, java.lang.String username, java.lang.Boolean sudoContext)
 	{
 		super(context);
 		this.microflowName = microflowName;
@@ -35,7 +35,7 @@ public class executeMicroflowAsUser extends CustomJavaAction<String>
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		Object res = Misc.executeMicroflowAsUser(getContext(), microflowName, username, sudoContext);
@@ -47,7 +47,7 @@ public class executeMicroflowAsUser extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "executeMicroflowAsUser";
 	}

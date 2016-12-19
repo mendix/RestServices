@@ -9,21 +9,18 @@
 
 package restservices.actions;
 
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONObject;
 import restservices.util.JsonDeserializer;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class deserializeJsonToObject extends CustomJavaAction<Boolean>
+public class deserializeJsonToObject extends CustomJavaAction<java.lang.Boolean>
 {
-	private String json;
+	private java.lang.String json;
 	private IMendixObject targetObject;
 
-	public deserializeJsonToObject(IContext context, String json, IMendixObject targetObject)
+	public deserializeJsonToObject(IContext context, java.lang.String json, IMendixObject targetObject)
 	{
 		super(context);
 		this.json = json;
@@ -31,7 +28,7 @@ public class deserializeJsonToObject extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		JsonDeserializer.readJsonDataIntoMendixObject(getContext(), new JSONObject(json), targetObject, false);
@@ -43,7 +40,7 @@ public class deserializeJsonToObject extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "deserializeJsonToObject";
 	}

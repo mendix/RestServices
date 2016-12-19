@@ -19,11 +19,11 @@ import com.mendix.webui.CustomJavaAction;
  */
 public class post2 extends CustomJavaAction<IMendixObject>
 {
-	private String collectionUrl;
+	private java.lang.String collectionUrl;
 	private IMendixObject dataObject;
 	private IMendixObject responseData;
 
-	public post2(IContext context, String collectionUrl, IMendixObject dataObject, IMendixObject responseData)
+	public post2(IContext context, java.lang.String collectionUrl, IMendixObject dataObject, IMendixObject responseData)
 	{
 		super(context);
 		this.collectionUrl = collectionUrl;
@@ -43,7 +43,7 @@ public class post2 extends CustomJavaAction<IMendixObject>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "post2";
 	}

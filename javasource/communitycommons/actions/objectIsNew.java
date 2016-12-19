@@ -16,7 +16,7 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 /**
  * Returns true if this object is new (not committed in the database).
  */
-public class objectIsNew extends CustomJavaAction<Boolean>
+public class objectIsNew extends CustomJavaAction<java.lang.Boolean>
 {
 	private IMendixObject mxObject;
 
@@ -27,7 +27,7 @@ public class objectIsNew extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return this.mxObject.isNew();
@@ -38,7 +38,7 @@ public class objectIsNew extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "objectIsNew";
 	}

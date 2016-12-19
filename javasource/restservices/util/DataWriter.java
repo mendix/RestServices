@@ -4,8 +4,8 @@ import java.io.OutputStream;
 import java.util.Stack;
 
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.mendix.thirdparty.org.json.JSONArray;
+import com.mendix.thirdparty.org.json.JSONObject;
 
 import restservices.RestServices;
 

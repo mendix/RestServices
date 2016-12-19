@@ -21,18 +21,18 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * Returns the encoded string.
  */
-public class HTMLEncode extends CustomJavaAction<String>
+public class HTMLEncode extends CustomJavaAction<java.lang.String>
 {
-	private String value;
+	private java.lang.String value;
 
-	public HTMLEncode(IContext context, String value)
+	public HTMLEncode(IContext context, java.lang.String value)
 	{
 		super(context);
 		this.value = value;
 	}
 
 	@Override
-	public String executeAction() throws Exception
+	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		return StringUtils.HTMLEncode(value);
@@ -43,7 +43,7 @@ public class HTMLEncode extends CustomJavaAction<String>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "HTMLEncode";
 	}

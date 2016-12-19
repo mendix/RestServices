@@ -13,15 +13,12 @@ import restservices.publish.RestServiceRequest;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
-/**
- * 
- */
-public class setResponseHeader extends CustomJavaAction<Boolean>
+public class setResponseHeader extends CustomJavaAction<java.lang.Boolean>
 {
-	private String headerName;
-	private String value;
+	private java.lang.String headerName;
+	private java.lang.String value;
 
-	public setResponseHeader(IContext context, String headerName, String value)
+	public setResponseHeader(IContext context, java.lang.String headerName, java.lang.String value)
 	{
 		super(context);
 		this.headerName = headerName;
@@ -29,7 +26,7 @@ public class setResponseHeader extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		RestServiceRequest.setResponseHeader(getContext(), headerName, value);
@@ -41,7 +38,7 @@ public class setResponseHeader extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "setResponseHeader";
 	}

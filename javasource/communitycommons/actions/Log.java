@@ -21,13 +21,13 @@ import com.mendix.webui.CustomJavaAction;
  * 
  * DEPRECATED: From Mendix 2.5.3, you can use the Microflow Log activity as well.
  */
-public class Log extends CustomJavaAction<Boolean>
+public class Log extends CustomJavaAction<java.lang.Boolean>
 {
-	private String lognode;
+	private java.lang.String lognode;
 	private communitycommons.proxies.LogLevel loglevel;
-	private String message;
+	private java.lang.String message;
 
-	public Log(IContext context, String lognode, String loglevel, String message)
+	public Log(IContext context, java.lang.String lognode, java.lang.String loglevel, java.lang.String message)
 	{
 		super(context);
 		this.lognode = lognode;
@@ -36,7 +36,7 @@ public class Log extends CustomJavaAction<Boolean>
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public java.lang.Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
 		Logging.log(lognode, loglevel, message);
@@ -48,7 +48,7 @@ public class Log extends CustomJavaAction<Boolean>
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "Log";
 	}

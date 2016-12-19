@@ -15,9 +15,6 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.webui.CustomJavaAction;
 import communitycommons.XPath;
 
-/**
- * 
- */
 public class getRequestCookies extends CustomJavaAction<java.util.List<IMendixObject>>
 {
 	public getRequestCookies(IContext context)
@@ -37,7 +34,7 @@ public class getRequestCookies extends CustomJavaAction<java.util.List<IMendixOb
 	 * Returns a string representation of this action
 	 */
 	@Override
-	public String toString()
+	public java.lang.String toString()
 	{
 		return "getRequestCookies";
 	}
