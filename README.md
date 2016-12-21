@@ -33,10 +33,9 @@ Welcome to the Rest Services module. This module can be used in [Mendix](http://
 
 1. The *RestServices* module can be downloaded from within the Mendix Business Modeler in the Mendix Appstore into any model that is build with Mendix 6.0.1+.
 2. The RestServices module depends on the on the [Community Commons](https://appstore.mendix.com/link/app/community%20commons) module, version 6.1 or higher. Download this module as well if it is not already part of your project.
-3. The RestServices module depends on the on the [Navigation Layout](https://appstore.mendix.com/link/app/navigationlayout) module, version 1.0 or higher. Download this module as well if it is not already part of your project.
-4. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well.
-5. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application. Also, the 'rest/' request handler needs to be opened if running in the Mendix Standard Cloud (or on premise).
-6. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally.
+3. *[Optional]* If you want to publish REST services or use the data synchronization features, add `IVK_OpenServiceOverview` to your main navigation if you want to use the administrative features of the RestServices module. Make sure to map your administrative project role to the `Administrator` role in the RestServices module as well.
+4. *[Optional]* If you want to publish REST services, add `StartPublishServices` to the startup sequence of your application. Also, the 'rest/' request handler needs to be opened if running in the Mendix Standard Cloud (or on premise).
+5. It is strongly recommended to **not** use the default HSQLDB engine if you want to publish RestServices while running locally.
 
 # Consuming REST services
 NOTE: Since Mendix 6.6, you can consume REST services directly with the Call Rest microflow action. You can use Import and Export mappings to create and read messages. See https://world.mendix.com/display/refguide6/Consumed+REST+Services
