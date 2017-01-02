@@ -30,3 +30,5 @@ proxies
 .classpath
 .project
 #mxgit-marker-end
+.idea/
+*.iml
