@@ -26,6 +26,7 @@ import restservices.proxies.HttpMethod;
 import restservices.publish.RestServiceHandler.HandlerRegistration;
 import restservices.publish.RestServiceRequest.RequestContentType;
 import restservices.publish.RestServiceRequest.ResponseType;
+import restservices.util.DataWriter;
 import restservices.util.ICloseable;
 import restservices.util.JSONSchemaBuilder;
 import restservices.util.JsonDeserializer;
@@ -299,20 +300,28 @@ public class MicroflowService implements IRestServiceHandler{
 		if (rsr.getResponseContentType() == ResponseType.HTML)
 			rsr.write("<h1>Operation: ").write(getRelativeUrl()).write("</h1>");
 
-		rsr.datawriter.object()
+		DataWriter objectWriter = rsr.datawriter.object()
 			.key("name").value(getRelativeUrl())
 			.key("description").value(description)
-			.key("url").value(RestServices.getAbsoluteUrl(getRelativeUrl()))
-			.key("arguments").value(
-					hasArgument
-					? JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname))
-					: null
-			)
-			.key("accepts_binary_data").value(isFileSource)
-			.key("result").value(isFileTarget
+			.key("url").value(RestServices.getAbsoluteUrl(getRelativeUrl()));
+		
+		if (getHttpMethod() == "GET") {
+			objectWriter.key("arguments").value(
+				hasArgument
+				? JSONSchemaBuilder.build(Utils.getFirstArgumentType(microflowname))
+				: null);
+		}
+		
+		objectWriter.key("accepts_binary_data").value(isFileSource);
+		
+		IDataType returnType = Core.getReturnType(microflowname);
+		if (!returnType.isNothing()) {
+			objectWriter.key("result").value(isFileTarget
 					? RestServices.CONTENTTYPE_OCTET + " stream"
-					: JSONSchemaBuilder.build(Core.getReturnType(microflowname)))
-			.endObject();
+					: JSONSchemaBuilder.build(returnType));
+		}
+		
+		objectWriter.endObject();
 
 		rsr.endDoc();
 	}

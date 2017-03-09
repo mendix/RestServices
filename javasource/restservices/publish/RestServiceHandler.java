@@ -62,7 +62,13 @@ public class RestServiceHandler extends RequestHandler{
 			this.roleOrMicroflow = roleOrMicroflow;
 			this.handler = handler;
 		}
-		
+
+		public boolean accepts(String method, RestServiceRequest rsr) {
+			return this.method.equals(method) ||
+				(HttpMethod.GET.toString().equals(method) &&
+				 rsr.getRequestParameter(RestServices.PARAM_ABOUT, null) == "");
+		}
+
 		@Override
 		public String toString() {
 			return ReflectionToStringBuilder.toString(this, ToStringStyle.SHORT_PREFIX_STYLE);
@@ -211,7 +217,7 @@ public class RestServiceHandler extends RequestHandler{
 		final Map<String, String> params = Maps.newHashMap();
 		for (final HandlerRegistration reg : services) {
 			if (reg.template.match(relpath, params)) {
-				if (reg.method.equals(method)) {
+				if (reg.accepts(method, rsr)) {
 					// Mixin query parameters
 					requestParamsToJsonMap(rsr, params);
 
