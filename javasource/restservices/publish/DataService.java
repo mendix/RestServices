@@ -45,10 +45,10 @@ public class DataService {
 
 	DataServiceDefinition def;
 
-	public DataService(DataServiceDefinition def) {
+	public DataService(DataServiceDefinition def, IContext context) {
 		this.def = def;
 		try {
-			changeLogManager = new ChangeLogManager(this);
+			changeLogManager = new ChangeLogManager(this, context);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

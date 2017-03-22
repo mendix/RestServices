@@ -36,16 +36,14 @@ public class ChangeLogManager {
 	private volatile ChangeLog changeLog;
 	private volatile boolean isRebuildingChangeLog = false;
 	
-	public ChangeLogManager(DataService service) throws CoreException {
+	public ChangeLogManager(DataService service, IContext context) throws CoreException {
 		this.service = service;
 		if (service.def.getEnableChangeLog() && service.def.getEnableGet()) {
-			IContext context = Core.createSystemContext();
-			
 			changeLog = XPath.create(context, ChangeLog.class)
 				.findOrCreate(ChangeLog.MemberNames.ChangeLog_ServiceDefinition, service.def);
 			
 			if (!calculateServiceConfigurationHash(service.def).equals(changeLog.get_ConfigurationHash())) 
-				rebuildChangeLog();
+				rebuildChangeLog(context);
 		}
 	}
 
@@ -360,7 +358,7 @@ public class ChangeLogManager {
 		return this.changeLog;
 	}
 	
-	public void rebuildChangeLog() throws CoreException {
+	public void rebuildChangeLog(IContext context) throws CoreException {
 		synchronized(this) {
 			if (isRebuildingChangeLog) {
 				throw new IllegalStateException("SKIP rebuilding change log, log is already building... ");
@@ -369,7 +367,6 @@ public class ChangeLogManager {
 		}
 		
 		try {
-			final IContext context = Core.createSystemContext();
 			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. This might take a while...");
 			RestServices.LOGPUBLISH.info(service.getRelativeUrl() + ": Initializing change log. Marking old index dirty...");
 			

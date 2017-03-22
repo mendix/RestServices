@@ -154,11 +154,11 @@ public class RestServiceHandler extends RequestHandler{
 
 	private static void loadConfig(IContext context) throws CoreException {
 		for (DataServiceDefinition def : XPath.create(context, DataServiceDefinition.class).all()) {
-			loadConfig(def, false);
+			loadConfig(def, false, context);
 		}
 	}
 
-	public static void loadConfig(DataServiceDefinition def, boolean throwOnFailure) {
+	public static void loadConfig(DataServiceDefinition def, boolean throwOnFailure, IContext context) {
 		if (!started)
 			return;
 
@@ -184,7 +184,7 @@ public class RestServiceHandler extends RequestHandler{
 			}
 			
 			RestServices.LOGPUBLISH.info("Reloading definition of service '" + def.getName() + "'");
-			service = new DataService(def);
+			service = new DataService(def, context);
 			service.register();
 			
 			RestServices.LOGPUBLISH.info("Loading service " + def.getName()+ "... DONE");
