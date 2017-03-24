@@ -28,11 +28,10 @@ public class LoadService extends CustomJavaAction<java.lang.Boolean>
 	@Override
 	public java.lang.Boolean executeAction() throws Exception
 	{
-		IContext context = getContext();
-		this.def = __def == null ? null : restservices.proxies.DataServiceDefinition.initialize(context, __def);
+		this.def = __def == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __def);
 
 		// BEGIN USER CODE
-		RestServiceHandler.loadConfig(def, true, context);
+		RestServiceHandler.loadConfig(def, true, getContext());
 		return true;
 		// END USER CODE
 	}

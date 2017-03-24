@@ -28,14 +28,13 @@ public class RebuildServiceIndex extends CustomJavaAction<java.lang.Boolean>
 	@Override
 	public java.lang.Boolean executeAction() throws Exception
 	{
-		IContext context = getContext();
-		this.dataServiceDefinition = __dataServiceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(context, __dataServiceDefinition);
+		this.dataServiceDefinition = __dataServiceDefinition == null ? null : restservices.proxies.DataServiceDefinition.initialize(getContext(), __dataServiceDefinition);
 
 		// BEGIN USER CODE
 		if (dataServiceDefinition == null)
 			throw new IllegalArgumentException();
 		
-		DataService.getServiceByDefinition(dataServiceDefinition).getChangeLogManager().rebuildChangeLog(context);
+		DataService.getServiceByDefinition(dataServiceDefinition).getChangeLogManager().rebuildChangeLog(getContext());
 		return true;
 		// END USER CODE
 	}
