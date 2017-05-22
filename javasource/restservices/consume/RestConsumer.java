@@ -268,7 +268,7 @@ public class RestConsumer {
 			else if (request instanceof PutMethod && requestEntity != null)
 				((PutMethod)request).setRequestEntity(requestEntity);
 		
-			if ((System.getProperty("http.proxyHost") != null) && (!"".equals(System.getProperty("http.proxyHost")))) {
+			if (!org.apache.commons.lang.StringUtils.isEmpty(System.getProperty("http.proxyHost"))) {
 				client.getHostConfiguration().setProxy(System.getProperty("http.proxyHost"), Integer.valueOf(System.getProperty("http.proxyPort")));
 			}
 			int status = client.executeMethod(request);
