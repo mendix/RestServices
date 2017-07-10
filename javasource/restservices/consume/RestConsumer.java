@@ -1,7 +1,9 @@
 package restservices.consume;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.io.IOUtils;
+
 import com.mendix.thirdparty.org.json.JSONArray;
 import com.mendix.thirdparty.org.json.JSONObject;
 import com.mendix.thirdparty.org.json.JSONTokener;
@@ -315,7 +318,7 @@ public class RestConsumer {
 
 			@Override
 			public boolean apply(InputStream stream) {
-				JSONTokener x = new JSONTokener(stream);
+				JSONTokener x = new JSONTokener(new BufferedReader(new InputStreamReader(stream)));
 				//Based on: https://github.com/douglascrockford/JSON-java/blob/master/JSONArray.java
 				if (x.nextClean() != '[') 
 		            throw x.syntaxError("A JSONArray text must start with '['");
