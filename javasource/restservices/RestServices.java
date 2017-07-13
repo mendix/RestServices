@@ -20,7 +20,7 @@ public class RestServices {
 	/**
 	 * Version of the RestServices module
 	 */
-	public static final String VERSION = "4.2.1";
+	public static final String VERSION = "4.2.2";
 
 	/**
 	 * Amount of objects that are processed by the module at the same time.
