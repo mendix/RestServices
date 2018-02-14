@@ -180,13 +180,19 @@ public class Utils {
 		return statusText == null ? "" : statusText;
 	}
 
-	private static Pattern queryStringNonSafe = Pattern.compile("[^.,=&0-9a-zA-Z_\\-]");
+	private static Pattern queryStringNonSafe = Pattern.compile("[^%.,=&0-9a-zA-Z_\\-]");
 	
 	public static String encodeQueryStringForHTMLAttribute(String s) {
 		StringBuffer sb = new StringBuffer();
 		Matcher matcher = queryStringNonSafe.matcher(s);
 		while (matcher.find()) {
-			String replacement = String.format("%%%02X", (int)matcher.group().charAt(0));
+			String match = matcher.group();
+			int character = (int)match.charAt(0);
+			String replacement;
+			if (character <= 255)
+				replacement = String.format("%%%02X", character);
+			else
+				replacement = match;
 			matcher.appendReplacement(sb, replacement);
 		}
 		matcher.appendTail(sb);
