@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -178,8 +180,23 @@ public class Utils {
 		return statusText == null ? "" : statusText;
 	}
 
+	private static Pattern queryStringNonSafe = Pattern.compile("[^.,=&0-9a-zA-Z_\\-]");
+	
+	public static String encodeQueryStringForHTMLAttribute(String s) {
+		StringBuffer sb = new StringBuffer();
+		Matcher matcher = queryStringNonSafe.matcher(s);
+		while (matcher.find()) {
+			String replacement = String.format("%%%02X", (int)matcher.group().charAt(0));
+			matcher.appendReplacement(sb, replacement);
+		}
+		matcher.appendTail(sb);
+		
+		return sb.toString();
+	}
+	
 	public static String getRequestUrl(HttpServletRequest request) {
-		return request.getRequestURL().toString() + (Utils.isEmpty(request.getQueryString()) ? "" : "?" + request.getQueryString());
+		String queryString = encodeQueryStringForHTMLAttribute(request.getQueryString());
+		return request.getRequestURL().toString() + (Utils.isEmpty(queryString) ? "" : "?" + queryString);
 	}
 
 	public static boolean isSystemAttribute(String key) {
