@@ -9,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -28,6 +26,8 @@ import com.mendix.systemwideinterfaces.core.UserAction;
 import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
+
+import org.owasp.encoder.Encode;
 
 public class Utils {
 
@@ -179,29 +179,9 @@ public class Utils {
 	public static String nullToEmpty(String statusText) {
 		return statusText == null ? "" : statusText;
 	}
-
-	private static Pattern queryStringNonSafe = Pattern.compile("[^%.,=&0-9a-zA-Z_\\-]");
-	
-	public static String encodeQueryStringForHTMLAttribute(String s) {
-		StringBuffer sb = new StringBuffer();
-		Matcher matcher = queryStringNonSafe.matcher(s);
-		while (matcher.find()) {
-			String match = matcher.group();
-			int character = (int)match.charAt(0);
-			String replacement;
-			if (character <= 255)
-				replacement = String.format("%%%02X", character);
-			else
-				replacement = match;
-			matcher.appendReplacement(sb, replacement);
-		}
-		matcher.appendTail(sb);
-		
-		return sb.toString();
-	}
 	
 	public static String getRequestUrl(HttpServletRequest request) {
-		String queryString = encodeQueryStringForHTMLAttribute(request.getQueryString());
+		String queryString = Encode.forUriComponent(request.getQueryString());
 		return request.getRequestURL().toString() + (Utils.isEmpty(queryString) ? "" : "?" + queryString);
 	}
 
