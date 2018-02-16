@@ -27,6 +27,8 @@ import com.mendix.systemwideinterfaces.core.meta.IMetaObject;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive;
 import com.mendix.systemwideinterfaces.core.meta.IMetaPrimitive.PrimitiveType;
 
+import org.owasp.encoder.Encode;
+
 public class Utils {
 
 	public static String getShortMemberName(String memberName) {
@@ -177,9 +179,10 @@ public class Utils {
 	public static String nullToEmpty(String statusText) {
 		return statusText == null ? "" : statusText;
 	}
-
+	
 	public static String getRequestUrl(HttpServletRequest request) {
-		return request.getRequestURL().toString() + (Utils.isEmpty(request.getQueryString()) ? "" : "?" + request.getQueryString());
+		String queryString = Encode.forUriComponent(request.getQueryString());
+		return request.getRequestURL().toString() + (Utils.isEmpty(queryString) ? "" : "?" + queryString);
 	}
 
 	public static boolean isSystemAttribute(String key) {
