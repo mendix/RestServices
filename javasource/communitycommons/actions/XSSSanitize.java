@@ -9,9 +9,15 @@
 
 package communitycommons.actions;
 
-import communitycommons.StringUtils;
+import com.google.common.collect.Lists;
+import com.mendix.systemwideinterfaces.MendixRuntimeException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
+import communitycommons.proxies.SanitizerPolicy;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Removes all potiential dangerous HTML from a string so that it can be safely displayed in a browser. 
@@ -19,39 +25,59 @@ import com.mendix.webui.CustomJavaAction;
  * This function should be applied to all HTML which is displayed in the browser, and can be entered by (untrusted) users.
  * 
  * - HTML: The html to sanitize
- * - policy: The policy that defines the allowed HTML tags a user is allowd to use:
+ * - policy1... policy6: one or more values of SanitizerPolicy. You may leave these poliy parameters empty if you don't want to allow additional elements.
  * 
- * (see the developers guide in the resources folder for more details about the policies)
+ * BLOCKS: Allows common block elements including <p>, <h1>, etc.
+ * FORMATTING: Allows common formatting elements including <b>, <i>, etc.
+ * IMAGES: Allows <img> elements from HTTP, HTTPS, and relative sources.
+ * LINKS: Allows HTTP, HTTPS, MAILTO and relative links
+ * STYLES: Allows certain safe CSS properties in style="..." attributes.
+ * TABLES: Allows commons table elements.
  * 
- * TinyMCE: Based on the HTML WYSIWYG editor, relatively safe. This policy file only allows text formatting, and may be a good choice if users are submitting HTML to be used in a blog post.
+ * For more information, visit:
  * 
- * Allow anything: A very dangerous policy file, this will allow all HTML, CSS and JavaScript. You shouldn't use this in production.
- * 
- * Ebay: Based on the content filtering for the popular electronic auction website, relatively safe. This policy file gives the user a little bit of freedom, and may be a good choice if users are submitting HTML for a large portion of a page.
- * 
- * MySpace: Based on the content filtering for the popular social networking site, relatively dangerous. This policy file gives the user a lot of freedom, and may be a good choice if users are submitting HTML for an entire page.
- * 
- * Slashdot: Based on the comment filtering on the popular news site, but not quite as strict. This policy file only allows strict text formatting, and may be a good choice if users are submitting HTML in a comment thread.
- * 
- * BootstrapRTE: Based on TinyMCE and allows hyperlinks and embedded images. Basically allows what the Bootstrap Rich Text widget provides.
+ * http://javadoc.io/doc/com.googlecode.owasp-java-html-sanitizer/owasp-java-html-sanitizer/20180219.1
  */
 public class XSSSanitize extends CustomJavaAction<java.lang.String>
 {
 	private java.lang.String html;
-	private communitycommons.proxies.XSSPolicy policy;
+	private communitycommons.proxies.SanitizerPolicy policy1;
+	private communitycommons.proxies.SanitizerPolicy policy2;
+	private communitycommons.proxies.SanitizerPolicy policy3;
+	private communitycommons.proxies.SanitizerPolicy policy4;
+	private communitycommons.proxies.SanitizerPolicy policy5;
+	private communitycommons.proxies.SanitizerPolicy policy6;
 
-	public XSSSanitize(IContext context, java.lang.String html, java.lang.String policy)
+	public XSSSanitize(IContext context, java.lang.String html, java.lang.String policy1, java.lang.String policy2, java.lang.String policy3, java.lang.String policy4, java.lang.String policy5, java.lang.String policy6)
 	{
 		super(context);
 		this.html = html;
-		this.policy = policy == null ? null : communitycommons.proxies.XSSPolicy.valueOf(policy);
+		this.policy1 = policy1 == null ? null : communitycommons.proxies.SanitizerPolicy.valueOf(policy1);
+		this.policy2 = policy2 == null ? null : communitycommons.proxies.SanitizerPolicy.valueOf(policy2);
+		this.policy3 = policy3 == null ? null : communitycommons.proxies.SanitizerPolicy.valueOf(policy3);
+		this.policy4 = policy4 == null ? null : communitycommons.proxies.SanitizerPolicy.valueOf(policy4);
+		this.policy5 = policy5 == null ? null : communitycommons.proxies.SanitizerPolicy.valueOf(policy5);
+		this.policy6 = policy6 == null ? null : communitycommons.proxies.SanitizerPolicy.valueOf(policy6);
 	}
 
 	@Override
 	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		return StringUtils.XSSSanitize(html, policy);
+		if (StringUtils.isEmpty(html)) {
+			return "";
+		}
+
+		List<SanitizerPolicy> policyParams = Lists.newArrayList(policy1, policy2, policy3, policy4, policy5, policy6)
+			.stream()
+			.filter(Objects::nonNull)
+			.collect(Collectors.toList());
+
+		if (policyParams.isEmpty()) {
+			throw new MendixRuntimeException("At least one policy is required");
+		}
+
+		return communitycommons.StringUtils.sanitizeHTML(html, policyParams);
 		// END USER CODE
 	}
 

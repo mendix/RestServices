@@ -281,32 +281,6 @@ public class ORM
 		return true;
 	}
 
-	private static ConcurrentHashMap<Long, ISession> locks = new ConcurrentHashMap<Long, ISession>();
-	
-	public static synchronized Boolean acquireLock(IContext context, IMendixObject item) 
-	{
-		if (!isLocked(item)) {
-			locks.put(item.getId().toLong(), context.getSession());
-			return true;
-		}
-		else if (locks.get(item.getId().toLong()).equals(context.getSession()))
-			return true; //lock owned by this session
-		return false;
-	}
-
-	private static boolean isLocked(IMendixObject item) 
-	{
-		if (item == null)
-			throw new IllegalArgumentException("No item provided");
-		if (!locks.containsKey(item.getId().toLong()))
-			return false;
-		if (!sessionIsActive(locks.get(item.getId().toLong()))) {
-			locks.remove(item.getId().toLong()); //Remove locks which are nolonger active
-			return false;
-		}
-		return true;
-	}
-
 	private static boolean sessionIsActive(ISession session) 
 	{
 		for (ISession s : Core.getActiveSessions())
@@ -315,35 +289,7 @@ public class ORM
 		return false;
 	}
 
-	public synchronized static Boolean releaseLock(IContext context, IMendixObject item, Boolean force)
-	{
-		if (locks.containsKey(item.getId().toLong())) {
-			if (force || locks.get(item.getId().toLong()).equals(context.getSession()))
-				locks.remove(item.getId().toLong());
-		}			
-		return true;
-	}
 
-	public static Boolean waitForLock(IContext context, IMendixObject item,
-			Long timeOutSeconds) throws  InterruptedException
-	{
-		boolean res = false;
-		long started = new Date().getTime();
-		while (!res) {
-			res = acquireLock(context, item);
-			if (!res)
-				Thread.sleep(1000);
-			if (((new Date().getTime()) - started) > 1000 * timeOutSeconds)
-				break;
-		}
-		return res;
-	}
-
-	public static String getLockOwner(IMendixObject item)
-	{
-		ISession session = locks.get(item.getId().toLong());
-		return session == null ? null : session.getUser().getName();
-	}
 
 	public static IMendixObject firstWhere(IContext c, String entityName,
 			Object member, String value) throws CoreException
@@ -354,18 +300,6 @@ public class ORM
 		return items.get(0);
 	}
 
-	public synchronized static void releaseOldLocks()
-	{
-		Set<ISession> activeSessions = new HashSet<ISession>(Core.getActiveSessions()); //Lookup with Ord(log(n)) instead of Ord(n).
-		
-		List<Long> tbrm = new ArrayList<Long>();
-		for (Entry<Long, ISession> lock : locks.entrySet()) 
-			if (!activeSessions.contains(lock.getValue()))
-				tbrm.add(lock.getKey());
-		
-		for(Long key : tbrm)
-			locks.remove(key);		
-	}
 
 	public static IMendixObject getLastChangedByUser(IContext context,
 			IMendixObject thing) throws CoreException
