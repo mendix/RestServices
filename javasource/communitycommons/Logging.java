@@ -62,4 +62,8 @@ public class Logging
 	{
 		timers.put(timerName, new Date().getTime());
 	}
+	
+	public static void createLogNode(String logNode) {
+		Core.getLogger(logNode);
+	}
 }

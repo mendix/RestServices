@@ -1,10 +1,11 @@
 package communitycommons;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.security.DigestException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,6 +14,7 @@ import java.util.UUID;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
@@ -23,37 +25,62 @@ import javax.swing.text.html.HTML;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.parser.ParserDelegator;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.owasp.validator.html.AntiSamy;
-import org.owasp.validator.html.CleanResults;
-import org.owasp.validator.html.Policy;
 
-import com.google.common.base.Function;
 import com.mendix.core.Core;
 import com.mendix.systemwideinterfaces.MendixRuntimeException;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.systemwideinterfaces.core.IMendixObject;
 
-import communitycommons.proxies.XSSPolicy;
+import communitycommons.proxies.SanitizerPolicy;
+import static communitycommons.proxies.SanitizerPolicy.BLOCKS;
+import static communitycommons.proxies.SanitizerPolicy.FORMATTING;
+import static communitycommons.proxies.SanitizerPolicy.IMAGES;
+import static communitycommons.proxies.SanitizerPolicy.LINKS;
+import static communitycommons.proxies.SanitizerPolicy.STYLES;
+import static communitycommons.proxies.SanitizerPolicy.TABLES;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import org.owasp.html.PolicyFactory;
+import org.owasp.html.Sanitizers;
 import system.proxies.FileDocument;
 
 public class StringUtils
 {
 
+	static final Map<String, PolicyFactory> SANITIZER_POLICIES = new ImmutableMap.Builder<String, PolicyFactory>()
+		.put(BLOCKS.name(), Sanitizers.BLOCKS)
+		.put(FORMATTING.name(), Sanitizers.FORMATTING)
+		.put(IMAGES.name(), Sanitizers.IMAGES)
+		.put(LINKS.name(), Sanitizers.LINKS)
+		.put(STYLES.name(), Sanitizers.STYLES)
+		.put(TABLES.name(), Sanitizers.TABLES)
+		.build();
+
 	public static final String	HASH_ALGORITHM	= "SHA-256";
-	
+
 	public static String hash(String value, int length) throws NoSuchAlgorithmException, DigestException
 	{
-		byte[] inBytes = value.getBytes();
-	    byte[] outBytes = new byte[length];
+		byte[] inBytes = value.getBytes(StandardCharsets.UTF_8);
+		byte[] outBytes = new byte[length];
 
 	    MessageDigest alg=MessageDigest.getInstance(HASH_ALGORITHM);
 	    alg.update(inBytes);
 
 	    alg.digest(outBytes, 0, length);
-	    return String.valueOf(outBytes);
+
+	    StringBuilder hexString = new StringBuilder();
+	    for (int i = 0; i < outBytes.length; i++) {
+	    String hex = Integer.toHexString(0xff & outBytes[i]);
+	    if(hex.length() == 1) hexString.append('0');
+	        hexString.append(hex);
+	    }
+	    
+	    return hexString.toString();
 	}
 
 	public static String regexReplaceAll(String haystack, String needleRegex,
@@ -76,7 +103,7 @@ public class StringUtils
 		}
 		return org.apache.commons.lang3.StringUtils.leftPad(value, amount.intValue(), fillCharacter);
 	}
-	
+
 	public static String rightPad(String value, Long amount, String fillCharacter)
 	{
 		if (fillCharacter == null || fillCharacter.length() == 0) {
@@ -92,46 +119,40 @@ public class StringUtils
 
 	public static String substituteTemplate(final IContext context, String template,
 			final IMendixObject substitute, final boolean HTMLEncode, final String datetimeformat) {
-		return regexReplaceAll(template, "\\{(@)?([\\w./]+)\\}", new Function<MatchResult, String>() {
-
-			@Override
-			public String apply(MatchResult match)
-			{
-				String value;
-				String path = match.group(2);
-				if (match.group(1) != null)
-					value = String.valueOf(Core.getConfiguration().getConstantValue(path));
-				else {
-					try
-					{
-						value = ORM.getValueOfPath(context, substitute, path,	datetimeformat);
-					}
-					catch (Exception e)
-					{
-						throw new RuntimeException(e);
-					}
+		return regexReplaceAll(template, "\\{(@)?([\\w./]+)\\}", (MatchResult match) -> {
+			String value;
+			String path = match.group(2);
+			if (match.group(1) != null)
+				value = String.valueOf(Core.getConfiguration().getConstantValue(path));
+			else {
+				try
+				{
+					value = ORM.getValueOfPath(context, substitute, path,	datetimeformat);
 				}
-				return HTMLEncode ? HTMLEncode(value) : value;
+				catch (Exception e)
+				{
+					throw new RuntimeException(e);
+				}
 			}
-			
+			return HTMLEncode ? HTMLEncode(value) : value;
 		});
 	}
-	
+
 	public static String regexReplaceAll(String source, String regexString, Function<MatchResult, String> replaceFunction)  {
 		if (source == null || source.trim().isEmpty()) // avoid NPE's, save CPU
 			return "";
-	
+
 		StringBuffer resultString = new StringBuffer();
 		Pattern regex = Pattern.compile(regexString);
 		Matcher regexMatcher = regex.matcher(source);
-		
+
 		while (regexMatcher.find()) {
 			MatchResult match = regexMatcher.toMatchResult();
-			String value = replaceFunction.apply(match); 
+			String value = replaceFunction.apply(match);
 			regexMatcher.appendReplacement(resultString, Matcher.quoteReplacement(value));
 		}
 		regexMatcher.appendTail(resultString);
-	
+
 		return resultString.toString();
 	}
 
@@ -149,7 +170,7 @@ public class StringUtils
 	{
 		if (encoded == null)
 			return null;
-		return new String(Base64.decodeBase64(encoded.getBytes()));
+		return new String(Base64.getDecoder().decode(encoded.getBytes()));
 	}
 
 	public static void base64DecodeToFile(IContext context, String encoded, FileDocument targetFile) throws Exception
@@ -158,16 +179,21 @@ public class StringUtils
 			throw new IllegalArgumentException("Source file is null");
 		if (encoded == null)
 			throw new IllegalArgumentException("Source data is null");
+
+		byte [] decoded = Base64.getDecoder().decode(encoded.getBytes());
 		
-		byte [] decoded = Base64.decodeBase64(encoded.getBytes());
-		Core.storeFileDocumentContent(context, targetFile.getMendixObject(), new ByteArrayInputStream(decoded));
+		try  (
+			ByteArrayInputStream bais = new ByteArrayInputStream(decoded);
+		) {
+			Core.storeFileDocumentContent(context, targetFile.getMendixObject(), bais);
+		}
 	}
 
 	public static String base64Encode(String value)
 	{
 		if (value == null)
 			return null;
-		return new String(Base64.encodeBase64(value.getBytes()));
+		return Base64.getEncoder().encodeToString(value.getBytes());
 	}
 
 	public static String base64EncodeFile(IContext context, FileDocument file) throws IOException
@@ -176,25 +202,37 @@ public class StringUtils
 			throw new IllegalArgumentException("Source file is null");
 		if (!file.getHasContents())
 			throw new IllegalArgumentException("Source file has no contents!");
-		InputStream f = Core.getFileDocumentContent(context, file.getMendixObject());
-		return new String(Base64.encodeBase64(IOUtils.toByteArray(f)));		
+		
+		try (
+			InputStream f = Core.getFileDocumentContent(context, file.getMendixObject())
+		) {
+			return Base64.getEncoder().encodeToString(IOUtils.toByteArray(f));
+		}
 	}
 
 	public static String stringFromFile(IContext context, FileDocument source) throws IOException
 	{
 		if (source == null)
 			return null;
-		InputStream f = Core.getFileDocumentContent(context, source.getMendixObject());
-		return org.apache.commons.io.IOUtils.toString(f);
+		try (
+			InputStream f = Core.getFileDocumentContent(context, source.getMendixObject());
+		) {
+			return IOUtils.toString(f, StandardCharsets.UTF_8);
+		}
 	}
 
-	public static void stringToFile(IContext context, String value, FileDocument destination) 
+	public static void stringToFile(IContext context, String value, FileDocument destination) throws IOException
 	{
 		if (destination == null)
 			throw new IllegalArgumentException("Destination file is null");
 		if (value == null)
 			throw new IllegalArgumentException("Value to write is null");
-		Core.storeFileDocumentContent(context, destination.getMendixObject(), IOUtils.toInputStream(value));
+		
+		try (
+			InputStream is = IOUtils.toInputStream(value, StandardCharsets.UTF_8)
+		) {
+			Core.storeFileDocumentContent(context, destination.getMendixObject(), is);
+		}
 	}
 
 	public static String HTMLToPlainText(String html) throws IOException
@@ -202,72 +240,40 @@ public class StringUtils
 		if (html == null)
 			return "";
 		final StringBuffer result = new StringBuffer();
-		
-    HTMLEditorKit.ParserCallback callback = 
+
+    HTMLEditorKit.ParserCallback callback =
       new HTMLEditorKit.ParserCallback () {
         @Override
 				public void handleText(char[] data, int pos) {
             result.append(data); //TODO: needds to be html entity decode?
         }
-        
+
         @Override
         public void handleComment(char[] data, int pos) {
         	//Do nothing
         }
-        
+
         @Override
 				public void handleError(String errorMsg, int pos) {
         	//Do nothing
         }
-        
+
         @Override
         public void handleSimpleTag(HTML.Tag tag, MutableAttributeSet a, int pos) {
         		 if (tag == HTML.Tag.BR)
         			 result.append("\r\n");
         }
-        
+
         @Override
         public void handleEndTag(HTML.Tag tag, int pos){
      		 if (tag == HTML.Tag.P)
     			 result.append("\r\n");
         }
     };
-    
-    new ParserDelegator().parse(new StringReader(html), callback, true);
-		
-    return result.toString();
-	}
 
-	public static String XSSSanitize(String html, XSSPolicy policy)
-			throws Exception {
-		if (html == null)
-			return "";
-		// return HtmlSanitizer.sanitize(html);
-		String policyString = policy == null ? "tinymce" : policy.toString()
-				.toLowerCase();
-		return XSSSanitize(html, policyString);
-	}
-	
-	public static String XSSSanitize(String html, String policyString)
-			throws Exception {
-		if (html == null)
-			return "";
-		if (policyString == null)
-			throw new Exception("Unable to perform XSS sanitization: policyString is null");
-		
-		String filename = Core.getConfiguration().getResourcesPath() + File.separator
-				+ "communitycommons" + File.separator + "antisamy"
-				+ File.separator + "antisamy-" + policyString + "-1.4.4.xml";
-	
-		AntiSamy as = new AntiSamy(); // Create AntiSamy object
-		Policy p = Policy.getInstance(filename);
-		try {
-			CleanResults cr = as.scan(html, p, AntiSamy.SAX);
-			return cr.getCleanHTML();
-		} catch (Exception e) {
-			throw new Exception("Unable to perform XSS sanitization: "
-					+ e.getMessage(), e);
-		}
+    new ParserDelegator().parse(new StringReader(html), callback, true);
+
+    return result.toString();
 	}
 
 	private static final String ALPHA_CAPS  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -276,10 +282,14 @@ public class StringUtils
     private static final String SPL_CHARS   = "!@#$%^&*_=+-/";
 	/**
 	 * Returns a random strong password containing at least one number, lowercase character, uppercase character and strange character
-	 * @param length
+	 * @param minLen Minimum length
+	 * @param maxLen Maximum length
+	 * @param noOfCAPSAlpha Number of capitals
+	 * @param noOfDigits Number of digits
+	 * @param noOfSplChars Number of special characters
 	 * @return
 	 */
-	public static String randomStrongPassword(int minLen, int maxLen, int noOfCAPSAlpha, 
+	public static String randomStrongPassword(int minLen, int maxLen, int noOfCAPSAlpha,
             int noOfDigits, int noOfSplChars) {
         if(minLen > maxLen)
             throw new IllegalArgumentException("Min. Length > Max. Length!");
@@ -317,7 +327,7 @@ public class StringUtils
 
 	public static String encryptString(String key, String valueToEncrypt) throws Exception
 	{
-		if (valueToEncrypt == null) 
+		if (valueToEncrypt == null)
 			return null;
 		if (key == null)
 			throw new MendixRuntimeException("Key should not be empty");
@@ -328,8 +338,8 @@ public class StringUtils
 		c.init(Cipher.ENCRYPT_MODE, k);
 		byte[] encryptedData = c.doFinal(valueToEncrypt.getBytes());
 		byte[] iv = c.getIV();
-		
-		return new String(Base64.encodeBase64(iv)) + ";" + new String(Base64.encodeBase64(encryptedData));
+
+		return Base64.getEncoder().encodeToString(iv) + ";" + Base64.getEncoder().encodeToString(encryptedData);
 	}
 
 	public static String decryptString(String key, String valueToDecrypt) throws Exception
@@ -345,8 +355,8 @@ public class StringUtils
 		String[] s = valueToDecrypt.split(";");
 		if (s.length < 2) //Not an encrypted string, just return the original value.
 			return valueToDecrypt;
-		byte[] iv = Base64.decodeBase64(s[0].getBytes());
-		byte[] encryptedData = Base64.decodeBase64(s[1].getBytes());
+		byte[] iv = Base64.getDecoder().decode(s[0].getBytes());
+		byte[] encryptedData = Base64.getDecoder().decode(s[1].getBytes());
 		c.init(Cipher.DECRYPT_MODE, k, new IvParameterSpec(iv));
 		return new String(c.doFinal(encryptedData));
 	}
@@ -360,23 +370,53 @@ public class StringUtils
 			mac.update(valueToEncrypt.getBytes("UTF-8"));
 			byte[] hmacData = mac.doFinal();
 
-            return new String(Base64.encodeBase64(hmacData));
+            return Base64.getEncoder().encodeToString(hmacData);
 		}
-		catch (Exception e) {
+		catch (UnsupportedEncodingException | IllegalStateException | InvalidKeyException | NoSuchAlgorithmException e) {
 			throw new RuntimeException("CommunityCommons::EncodeHmacSha256::Unable to encode: " + e.getMessage(), e);
 		}
 	}
-	
+
 	public static String escapeHTML(String input) {
-		return input.replace("\"", "&quot;")
-					.replace("&", "&amp;")
+		return input.replace("&", "&amp;")
 					.replace("<", "&lt;")
 					.replace(">", "&gt;")
+					.replace("\"", "&quot;")
 					.replace("'", "&#39;");// notice this one: for xml "&#39;" would be "&apos;" (http://blogs.msdn.com/b/kirillosenkov/archive/2010/03/19/apos-is-in-xml-in-html-use-39.aspx)
 		// OWASP also advises to escape "/" but give no convincing reason why: https://www.owasp.org/index.php/XSS_%28Cross_Site_Scripting%29_Prevention_Cheat_Sheet
 	}
 
 	public static String regexQuote(String unquotedLiteral) {
 		return Pattern.quote(unquotedLiteral);
+	}
+
+	public static String substringBefore(String str, String separator) {
+		return org.apache.commons.lang3.StringUtils.substringBefore(str, separator);
+	}
+
+	public static String substringBeforeLast(String str, String separator) {
+		return org.apache.commons.lang3.StringUtils.substringBeforeLast(str, separator);
+	}
+
+	public static String substringAfter(String str, String separator) {
+		return org.apache.commons.lang3.StringUtils.substringAfter(str, separator);
+	}
+
+	public static String substringAfterLast(String str, String separator) {
+		return org.apache.commons.lang3.StringUtils.substringAfterLast(str, separator);
+	}
+
+	public static String sanitizeHTML(String html, List<SanitizerPolicy> policyParams) {
+		PolicyFactory policyFactory = null;
+		
+		for (SanitizerPolicy param : policyParams) {
+			policyFactory = (policyFactory == null) ? SANITIZER_POLICIES.get(param.name()) : policyFactory.and(SANITIZER_POLICIES.get(param.name()));
+		}
+
+		return sanitizeHTML(html, policyFactory);
+	}
+
+	public static String sanitizeHTML(String html, PolicyFactory policyFactory) {
+		return policyFactory.sanitize(html);
 	}
 }
