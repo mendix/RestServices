@@ -13,7 +13,7 @@ import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
 
 /**
- * Ends the current transaction.
+ * Commit the transaction, this will end this transaction or remove a save point from the queue if the transaction is nested
  */
 public class EndTransaction extends CustomJavaAction<java.lang.Boolean>
 {

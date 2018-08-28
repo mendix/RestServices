@@ -9,17 +9,17 @@
 
 package communitycommons.actions;
 
-import com.mendix.systemwideinterfaces.core.IMendixObject;
-import communitycommons.Misc;
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
+import communitycommons.Misc;
+import com.mendix.systemwideinterfaces.core.IMendixObject;
 
 /**
  * Identical to executeMicroflowAsUser, but takes 2 arguments
  */
 public class executeMicroflowAsUser_2 extends CustomJavaAction<java.lang.String>
 {
-	private java.lang.String microflowName;
+	private java.lang.String microflow;
 	private java.lang.String username;
 	private java.lang.Boolean sudoContext;
 	private java.lang.String arg1name;
@@ -27,10 +27,10 @@ public class executeMicroflowAsUser_2 extends CustomJavaAction<java.lang.String>
 	private java.lang.String arg2name;
 	private IMendixObject arg2value;
 
-	public executeMicroflowAsUser_2(IContext context, java.lang.String microflowName, java.lang.String username, java.lang.Boolean sudoContext, java.lang.String arg1name, IMendixObject arg1value, java.lang.String arg2name, IMendixObject arg2value)
+	public executeMicroflowAsUser_2(IContext context, java.lang.String microflow, java.lang.String username, java.lang.Boolean sudoContext, java.lang.String arg1name, IMendixObject arg1value, java.lang.String arg2name, IMendixObject arg2value)
 	{
 		super(context);
-		this.microflowName = microflowName;
+		this.microflow = microflow;
 		this.username = username;
 		this.sudoContext = sudoContext;
 		this.arg1name = arg1name;
@@ -43,7 +43,7 @@ public class executeMicroflowAsUser_2 extends CustomJavaAction<java.lang.String>
 	public java.lang.String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		Object res = Misc.executeMicroflowAsUser(getContext(), microflowName, username, sudoContext, arg1name, arg1value, arg2name, arg2value);
+		Object res = Misc.executeMicroflowAsUser(getContext(), microflow, username, sudoContext, arg1name, arg1value, arg2name, arg2value);
 		return res == null ? null : res.toString();
 		// END USER CODE
 	}
