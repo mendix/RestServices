@@ -41,9 +41,11 @@ public class GetFileContentsFromResource extends CustomJavaAction<Boolean>
 		File myFile = new File(Core.getConfiguration().getResourcesPath() + 
 				File.separator + filename);
 
-		FileInputStream fis = new FileInputStream(myFile);
-		Core.storeFileDocumentContent(getContext(), fileDocument.getMendixObject(), 
-				filename, fis);
+		try (
+			FileInputStream fis = new FileInputStream(myFile)
+		) {
+			Core.storeFileDocumentContent(getContext(), fileDocument.getMendixObject(), filename, fis);
+		}
 		
 		return true;
 		// END USER CODE

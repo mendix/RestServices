@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
@@ -16,14 +17,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Arrays;
 
-import org.apache.commons.fileupload.util.LimitedInputStream;
 import org.apache.commons.io.IOUtils;
-import org.apache.pdfbox.Overlay;
-import org.apache.pdfbox.exceptions.COSVisitorException;
+import org.apache.pdfbox.multipdf.Overlay;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.util.PDFMergerUtility;
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
 
 import system.proxies.FileDocument;
 import system.proxies.Language;
@@ -40,10 +39,15 @@ import com.mendix.systemwideinterfaces.core.IMendixObject;
 import com.mendix.systemwideinterfaces.core.ISession;
 import com.mendix.systemwideinterfaces.core.IUser;
 
+import static communitycommons.proxies.constants.Constants.getMergeMultiplePdfs_MaxAtOnce;
+import java.util.ArrayList;
+
 
 public class Misc
 {
-	
+
+	static final ILogNode LOG = Core.getLogger("communitycommons");
+
 	public abstract static class IterateCallback<T1, T2>
   {
       boolean start = false;
@@ -132,31 +136,43 @@ public class Misc
 		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 		
 		if (postdata != null) {
-			IOUtils.copy(new ByteArrayInputStream(postdata.getBytes("UTF-8")), conn.getOutputStream());
+			try ( 
+				OutputStream os = conn.getOutputStream()
+			) {
+				IOUtils.copy(new ByteArrayInputStream(postdata.getBytes("UTF-8")), os);
+			}
 		}
-		IOUtils.closeQuietly(conn.getOutputStream());
-
-		// Get the response
-		String result = new String(IOUtils.toString(conn.getInputStream()));
-		IOUtils.closeQuietly(conn.getInputStream());
+	
+		String result;
+		try (
+			InputStream is = conn.getInputStream()
+		) {
+			// Get the response
+			result = new String(IOUtils.toString(is));
+		}
+		
 		return result;
 	}
 
 	public static Boolean duplicateFileDocument(IContext context, IMendixObject toClone, IMendixObject target) throws Exception
-	{
-		if (toClone == null || target == null)
-			throw new Exception("No file to clone or to clone into provided");
-		
-		 MendixBoolean hasContents = (MendixBoolean) toClone.getMember(context, FileDocument.MemberNames.HasContents.toString());
-     if (!hasContents.getValue(context))
-    	 return false;
+    {
+        if (toClone == null || target == null)
+            throw new Exception("No file to clone or to clone into provided");
 
-		InputStream inputStream = Core.getFileDocumentContent(context, toClone); 
-	
-		Core.storeFileDocumentContent(context, target, (String) toClone.getValue(context, system.proxies.FileDocument.MemberNames.Name.toString()),  inputStream); 
-		return true;
-	}
-	
+         MendixBoolean hasContents = (MendixBoolean) toClone.getMember(context, FileDocument.MemberNames.HasContents.toString());
+         
+        if (!hasContents.getValue(context))
+        	return false;
+
+     	try (
+     		InputStream inputStream = Core.getFileDocumentContent(context, toClone)
+     	) {
+            Core.storeFileDocumentContent(context, target, (String) toClone.getValue(context, system.proxies.FileDocument.MemberNames.Name.toString()),  inputStream); 
+        }
+     	
+        return true;
+    }
+
   public static Boolean duplicateImage(IContext context, IMendixObject toClone, IMendixObject target, int thumbWidth, int thumbHeight) throws Exception
   {
       if (toClone == null || target == null)
@@ -166,68 +182,79 @@ public class Misc
       if (!hasContents.getValue(context))
           return false;
 
-      InputStream inputStream = Core.getImage(context, toClone, false); 
-
-      Core.storeImageDocumentContent(context, target, inputStream, thumbWidth, thumbHeight);
+      try (
+		  InputStream inputStream = Core.getImage(context, toClone, false) 
+	  ) {
+    	  Core.storeImageDocumentContent(context, target, inputStream, thumbWidth, thumbHeight);
+      }
 
       return true;
   }
 
-	public static Boolean storeURLToFileDocument(IContext context, String url, IMendixObject __document, String filename) throws Exception
-	{
-        if (__document == null || url == null || filename == null)
-            throw new Exception("No document, filename or URL provided");
-        
-        final int MAX_REMOTE_FILESIZE = 1024 * 1024 * 200; //maxium of 200 MB
-        URL imageUrl = new URL(url);
-        URLConnection connection = imageUrl.openConnection();
-        //we connect in 20 seconds or not at all
-        connection.setConnectTimeout(20000);
-        connection.setReadTimeout(20000);
-        connection.connect();
+	 public static Boolean storeURLToFileDocument(IContext context, String url, IMendixObject __document, String filename) throws IOException {
 
-        //check on forehand the size of the remote file, we don't want to kill the server by providing a 3 terabyte image. 
-        if (connection.getContentLength() > MAX_REMOTE_FILESIZE) { //maximum of 200 mb 
-            throw new IllegalArgumentException("MxID: importing image, wrong filesize of remote url: " + connection.getContentLength()+ " (max: " + String.valueOf(MAX_REMOTE_FILESIZE)+ ")");
-        } else if (connection.getContentLength() < 0) {
-            // connection has not specified content length, wrap stream in a LimitedInputStream
-            LimitedInputStream limitStream = new LimitedInputStream(connection.getInputStream(), MAX_REMOTE_FILESIZE) {                
-                @Override
-                protected void raiseError(long pSizeMax, long pCount) throws IOException {
-                    throw new IllegalArgumentException("MxID: importing image, wrong filesize of remote url (max: " + String.valueOf(MAX_REMOTE_FILESIZE)+ ")");                    
-                }
-            };
-            Core.storeFileDocumentContent(context, __document, filename, limitStream);
-        } else {
-            // connection has specified correct content length, read the stream normally
-            //NB; stream is closed by the core
-            Core.storeFileDocumentContent(context, __document, filename, connection.getInputStream());
-        }
-        
-        return true;
+		ILogNode LOG = Core.getLogger("CommunityCommons");
+		if (__document == null || url == null || filename == null) {
+			throw new IllegalArgumentException("No document, filename or URL provided");
+		}
+
+		final int MAX_REMOTE_FILESIZE = 1024 * 1024 * 200; //maximum of 200 MB
+		try {
+			URL imageUrl = new URL(url);
+			URLConnection connection = imageUrl.openConnection();
+			//we connect in 20 seconds or not at all
+			connection.setConnectTimeout(20000);
+			connection.setReadTimeout(20000);
+			connection.connect();
+
+			int contentLength = connection.getContentLength();
+
+			//check on forehand the size of the remote file, we don't want to kill the server by providing a 3 terabyte image.
+			LOG.trace(String.format("Remote filesize: %d", contentLength));
+
+			if (contentLength > MAX_REMOTE_FILESIZE) { //maximum of 200 mb
+				throw new IllegalArgumentException(String.format("Wrong filesize of remote url: %d (max: %d)", contentLength, MAX_REMOTE_FILESIZE));
+			}
+
+			InputStream fileContentIS;
+			try (InputStream connectionInputStream = connection.getInputStream()) {
+				if (contentLength >= 0) {
+					fileContentIS = connectionInputStream;
+				} else { // contentLength is negative or unknown
+					LOG.trace(String.format("Unknown content length; limiting to %d", MAX_REMOTE_FILESIZE));
+					byte[] outBytes = new byte[MAX_REMOTE_FILESIZE];
+					int actualLength = IOUtils.read(connectionInputStream, outBytes, 0, MAX_REMOTE_FILESIZE);
+					fileContentIS = new ByteArrayInputStream(Arrays.copyOf(outBytes, actualLength));
+				}
+				Core.storeFileDocumentContent(context, __document, filename, fileContentIS);
+			}
+		} catch (IOException ioe) {
+			LOG.error(String.format("A problem occurred while reading from URL %s: %s", url, ioe.getMessage()));
+			throw ioe;
+		}
+
+		return true;
 	}
 
     public static Long getFileSize(IContext context, IMendixObject document)
     {
         final int BUFFER_SIZE = 4096;
         long size = 0;
-
+        
         if (context != null) {
-            InputStream inputStream = null;
-            byte[] buffer = new byte[BUFFER_SIZE];
-            
-            try {
-                inputStream = Core.getFileDocumentContent(context, document);
-                int i;
-                while ((i = inputStream.read(buffer)) != -1) 
-                    size += i;
-            } catch (IOException e) {
-                Core.getLogger("FileUtil").error(
-                        "Couldn't determine filesize of FileDocument '" + document.getId()); 
-            } finally {
-                IOUtils.closeQuietly(inputStream);
-            }
-        }
+        	byte[] buffer = new byte[BUFFER_SIZE];
+	      
+        	try ( 
+    			InputStream inputStream = Core.getFileDocumentContent(context, document)
+			) {
+	          int i;
+	          while ((i = inputStream.read(buffer)) != -1) 
+	              size += i;
+        	} catch (IOException e) {
+	          Core.getLogger("FileUtil").error(
+	                  "Couldn't determine filesize of FileDocument '" + document.getId()); 
+        	} 
+	  }
         
         return size;
     }
@@ -241,22 +268,30 @@ public class Misc
 		if (username == null || username.isEmpty()) {
 			throw new RuntimeException("Assertion: No username provided");
 		}
-		
-		ISession session = getSessionFor(context, username);
-		
-		IContext c = session.createContext();
-		if (sudoContext) {
-			return c.getSudoContext();
+
+        // Session does not have a user when it's a scheduled event.
+		if (context.getSession().getUser() != null && username.equals(context.getSession().getUser().getName()))
+		{
+			return context;
 		}
+		else
+		{
+			ISession session = getSessionFor(context, username);
 		
-		return c;
+			IContext c = session.createContext();
+			if (sudoContext) {
+				return c.createSudoClone();
+			}
+		
+			return c;
+		}
 	}
 
 	private static ISession getSessionFor(IContext context, String username) {
 		ISession session  = Core.getActiveSession(username);
 		
 		if (session == null) {
-			IContext newContext = context.getSession().createContext().getSudoContext();
+			IContext newContext = context.getSession().createContext().createSudoClone();
 			newContext.startTransaction();
 			try {
 				session = initializeSessionForUser(newContext, username);
@@ -342,19 +377,19 @@ public class Misc
 			}
 			
 			final long currenttasknr = tasknr.incrementAndGet();
-			LOG.info("[RunMicroflowAsyncInQueue] Scheduling task #" + currenttasknr);
+			LOG.debug("[RunMicroflowAsyncInQueue] Scheduling task #" + currenttasknr);
 			
 			executor.submit(new Runnable() {
 				@Override
 				public void run() {
-					LOG.info("[RunMicroflowAsyncInQueue] Running task #" + currenttasknr);
+					LOG.debug("[RunMicroflowAsyncInQueue] Running task #" + currenttasknr);
 					try {
 						command.run();
 					} catch(RuntimeException e) {
 						LOG.error("[RunMicroflowAsyncInQueue] Execution of task #" + currenttasknr + " failed: " + e.getMessage(), e);
 						throw e; //single thread executor will continue, even if an exception is thrown.
 					}
-					LOG.info("[RunMicroflowAsyncInQueue] Completed task #" + currenttasknr + ". Tasks left: " + (tasknr.get() - currenttasknr));
+					LOG.debug("[RunMicroflowAsyncInQueue] Completed task #" + currenttasknr + ". Tasks left: " + (tasknr.get() - currenttasknr));
 				}
 			});
 		}
@@ -383,10 +418,6 @@ public class Misc
 	public static Boolean runMicroflowInBackground(final IContext context, final String microflowName,
 			final IMendixObject paramObject)
 	{
-		final ISession session = context.getSession();
-		
-		if (paramObject != null)
-			session.retain(paramObject);
 			
 		MFSerialExecutor.instance().execute(new Runnable() {
 
@@ -406,11 +437,7 @@ public class Misc
 				{
 					throw new RuntimeException("Failed to run Async: "+ microflowName + ": " + e.getMessage(), e);
 				}
-				
-				finally {
-					if (paramObject != null)
-						session.release(paramObject.getId());
-				}
+
 			}
 			
 		});
@@ -448,7 +475,7 @@ public class Misc
 	}
 
 	public static Boolean executeMicroflowInBatches(String xpath, final String microflow, int batchsize, boolean waitUntilFinished, boolean asc) throws CoreException, InterruptedException {
-		Core.getLogger("communitycommons").info("[ExecuteInBatches] Starting microflow batch '" + microflow + "...");
+		Core.getLogger("communitycommons").debug("[ExecuteInBatches] Starting microflow batch '" + microflow + "...");
 		
 		return executeInBatches(xpath, new BatchState(new IBatchItemHandler() {
 
@@ -464,7 +491,7 @@ public class Misc
 	public static Boolean recommitInBatches(String xpath, int batchsize,
 			boolean waitUntilFinished, Boolean asc) throws CoreException, InterruptedException
 	{
-		Core.getLogger("communitycommons").info("[ExecuteInBatches] Starting recommit batch...");
+		Core.getLogger("communitycommons").debug("[ExecuteInBatches] Starting recommit batch...");
 		
 		return executeInBatches(xpath, new BatchState(new IBatchItemHandler() {
 
@@ -485,7 +512,7 @@ public class Misc
 		int loop = (int) Math.ceil(((float)count) / ((float)batchsize));
 		
 		
-		Core.getLogger("communitycommons").info(
+		Core.getLogger("communitycommons").debug(
 				"[ExecuteInBatches] Starting batch on ~ " + count + " objects divided over ~ " + loop + " batches. "
 				+ (waitUntilFinished ? "Waiting until the batch has finished..." : "")
 		);
@@ -522,7 +549,7 @@ public class Misc
 					
 					//no new objects found :)
 					if (objects.size() == 0) {
-						Core.getLogger("communitycommons").info("[ExecuteInBatches] Succesfully finished batch on ~" + count + " objects.");
+						Core.getLogger("communitycommons").debug("[ExecuteInBatches] Succesfully finished batch on ~" + count + " objects.");
 						batchState.setState(1);
 					}
 					else {
@@ -578,34 +605,38 @@ public class Misc
 		return languageList.get(0);		
 	}
 	
-	public static boolean mergePDF(IContext context,List<FileDocument> documents,  IMendixObject mergedDocument ){
-		
-		int i = 0;
-		PDFMergerUtility  mergePdf = new  PDFMergerUtility();
-		for(i=0; i < documents.size(); i++)
-		{
-		    FileDocument file = documents.get(i);
-		    InputStream content = Core.getFileDocumentContent(context, file.getMendixObject());
-		    mergePdf.addSource(content);            
-		}
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		mergePdf.setDestinationStream(out);
-		try {
-			mergePdf.mergeDocuments();
-		} catch (COSVisitorException e) {
-			throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
-			
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
-			
-		}
-		 
-		Core.storeFileDocumentContent(context, mergedDocument, new ByteArrayInputStream(out.toByteArray()));
+	public static boolean mergePDF(IContext context,List<FileDocument> documents,  IMendixObject mergedDocument ) throws IOException{
+		if (getMergeMultiplePdfs_MaxAtOnce() <= 0 || documents.size() <= getMergeMultiplePdfs_MaxAtOnce()) {
 
-		out.reset();
-		documents.clear();
-		
-		return true;	
+				List<InputStream> sources = new ArrayList<>();
+				try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+					PDFMergerUtility  mergePdf = new  PDFMergerUtility();
+
+					for(FileDocument file: documents) {
+						InputStream content = Core.getFileDocumentContent(context, file.getMendixObject());
+						sources.add(content);
+					}
+					mergePdf.addSources(sources);
+					mergePdf.setDestinationStream(out);
+					mergePdf.mergeDocuments(null);
+
+					Core.storeFileDocumentContent(context, mergedDocument, new ByteArrayInputStream(out.toByteArray()));
+
+					out.reset();
+					documents.clear();
+				} catch (IOException e) {
+					throw new RuntimeException("Failed to merge documents" + e.getMessage(), e);
+				} finally { // We cannot use try-with-resources because streams would be prematurely closed
+					for (InputStream is : sources) {
+						is.close();
+					}
+				}
+
+				return true;
+		} else {
+			throw new IllegalArgumentException("MergeMultiplePDFs: you cannot merge more than " + getMergeMultiplePdfs_MaxAtOnce() +
+								" PDF files at once. You are trying to merge " + documents.size() + " PDF files.");
+		}
 	}
 	
 
@@ -616,57 +647,38 @@ public class Misc
 	 * @param overlayMendixObject The document containing the overlay
 	 * @return boolean
 	 * @throws IOException
-	 * @throws COSVisitorException
 	 */
-	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject) throws IOException, COSVisitorException {
-		
-		ILogNode logger = Core.getLogger("OverlayPdf"); 
-		logger.trace("Overlay PDF start, retrieve overlay PDF");
-		PDDocument overlayDoc = PDDocument.load(Core.getFileDocumentContent(context, overlayMendixObject));
-		int overlayPageCount = overlayDoc.getNumberOfPages();
-		PDPage lastOverlayPage = (PDPage)overlayDoc.getDocumentCatalog().getAllPages().get(overlayPageCount - 1);
+	public static boolean overlayPdf(IContext context, IMendixObject generatedDocumentMendixObject, IMendixObject overlayMendixObject, boolean onTopOfContent) throws IOException {
+		LOG.trace("Retrieve generated document");
+		try (
+			PDDocument inputDoc = PDDocument.load(Core.getFileDocumentContent(context, generatedDocumentMendixObject));
+			PDDocument overlayDoc = PDDocument.load(Core.getFileDocumentContent(context, overlayMendixObject));
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		) {
+			LOG.trace("Overlay PDF start, retrieve overlay PDF");
 
-		logger.trace("Retrieve generated document");
-		PDDocument offerteDoc = PDDocument.load(Core.getFileDocumentContent(context, generatedDocumentMendixObject));
+			LOG.trace("Perform overlay");
+			Overlay overlay = new Overlay();
+			overlay.setInputPDF(inputDoc);
+			overlay.setDefaultOverlayPDF(overlayDoc);
+			if (onTopOfContent == true){
+				overlay.setOverlayPosition(Overlay.Position.FOREGROUND);
+			} else {
+				overlay.setOverlayPosition(Overlay.Position.BACKGROUND);
+			}
 
-		int pageCount = offerteDoc.getNumberOfPages();
-		if (logger.isTraceEnabled()) {
-			logger.trace("Number of pages in overlay: " + overlayPageCount + ", in generated document: " + pageCount);						
-		}
-		if (pageCount > overlayPageCount) {
-			logger.trace("Duplicate last overlay page to match number of pages");
-			for (int i = overlayPageCount; i < pageCount; i++) {
-				overlayDoc.importPage(lastOverlayPage);
-			}
-		} else if (overlayPageCount > pageCount) {
-			logger.trace("Delete unnecessary pages from the overlay to match number of pages");
-			for (int i = pageCount; i < overlayPageCount; i++) {
-				overlayDoc.removePage(i);
+			LOG.trace("Save result in output stream");
+
+			overlay.overlay(new HashMap<>()).save(baos);
+
+			LOG.trace("Duplicate result in input stream");
+			try ( InputStream overlayedContent = new ByteArrayInputStream(baos.toByteArray()) ) {
+				LOG.trace("Store result in original document");
+				Core.storeFileDocumentContent(context, generatedDocumentMendixObject, overlayedContent);
 			}
 		}
-				
-		logger.trace("Perform overlay");
-		Overlay overlay = new Overlay();
-		overlay.overlay(offerteDoc,overlayDoc);
-		
-		logger.trace("Save result in output stream");
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		overlayDoc.save(baos);
-		
-		logger.trace("Duplicate result in input stream");
-		InputStream overlayedContent = new ByteArrayInputStream(baos.toByteArray());
-		
-		logger.trace("Store result in original document");
-		Core.storeFileDocumentContent(context, generatedDocumentMendixObject, overlayedContent);
-		
-		logger.trace("Close PDFs");
-		overlayDoc.close();
-		offerteDoc.close();
-		
-		logger.trace("Overlay PDF end");
+
+		LOG.trace("Overlay PDF end");
 		return true;
-		
 	}
-	
-	
 }

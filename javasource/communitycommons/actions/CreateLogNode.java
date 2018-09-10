@@ -11,22 +11,26 @@ package communitycommons.actions;
 
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
+import communitycommons.Logging;
 
 /**
- * Commit the transaction, this will end this transaction or remove a save point from the queue if the transaction is nested
+ * 
  */
-public class EndTransaction extends CustomJavaAction<Boolean>
+public class CreateLogNode extends CustomJavaAction<Boolean>
 {
-	public EndTransaction(IContext context)
+	private String LogNode;
+
+	public CreateLogNode(IContext context, String LogNode)
 	{
 		super(context);
+		this.LogNode = LogNode;
 	}
 
 	@Override
 	public Boolean executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		getContext().endTransaction();
+		Logging.createLogNode(LogNode);
 		return true;
 		// END USER CODE
 	}
@@ -37,7 +41,7 @@ public class EndTransaction extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "EndTransaction";
+		return "CreateLogNode";
 	}
 
 	// BEGIN EXTRA CODE

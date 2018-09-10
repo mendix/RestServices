@@ -38,10 +38,13 @@ public class FileDocumentFromFile extends CustomJavaAction<Boolean>
 		this.fileDocument = __fileDocument == null ? null : system.proxies.FileDocument.initialize(getContext(), __fileDocument);
 
 		// BEGIN USER CODE
-		FileInputStream fis = new FileInputStream(new File(this.file));
-		Core.storeFileDocumentContent(getContext(), fileDocument.getMendixObject(), 
+		try (
+			FileInputStream fis = new FileInputStream(new File(this.file))
+		) {
+			Core.storeFileDocumentContent(getContext(), fileDocument.getMendixObject(), 
 				this.file, fis);
-		fis.close();
+		}
+		
 		return true;
 		// END USER CODE
 	}

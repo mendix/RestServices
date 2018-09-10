@@ -255,6 +255,15 @@ public class XPath<T>
 			return "//" + this.entity + "[" + builder.toString() + "]";
 		return "//" + this.entity;
 	}
+
+	public XPath<T> gt(Object attr, Object valuecomparison) {
+		return compare(attr,">=", valuecomparison);
+	}
+
+	public XPath<T> gt(Object... pathAndValue) {
+		assertEven(pathAndValue);
+		return compare(Arrays.copyOfRange(pathAndValue, 0, pathAndValue.length -1), ">=", pathAndValue[pathAndValue.length -1 ]);
+	}
 	
 	private void assertEmptyStack() throws IllegalStateException
 	{
@@ -313,7 +322,7 @@ public class XPath<T>
 			return res;
 		} else {
 			synchronized (Core.getMetaObject(entity)) {
-				IContext synchronizedContext = context.getSession().createContext().getSudoContext();
+				IContext synchronizedContext = context.getSession().createContext().createSudoClone();
 				try {
 					synchronizedContext.startTransaction();
 					res = createProxy(synchronizedContext, proxyClass, XPath.create(synchronizedContext, entity).findOrCreate(keysAndValues));

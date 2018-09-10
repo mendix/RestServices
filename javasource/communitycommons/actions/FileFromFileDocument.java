@@ -41,12 +41,14 @@ public class FileFromFileDocument extends CustomJavaAction<Boolean>
 
 		// BEGIN USER CODE
 		File output = new File(targetFile);
-		FileOutputStream fos = new FileOutputStream(output);
-		InputStream is = Core.getFileDocumentContent(getContext(), 
-				fileDocument.getMendixObject());
-		IOUtils.copy(is, fos);
-		fos.close();
-		is.close();
+		
+		try (
+			FileOutputStream fos = new FileOutputStream(output);
+			InputStream is = Core.getFileDocumentContent(getContext(), fileDocument.getMendixObject());
+		) {
+			IOUtils.copy(is, fos);
+		}
+		
 		return true;
 		// END USER CODE
 	}

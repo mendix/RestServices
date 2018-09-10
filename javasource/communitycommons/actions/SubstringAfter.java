@@ -11,23 +11,28 @@ package communitycommons.actions;
 
 import com.mendix.systemwideinterfaces.core.IContext;
 import com.mendix.webui.CustomJavaAction;
+import communitycommons.StringUtils;
 
 /**
- * Commit the transaction, this will end this transaction or remove a save point from the queue if the transaction is nested
+ * Gets the substring after the first occurrence of a separator.
  */
-public class EndTransaction extends CustomJavaAction<Boolean>
+public class SubstringAfter extends CustomJavaAction<String>
 {
-	public EndTransaction(IContext context)
+	private String str;
+	private String separator;
+
+	public SubstringAfter(IContext context, String str, String separator)
 	{
 		super(context);
+		this.str = str;
+		this.separator = separator;
 	}
 
 	@Override
-	public Boolean executeAction() throws Exception
+	public String executeAction() throws Exception
 	{
 		// BEGIN USER CODE
-		getContext().endTransaction();
-		return true;
+		return StringUtils.substringAfter(str, separator);
 		// END USER CODE
 	}
 
@@ -37,7 +42,7 @@ public class EndTransaction extends CustomJavaAction<Boolean>
 	@Override
 	public String toString()
 	{
-		return "EndTransaction";
+		return "SubstringAfter";
 	}
 
 	// BEGIN EXTRA CODE
