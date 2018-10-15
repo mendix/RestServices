@@ -71,9 +71,10 @@ import communitycommons.StringUtils;
 public class RestConsumer {
 	private static ThreadLocal<HttpResponseData> lastConsumeError = new ThreadLocal<HttpResponseData>();
 	
+    private static IdleConnectionMonitorThread idleConnectionMonitorThread = null;
 	private static MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
     static HttpClient client = new HttpClient(connectionManager);
-
+    
 	static {
 		connectionManager.getParams().setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION, 10);
 	}
@@ -739,5 +740,16 @@ public class RestConsumer {
 			return null;
 		lastConsumeError.set(null);
 		return res.asRequestResult(context);
+	}
+
+	public static boolean startIdleConnectionMonitor(long interval, long maxIdleTime)
+	{
+		if (idleConnectionMonitorThread != null)
+			return false;
+		
+		idleConnectionMonitorThread = new IdleConnectionMonitorThread(connectionManager, interval, maxIdleTime);
+		idleConnectionMonitorThread.start();
+		
+		return true;
 	}
 }
