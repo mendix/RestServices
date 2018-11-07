@@ -148,6 +148,7 @@ public class UserActionsRegistrar
     registrator.registerUserAction(restservices.actions.setResponseHeader.class);
     registrator.registerUserAction(restservices.actions.setResponseStatus.class);
     registrator.registerUserAction(restservices.actions.setRestBasePath.class);
+    registrator.registerUserAction(restservices.actions.startIdleConnectionMonitor.class);
     registrator.registerUserAction(restservices.actions.StartMicroflowServiceJava.class);
     registrator.registerUserAction(restservices.actions.StartPublishesServicesJava.class);
     registrator.registerUserAction(restservices.actions.throwRestServiceException.class);
