@@ -132,6 +132,7 @@ public class UserActionsRegistrar
     registrator.registerUserAction(restservices.actions.LoadService.class);
     registrator.registerUserAction(restservices.actions.post.class);
     registrator.registerUserAction(restservices.actions.post2.class);
+    registrator.registerUserAction(restservices.actions.postString.class);
     registrator.registerUserAction(restservices.actions.postWithResult.class);
     registrator.registerUserAction(restservices.actions.publishDelete.class);
     registrator.registerUserAction(restservices.actions.publishUpdate.class);
