@@ -447,8 +447,15 @@ public class RestConsumer {
 		});
 	}
 	
+	// Marcel Groeneweg Overload to keep existing stuff running OK.
 	public static RequestResult request(final IContext context, HttpMethod method, String url, 
 			final IMendixObject source, final IMendixObject target, final boolean asFormData) throws Exception {
+		return request(context, method, url, source, target, asFormData, null);
+	}
+	
+	// Marcel Groeneweg Added requestData parameter
+	public static RequestResult request(final IContext context, HttpMethod method, String url, 
+			final IMendixObject source, final IMendixObject target, final boolean asFormData, final String requestData) throws Exception {
 		lastConsumeError.set(null);
 		
 		if (context == null)
@@ -468,9 +475,15 @@ public class RestConsumer {
 		Map<String, String> params = new HashMap<String, String>();
 		RequestEntity requestEntity = null;
 		
-		final JSONObject data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source, false);
+		// Marcel Groeneweg use requestData string if available, use existing logic otherwise.
+		final JSONObject data;
+		if (requestData != null) {
+			data = new JSONObject(requestData);
+		} else {
+			data = source == null ? null : JsonSerializer.writeMendixObjectToJson(context, source, false);
+		}
 		
-		boolean appendDataToUrl = source != null && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE);
+		boolean appendDataToUrl = (source != null || requestData != null) && (asFormData || method == HttpMethod.GET || method == HttpMethod.DELETE);
 		url = updateUrlPathComponentsWithParams(url, appendDataToUrl, isFileSource, data, params);
 			
 		//Setup request entity for file
@@ -480,8 +493,13 @@ public class RestConsumer {
 		else if (source != null && asFormData && (isFileSource || hasFileParts)) {
 			requestEntity = buildMultiPartEntity(context, source, params);
 		}
-		else if (asFormData && !isFileSource)
+		else if (asFormData && !isFileSource) {
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
+			// Marcel Groeneweg also log body here.
+			if (RestServices.LOGCONSUME.isDebugEnabled() && data != null) {
+				RestServices.LOGCONSUME.debug("[Body JSON Data] " + data.toString());
+			}
+		}
 		else if (data != null && data.length() != 0) {				
 			requestEntity = new StringRequestEntity(data.toString(4), RestServices.CONTENTTYPE_APPLICATIONJSON, RestServices.UTF8);
 			if (RestServices.LOGCONSUME.isDebugEnabled()) {
