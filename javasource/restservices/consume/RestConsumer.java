@@ -496,7 +496,7 @@ public class RestConsumer {
 		else if (asFormData && !isFileSource) {
 			requestHeaders.put(RestServices.HEADER_CONTENTTYPE, RestServices.CONTENTTYPE_FORMENCODED);
 			// Marcel Groeneweg also log body here.
-			if (RestServices.LOGCONSUME.isDebugEnabled()) {
+			if (RestServices.LOGCONSUME.isDebugEnabled() && data != null) {
 				RestServices.LOGCONSUME.debug("[Body JSON Data] " + data.toString());
 			}
 		}
