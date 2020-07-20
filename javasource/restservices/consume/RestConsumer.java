@@ -272,6 +272,9 @@ public class RestConsumer {
 			else if (request instanceof PutMethod && requestEntity != null)
 				((PutMethod)request).setRequestEntity(requestEntity);
 		
+			if (!org.apache.commons.lang.StringUtils.isEmpty(System.getProperty("http.proxyHost"))) {
+				client.getHostConfiguration().setProxy(System.getProperty("http.proxyHost"), Integer.valueOf(System.getProperty("http.proxyPort")));
+			}
 			int status = client.executeMethod(request);
 			Header responseEtag = request.getResponseHeader(RestServices.HEADER_ETAG);
 			
