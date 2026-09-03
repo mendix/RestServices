@@ -73,7 +73,7 @@ public class ConsistencyChecker {
 			return "'" + accessRole + "' doesn't seem to be an existing userrole or microflow";
 		
 		if (Utils.getArgumentTypes(accessRole).size() != 0)
-			return "The authentication microflow '" + accessRole + "' shouldn' t take any arguments";
+			return "The authentication microflow '" + accessRole + "' shouldn't take any arguments";
 		
 		IDataType rt = Core.getReturnType(accessRole);
 		if (rt.getType() != DataTypeEnum.Object || !Core.isSubClassOf(User.entityName, rt.getObjectType()))
