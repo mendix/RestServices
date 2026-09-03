@@ -141,7 +141,7 @@ public class JSONSchemaBuilder {
 		case Decimal:
 			return orNull(new JSONObject().put("type", "string")); 
 		default:
-			throw new IllegalStateException("Unspported primitive type:  " + type);
+			throw new IllegalStateException("Unsupported primitive type:  " + type);
 		}
 	}
 	
